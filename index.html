@@ -6,6 +6,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MXGN Portfolio</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Make the header sticky */
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background-color: #111;
+            z-index: 1000;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        /* Add some padding to the body to prevent content from hiding behind the fixed header */
+        body {
+            padding-top: 100px;
+        }
+
+        /* Style adjustments for links in the header */
+        header h1 {
+            font-size: 2.5rem;
+            margin: 0;
+        }
+
+        header h1 a {
+            color: #fff;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 
@@ -19,13 +48,13 @@
 -->
     
     <header id="home">
-        <h1>MXGN</h1>
+        <h1><a href="#home">MXGN</a></h1>
         <p>3D Design</p>
     </header>
 
     <section id="about">
-        <h2>about</h2>
-        <p>I am a 3D Generalist born in the East of Germany. </p>
+        <h2>About</h2>
+        <p>I am a 3D Generalist born in the East of Germany.</p>
     </section>
 
     <section id="projects">
