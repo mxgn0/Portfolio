@@ -14,7 +14,7 @@
             width: 100%;
             background-color: #111;
             z-index: 1000;
-            padding: 15px;
+            padding: 10px;
             text-align: center;
         }
         
@@ -110,6 +110,14 @@
             const playbackRate = scrollPosition / maxScroll;
 
             video.currentTime = video.duration * playbackRate; // Adjust video position based on scroll
+        });
+        // Pause video initially, it will only play when scrolling
+        video.pause();
+
+        // Recalculate video size on window resize to keep it scaled
+        window.addEventListener('resize', function() {
+            video.style.width = window.innerWidth + 'px';
+            video.style.height = window.innerHeight + 'px';
         });
     </script>
 
