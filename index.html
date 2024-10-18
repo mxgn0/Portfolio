@@ -108,7 +108,7 @@
 
         // Listen for scroll events to control the video playback
         window.addEventListener('scroll', () => {
-            const scrollPosition = window.pageYOffset;
+            const scrollPosition = window.scrollY;
             const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
 
             // Calculate playback position based on scroll position
