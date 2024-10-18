@@ -14,7 +14,7 @@
             width: 100%;
             background-color: #111;
             z-index: 1000;
-            padding: 20px;
+            padding: 10px;
             text-align: center;
         }
         
@@ -103,19 +103,24 @@
     <script>
         const video = document.getElementById('background-video');
 
-        // Scroll event listener
-        window.addEventListener('scroll', function () {
-            const scrollPosition = window.scrollY;
-            const maxScroll = document.body.scrollHeight - window.innerHeight;
-            const playbackRate = scrollPosition / maxScroll;
-
-            video.currentTime = video.duration * playbackRate; // Adjust video position based on scroll
-        });
-        // Pause video initially, it will only play when scrolling
+        // Ensure video is paused initially
         video.pause();
 
-        // Recalculate video size on window resize to keep it scaled
-        window.addEventListener('resize', function() {
+        // Listen for scroll events to control the video playback
+        window.addEventListener('scroll', () => {
+            const scrollPosition = window.pageYOffset;
+            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+
+            // Calculate playback position based on scroll position
+            const scrollFraction = scrollPosition / maxScroll;
+            const videoTime = scrollFraction * video.duration;
+
+            // Set the video's current time to the calculated time
+            video.currentTime = videoTime;
+        });
+
+        // Adjust video size on window resize
+        window.addEventListener('resize', () => {
             video.style.width = window.innerWidth + 'px';
             video.style.height = window.innerHeight + 'px';
         });
