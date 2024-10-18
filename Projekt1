@@ -1,0 +1,32 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projekt 1 - Max's Portfolio</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>Projekt 1: 3D Animation</h1>
+    </header>
+
+    <section>
+        <h2>Beschreibung</h2>
+        <p>Dieses Projekt zeigt eine komplexe 3D-Animation, die ich für einen Kunden entwickelt habe...</p>
+    </section>
+
+    <section>
+        <h2>Bilder</h2>
+        <img src="projekt1-bild1.jpg" alt="Projekt 1 Bild 1" />
+        <img src="projekt1-bild2.jpg" alt="Projekt 1 Bild 2" />
+    </section>
+
+    <footer>
+        <p><a href="index_onepage_updated.html">Zurück zur Startseite</a></p>
+    </footer>
+
+</body>
+</html>
