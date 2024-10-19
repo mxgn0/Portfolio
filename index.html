@@ -24,16 +24,16 @@
             margin: 0;
         }
         
-        /* Fullscreen video background */
+        /* Fullscreen video background, scalable and centered */
         #background-video {
             position: fixed;
             top: 50%;
             left: 50%;
-            width: auto;
+            width: 100vw;
             height: 100vh;
             z-index: -1;
-            object-fit: contain;
-            object-position: top center; /* Align video to the top and bottom */
+            transform: translate(-50%, -50%);
+            object-fit: cover; /* Ensures the video is fully visible without being cropped */
         }
         
         /* Style adjustments for links in the header */
@@ -144,7 +144,7 @@
 
         // Adjust video size on window resize
         window.addEventListener('resize', () => {
-            video.style.width = 'auto';
+            video.style.width = '100vw';
             video.style.height = '100vh';
         });
     </script>
