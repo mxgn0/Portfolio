@@ -129,7 +129,27 @@
         const videos = [
             'images/4erHead_Houdini_PoseHead_00.Redshift_ROP1.mp4'
         ];
+        
+        // Scroll event listener to control the video playback
+        window.addEventListener('scroll', () => {
+            const scrollPosition = window.pageYOffset;
+            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
 
+            // Calculate playback position based on scroll position
+            const scrollFraction = scrollPosition / maxScroll;
+            const videoTime = scrollFraction * video.duration;
+
+            // Set the video's current time to the calculated time
+            video.currentTime = videoTime;
+
+            // Change to the next video when scrolling is complete
+            if (scrollFraction >= 1) {
+                currentVideoIndex = (currentVideoIndex + 1) % videos.length;
+                video.pause();
+                video.src = videos[currentVideoIndex];
+            }
+        });
+        
         // Adjust video size on window resize
         window.addEventListener('resize', () => {
             video.style.height = '100vh';
