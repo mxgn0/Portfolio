@@ -142,12 +142,7 @@
             // Set the video's current time to the calculated time
             video.currentTime = videoTime;
 
-            // Change to the next video when scrolling is complete
-            if (scrollFraction >= 1) {
-                currentVideoIndex = (currentVideoIndex + 0) % videos.length;
-                video.pause();
-                video.src = videos[currentVideoIndex];
-            }
+            
         });
         
         // Adjust video size on window resize
