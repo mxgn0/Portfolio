@@ -3,6 +3,7 @@ body {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     background-color: #111;
     color: #fff;
+    text-shadow: 0 0 1px black;
     text-transform: uppercase; /* Setzt alles in Großbuchstaben */
     font-weight: 300; /* Macht die Schrift dünn */
 }
