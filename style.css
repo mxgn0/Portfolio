@@ -36,6 +36,9 @@ section h2, section p {
 footer {
     padding: 20px;
     background-color: #000;
+    background: linear-gradient(to top, #222, 0%, #222, 80%, transparent 100%);
+    background-filter: blur(1rem);
     text-align: center;
     font-weight: 300; /* Dünn */
+    
 }
