@@ -178,41 +178,77 @@
             <a href="https://www.youtube.com/@mxgn0" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><i class="fab fa-youtube"></i>
         </div>
         <p>&copy; 2025 MXGN. All rights reserved.</p>
-        
-        /* Extra Scrollflaeche */
-        <div style="height: 2500px;"></div>
     </footer>
 
-    <script>
+   <script>
     const video = document.getElementById('background-video');
 
-    // Feste Scrollstrecke in Pixeln, über die das Video von 0 bis Ende laufen soll
-    const SCROLL_RANGE = 2000; // kannst du nach Gefühl anpassen (1000, 3000, ...)
+    let virtualScroll = 0;      // unsere "virtuelle" Scrollposition
+    let maxScroll = 0;          // reale Scrollstrecke der Seite
+    let totalRange = 0;         // virtuelle Gesamtstrecke (Seite + Extra)
+    let extraRange = 0;         // wie weit man "über den Footer hinaus" scrollen kann
 
-    function updateVideo() {
-        const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    function recalcRanges() {
+        const doc = document.documentElement;
+        maxScroll = doc.scrollHeight - window.innerHeight;
 
-        // 0–1 begrenzen
-        let scrollFraction = scrollPosition / SCROLL_RANGE;
-        scrollFraction = Math.max(0, Math.min(scrollFraction, 1));
+        // Wie viel virtueller "Extra-Weg" nach unten?
+        // Kannst du nach Gefühl anpassen (z.B. *2, *1.5, fester Wert etc.)
+        extraRange = window.innerHeight;   // z.B. eine Bildschirmhöhe
+        totalRange = maxScroll + extraRange;
 
-        if (video.duration) {
-            video.currentTime = scrollFraction * video.duration;
-        }
+        // Sicherstellen, dass virtualScroll in der Range bleibt
+        if (virtualScroll > totalRange) virtualScroll = totalRange;
+        if (virtualScroll < 0) virtualScroll = 0;
+
+        updateScrollAndVideo();
     }
 
-    // Beim Scrollen Video-Zeit aktualisieren
-    window.addEventListener('scroll', updateVideo);
+    function updateScrollAndVideo() {
+        if (!video.duration || totalRange <= 0) return;
 
-    // Falls die Dauer erst später bekannt ist (Video lädt), initial einmal setzen
-    video.addEventListener('loadedmetadata', updateVideo);
+        // Reale Seitenposition = virtuelle Position, aber bei Footer geklemmt
+        const realScroll = Math.min(Math.max(virtualScroll, 0), maxScroll);
+        window.scrollTo(0, realScroll);
 
-    // Optional: bei Resize neu berechnen (nicht zwingend nötig)
+        // Videozeit = 0..duration über 0..totalRange
+        const fraction = Math.min(Math.max(virtualScroll / totalRange, 0), 1);
+        video.currentTime = fraction * video.duration;
+    }
+
+    // Wheel-Event steuert unsere virtuelle Scrollposition
+    window.addEventListener('wheel', (event) => {
+        // Wichtig: passive: false (siehe unten im addEventListener)
+        event.preventDefault();
+
+        const delta = event.deltaY;
+
+        // Virtuelle Scrollposition anpassen
+        virtualScroll += delta;
+        if (virtualScroll < 0) virtualScroll = 0;
+        if (virtualScroll > totalRange) virtualScroll = totalRange;
+
+        updateScrollAndVideo();
+    }, { passive: false });
+
+    // Wenn Videometadaten geladen sind
+    video.addEventListener('loadedmetadata', () => {
+        recalcRanges();
+        updateScrollAndVideo();
+    });
+
+    // Bei Größenänderung des Fensters neu berechnen
     window.addEventListener('resize', () => {
-        video.style.height = '100vh';
-        updateVideo();
+        recalcRanges();
+        updateScrollAndVideo();
+    });
+
+    // Initial
+    window.addEventListener('load', () => {
+        recalcRanges();
     });
 </script>
+
 
 
 </body>
