@@ -205,6 +205,37 @@
         // WICHTIG: kein preventDefault -> Seite scrollt weiterhin normal
     }, { passive: true });
 
+    let lastTouchY = null;
+
+window.addEventListener('touchstart', (event) => {
+    if (event.touches.length === 1) {
+        lastTouchY = event.touches[0].clientY;
+    }
+}, { passive: true });
+
+window.addEventListener('touchmove', (event) => {
+    if (!video.duration) return;
+    if (event.touches.length !== 1) return;
+
+    const currentY = event.touches[0].clientY;
+    if (lastTouchY === null) {
+        lastTouchY = currentY;
+        return;
+    }
+
+    // Delta berechnen (invertiert gegenüber wheel)
+    const deltaY = (lastTouchY - currentY); // Finger runter = Video vorwärts
+    lastTouchY = currentY;
+
+    videoPos += deltaY * SCROLL_SENSITIVITY;
+
+    if (videoPos < 0) videoPos = 0;
+    if (videoPos > 1) videoPos = 1;
+
+    video.currentTime = videoPos * video.duration;
+}, { passive: true });
+
+       
     // Bei Resize Video-Höhe beibehalten
     window.addEventListener('resize', () => {
         video.style.height = '100vh';
