@@ -182,53 +182,76 @@
    <script>
     const video = document.getElementById('background-video');
 
-    let virtualScroll = 0;      // 0 .. totalRange
-    let maxScroll = 0;          // reale Scrollstrecke
-    let totalRange = 0;         // maxScroll + extraRange
-    let extraRange = 0;         // zusätzlicher Bereich nur fürs Video
+    // Wie weit darf man "unter dem Footer" virtuell weiter scrollen?
+    let extraRange = window.innerHeight; // eine Bildschirmhöhe nach Gefühl
+    let bottomExtra = 0;                 // aktueller Extra-Weg am Seitenende (0..extraRange)
 
-    const SCROLL_SENSITIVITY = 0.4;  // kleiner = langsamer
-    const SMOOTHING_FACTOR = 0.15;   // 0.05 = sehr langsam, 0.3 = schneller
+    let targetFraction = 0;              // 0..1, wohin das Video soll
+    let currentFraction = 0;             // 0..1, was aktuell abgespielt wird
+    const SMOOTHING_FACTOR = 0.12;       // Glättung der Bewegung (0.05 = sehr weich, 0.3 = direkter)
 
-    let targetFraction = 0;     // Zielposition 0..1 (aus Scroll)
-    let currentFraction = 0;    // tatsächliche Videoposition 0..1 (wird geglättet)
+    function recalcExtraRange() {
+        extraRange = window.innerHeight; // z.B. immer eine Viewport-Höhe
+        updateTargetFraction();
+    }
 
-    function recalcRanges() {
+    function updateTargetFraction() {
         const doc = document.documentElement;
-        maxScroll = doc.scrollHeight - window.innerHeight;
+        const scrollY = window.scrollY || doc.scrollTop;
+        const maxScroll = doc.scrollHeight - window.innerHeight;
 
-        // Extra-Weg nur fürs Video (kannst du nach Gefühl anpassen)
-        extraRange = window.innerHeight; // eine Bildschirmhöhe
-        totalRange = maxScroll + extraRange;
+        if (maxScroll <= 0) {
+            targetFraction = 0;
+            return;
+        }
 
-        virtualScroll = Math.min(Math.max(virtualScroll, 0), totalRange);
+        // virtuelle Position: normale Scrollposition + zusätzlicher "Weg" am Ende
+        const virtualScroll = scrollY + bottomExtra;
+        const totalRange = maxScroll + extraRange;
 
-        updateScrollAndTarget();
+        let fraction = virtualScroll / totalRange;
+        fraction = Math.min(Math.max(fraction, 0), 1);
+
+        targetFraction = fraction;
     }
 
-    function updateScrollAndTarget() {
-        if (totalRange <= 0) return;
+    // Native Scroll-Events vom Browser
+    window.addEventListener('scroll', () => {
+        const doc = document.documentElement;
+        const scrollY = window.scrollY || doc.scrollTop;
+        const maxScroll = doc.scrollHeight - window.innerHeight;
 
-        // reale Seite: am Footer klemmen
-        const realScroll = Math.min(Math.max(virtualScroll, 0), maxScroll);
-        window.scrollTo(0, realScroll);
+        const atBottom = scrollY >= maxScroll - 1;
 
-        // Ziel-Fraction für das Video
-        targetFraction = Math.min(Math.max(virtualScroll / totalRange, 0), 1);
-    }
+        // Wenn wir nicht mehr ganz unten sind, hat dieses Extra-Stück nichts mehr zu suchen
+        if (!atBottom && bottomExtra !== 0) {
+            bottomExtra = 0;
+        }
 
-    // Mausrad / Trackpad steuert virtuelle Scrollposition
+        updateTargetFraction();
+    });
+
+    // Mausrad / Trackpad: nur für den "Extra-Weg" am Seitenende
     window.addEventListener('wheel', (event) => {
-        event.preventDefault();
+        const doc = document.documentElement;
+        const scrollY = window.scrollY || doc.scrollTop;
+        const maxScroll = doc.scrollHeight - window.innerHeight;
+        const atBottom = scrollY >= maxScroll - 1;
 
-        const delta = event.deltaY * SCROLL_SENSITIVITY;
-        virtualScroll += delta;
-        virtualScroll = Math.min(Math.max(virtualScroll, 0), totalRange);
+        // Nur wenn wir wirklich am Seitenende sind, nutzt das Rad noch das Video-Extra
+        if (atBottom) {
+            // deltaY > 0 = nach unten scrollen, deltaY < 0 = nach oben
+            bottomExtra += event.deltaY;
 
-        updateScrollAndTarget();
-    }, { passive: false });
+            if (bottomExtra < 0) bottomExtra = 0;
+            if (bottomExtra > extraRange) bottomExtra = extraRange;
 
-    // Render-Loop: gleicht currentFraction langsam an targetFraction an
+            updateTargetFraction();
+        }
+        // Wichtig: KEIN preventDefault -> Browser darf ganz normal scrollen
+    }, { passive: true });
+
+    // Animations-Loop zum sanften Angleichen
     function render() {
         if (video.duration) {
             currentFraction += (targetFraction - currentFraction) * SMOOTHING_FACTOR;
@@ -238,22 +261,23 @@
     }
 
     video.addEventListener('loadedmetadata', () => {
-        recalcRanges();
-        // Startwerte setzen
+        // Startwerte
         currentFraction = 0;
         targetFraction = 0;
         video.currentTime = 0;
+        recalcExtraRange();
     });
 
     window.addEventListener('resize', () => {
-        recalcRanges();
+        recalcExtraRange();
     });
 
     window.addEventListener('load', () => {
-        recalcRanges();
+        recalcExtraRange();
         render(); // Render-Loop starten
     });
 </script>
+
 
 
 
