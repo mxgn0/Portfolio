@@ -36,23 +36,9 @@ section h2, section p {
 footer {
     padding: 20px;
     background-color:  rgba(0,0,0,0); /* vollständig transparent */
-    /* background: linear-gradient(to top, #222, 0%, #222, 80%, transparent 100%); */
+    background: linear-gradient(to top, #222, 0%, #222, 0%, transparent 100%);
     backdrop-filter: blur(1rem);
     text-align: center;
     font-weight: 300; /* Dünn */
     
-}
-footer::before {
-    content: '';
-    position: absolute;
-    inset: 0; /* top:0; right:0; bottom:0; left:0 */
-    z-index: -1; /* hinter dem Footer-Text */
-
-    /* der eigentliche Blur */
-    backdrop-filter: blur(1rem);
-    -webkit-backdrop-filter: blur(1rem);
-
-    /* Maske / Verlauf: unten voll sichtbar, nach oben ausfaden */
-    mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
-    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
 }
