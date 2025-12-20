@@ -188,71 +188,79 @@
    <script>
     const video = document.getElementById('background-video');
 
-    let virtualScroll = 0;      // unsere "virtuelle" Scrollposition
-    let maxScroll = 0;          // reale Scrollstrecke der Seite
-    let totalRange = 0;         // virtuelle Gesamtstrecke (Seite + Extra)
-    let extraRange = 0;         // wie weit man "über den Footer hinaus" scrollen kann
+    let virtualScroll = 0;      // 0 .. totalRange
+    let maxScroll = 0;          // reale Scrollstrecke
+    let totalRange = 0;         // maxScroll + extraRange
+    let extraRange = 0;         // zusätzlicher Bereich nur fürs Video
+
+    const SCROLL_SENSITIVITY = 0.4;  // kleiner = langsamer
+    const SMOOTHING_FACTOR = 0.15;   // 0.05 = sehr langsam, 0.3 = schneller
+
+    let targetFraction = 0;     // Zielposition 0..1 (aus Scroll)
+    let currentFraction = 0;    // tatsächliche Videoposition 0..1 (wird geglättet)
 
     function recalcRanges() {
         const doc = document.documentElement;
         maxScroll = doc.scrollHeight - window.innerHeight;
 
-        // Wie viel virtueller "Extra-Weg" nach unten?
-        // Kannst du nach Gefühl anpassen (z.B. *2, *1.5, fester Wert etc.)
-        extraRange = window.innerHeight;   // z.B. eine Bildschirmhöhe
+        // Extra-Weg nur fürs Video (kannst du nach Gefühl anpassen)
+        extraRange = window.innerHeight; // eine Bildschirmhöhe
         totalRange = maxScroll + extraRange;
 
-        // Sicherstellen, dass virtualScroll in der Range bleibt
-        if (virtualScroll > totalRange) virtualScroll = totalRange;
-        if (virtualScroll < 0) virtualScroll = 0;
+        virtualScroll = Math.min(Math.max(virtualScroll, 0), totalRange);
 
-        updateScrollAndVideo();
+        updateScrollAndTarget();
     }
 
-    function updateScrollAndVideo() {
-        if (!video.duration || totalRange <= 0) return;
+    function updateScrollAndTarget() {
+        if (totalRange <= 0) return;
 
-        // Reale Seitenposition = virtuelle Position, aber bei Footer geklemmt
+        // reale Seite: am Footer klemmen
         const realScroll = Math.min(Math.max(virtualScroll, 0), maxScroll);
         window.scrollTo(0, realScroll);
 
-        // Videozeit = 0..duration über 0..totalRange
-        const fraction = Math.min(Math.max(virtualScroll / totalRange, 0), 1);
-        video.currentTime = fraction * video.duration;
+        // Ziel-Fraction für das Video
+        targetFraction = Math.min(Math.max(virtualScroll / totalRange, 0), 1);
     }
 
-    // Wheel-Event steuert unsere virtuelle Scrollposition
+    // Mausrad / Trackpad steuert virtuelle Scrollposition
     window.addEventListener('wheel', (event) => {
-        // Wichtig: passive: false (siehe unten im addEventListener)
         event.preventDefault();
 
-        const delta = event.deltaY;
-
-        // Virtuelle Scrollposition anpassen
+        const delta = event.deltaY * SCROLL_SENSITIVITY;
         virtualScroll += delta;
-        if (virtualScroll < 0) virtualScroll = 0;
-        if (virtualScroll > totalRange) virtualScroll = totalRange;
+        virtualScroll = Math.min(Math.max(virtualScroll, 0), totalRange);
 
-        updateScrollAndVideo();
+        updateScrollAndTarget();
     }, { passive: false });
 
-    // Wenn Videometadaten geladen sind
+    // Render-Loop: gleicht currentFraction langsam an targetFraction an
+    function render() {
+        if (video.duration) {
+            currentFraction += (targetFraction - currentFraction) * SMOOTHING_FACTOR;
+            video.currentTime = currentFraction * video.duration;
+        }
+        requestAnimationFrame(render);
+    }
+
     video.addEventListener('loadedmetadata', () => {
         recalcRanges();
-        updateScrollAndVideo();
+        // Startwerte setzen
+        currentFraction = 0;
+        targetFraction = 0;
+        video.currentTime = 0;
     });
 
-    // Bei Größenänderung des Fensters neu berechnen
     window.addEventListener('resize', () => {
         recalcRanges();
-        updateScrollAndVideo();
     });
 
-    // Initial
     window.addEventListener('load', () => {
         recalcRanges();
+        render(); // Render-Loop starten
     });
 </script>
+
 
 
 
