@@ -57,12 +57,12 @@ footer::before {
     mask-image: linear-gradient(to top,
         rgba(0,0,0,1) 0%,
         rgba(0,0,0,1) 10%,
-        rgba(0,0,0,0) 100%
+        rgba(0,0,0,0) 50%
     );
     -webkit-mask-image: linear-gradient(to top,
         rgba(0,0,0,1) 0%,
         rgba(0,0,0,1) 10%,
-        rgba(0,0,0,0) 100%
+        rgba(0,0,0,0) 50%
     );
 }
 
