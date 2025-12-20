@@ -181,73 +181,54 @@
         <p>&copy; 2025 MXGN. All rights reserved.</p>
     </footer>
 
-   <script>
+  <script>
     const video = document.getElementById('background-video');
 
-    // 0..1: Position im Video (absolut, unabhängig von der Seitenposition)
+    // 0..1: Position im Video (absolut)
     let videoPos = 0;
 
-    // Wie empfindlich reagiert das Video auf Scroll?
-    // kleiner = langsamer / feiner
-    const SCROLL_SENSITIVITY = 0.0001; // nach Gefühl anpassen
+    // Desktop-Scroll-Empfindlichkeit
+    const SCROLL_SENSITIVITY = 0.0001;
 
-    // Wheel-Scroll steuert NUR das Video (Seite scrollt trotzdem normal weiter)
-    window.addEventListener('wheel', (event) => {
-        if (!video.duration) return;
+    // einfache Erkennung: Maus/Trackpad vs. Touch
+    const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
 
-        // deltaY > 0 = nach unten scrollen (Video vorwärts)
-        // deltaY < 0 = nach oben scrollen (Video rückwärts)
-        videoPos += event.deltaY * SCROLL_SENSITIVITY;
+    if (!isCoarsePointer) {
+        // ---------- DESKTOP: Scroll steuert das Video ----------
 
-        // auf 0..1 begrenzen
-        if (videoPos < 0) videoPos = 0;
-        if (videoPos > 1) videoPos = 1;
+        window.addEventListener('wheel', (event) => {
+            if (!video.duration) return;
 
-        video.currentTime = videoPos * video.duration;
-        // WICHTIG: kein preventDefault -> Seite scrollt weiterhin normal
-    }, { passive: true });
+            videoPos += event.deltaY * SCROLL_SENSITIVITY;
 
-    let lastTouchY = null;
+            if (videoPos < 0) videoPos = 0;
+            if (videoPos > 1) videoPos = 1;
 
-window.addEventListener('touchstart', (event) => {
-    if (event.touches.length === 1) {
-        lastTouchY = event.touches[0].clientY;
+            video.currentTime = videoPos * video.duration;
+        }, { passive: true });
+
+        video.addEventListener('loadedmetadata', () => {
+            // Desktop: am Anfang stehen
+            videoPos = 0;
+            video.currentTime = 0;
+        });
+
+    } else {
+        // ---------- MOBILE (iOS / Android): einfach abspielen ----------
+
+        video.addEventListener('loadedmetadata', () => {
+            // sicherheitshalber nochmal muten & play versuchen
+            video.muted = true;
+            video.play().catch(() => {
+                // falls ein Browser doch Interaktion verlangt, tut er einfach nichts;
+                // der Nutzer kann dann einmal antippen und es läuft.
+            });
+        });
     }
-}, { passive: true });
 
-window.addEventListener('touchmove', (event) => {
-    if (!video.duration) return;
-    if (event.touches.length !== 1) return;
-
-    const currentY = event.touches[0].clientY;
-    if (lastTouchY === null) {
-        lastTouchY = currentY;
-        return;
-    }
-
-    // Delta berechnen (invertiert gegenüber wheel)
-    const deltaY = (lastTouchY - currentY); // Finger runter = Video vorwärts
-    lastTouchY = currentY;
-
-    videoPos += deltaY * SCROLL_SENSITIVITY;
-
-    if (videoPos < 0) videoPos = 0;
-    if (videoPos > 1) videoPos = 1;
-
-    video.currentTime = videoPos * video.duration;
-}, { passive: true });
-
-       
-    // Bei Resize Video-Höhe beibehalten
+    // Video-Größe bei Resize beibehalten
     window.addEventListener('resize', () => {
         video.style.height = '100vh';
-    });
-
-    // Wenn Metadaten geladen sind, kannst du optional videoPos initial setzen
-    video.addEventListener('loadedmetadata', () => {
-        // z.B. am Anfang bleiben
-        videoPos = 0;
-        video.currentTime = 0;
     });
 
     window.addEventListener('load', () => {
