@@ -181,32 +181,36 @@
     </footer>
 
     <script>
-        const video = document.getElementById('background-video');
-        let currentVideoIndex = 0;
-        const videos = [
-            'images/4erHead_Houdini_PoseHead_00.Redshift_ROP1.mp4'
-        ];
-        
-        // Scroll event listener to control the video playback
-        window.addEventListener('scroll', () => {
-            const scrollPosition = window.pageYOffset;
-            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    const video = document.getElementById('background-video');
 
-            // Calculate playback position based on scroll position
-            const scrollFraction = scrollPosition / maxScroll;
-            const videoTime = scrollFraction * video.duration;
+    // Feste Scrollstrecke in Pixeln, über die das Video von 0 bis Ende laufen soll
+    const SCROLL_RANGE = 2000; // kannst du nach Gefühl anpassen (1000, 3000, ...)
 
-            // Set the video's current time to the calculated time
-            video.currentTime = videoTime;
+    function updateVideo() {
+        const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
 
-            
-        });
-        
-        // Adjust video size on window resize
-        window.addEventListener('resize', () => {
-            video.style.height = '100vh';
-        });
-    </script>
+        // 0–1 begrenzen
+        let scrollFraction = scrollPosition / SCROLL_RANGE;
+        scrollFraction = Math.max(0, Math.min(scrollFraction, 1));
+
+        if (video.duration) {
+            video.currentTime = scrollFraction * video.duration;
+        }
+    }
+
+    // Beim Scrollen Video-Zeit aktualisieren
+    window.addEventListener('scroll', updateVideo);
+
+    // Falls die Dauer erst später bekannt ist (Video lädt), initial einmal setzen
+    video.addEventListener('loadedmetadata', updateVideo);
+
+    // Optional: bei Resize neu berechnen (nicht zwingend nötig)
+    window.addEventListener('resize', () => {
+        video.style.height = '100vh';
+        updateVideo();
+    });
+</script>
+
 
 </body>
 </html>
