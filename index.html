@@ -182,76 +182,104 @@
    <script>
     const video = document.getElementById('background-video');
 
-    // Wie weit darf man "unter dem Footer" virtuell weiter scrollen?
-    let extraRange = window.innerHeight; // eine Bildschirmhöhe nach Gefühl
-    let bottomExtra = 0;                 // aktueller Extra-Weg am Seitenende (0..extraRange)
+    let maxScroll = 0;          // reale Scrollstrecke der Seite
+    let extraRange = 0;         // zusätzlicher Weg nur fürs Video unterhalb des Footers
+    let totalRange = 0;         // maxScroll + extraRange
 
-    let targetFraction = 0;              // 0..1, wohin das Video soll
-    let currentFraction = 0;             // 0..1, was aktuell abgespielt wird
-    const SMOOTHING_FACTOR = 0.12;       // Glättung der Bewegung (0.05 = sehr weich, 0.3 = direkter)
+    let virtualPos = 0;         // "virtuelle" Position 0..totalRange
+    let targetFraction = 0;     // gewünschte Videoposition 0..1
+    let currentFraction = 0;    // tatsächliche Videoposition 0..1 (wird geglättet)
 
-    function recalcExtraRange() {
-        extraRange = window.innerHeight; // z.B. immer eine Viewport-Höhe
+    const SMOOTHING_FACTOR = 0.12; // 0.05 = sehr weich, 0.3 = direkter
+
+    function recalc() {
+        const doc = document.documentElement;
+        maxScroll = Math.max(doc.scrollHeight - window.innerHeight, 0);
+
+        // wie viel "Extra-Weg" nur fürs Video am Seitenende?
+        extraRange = window.innerHeight;         // nach Gefühl: *1, *2, fester Wert etc.
+        totalRange = maxScroll + extraRange;
+
+        // virtuelle Position in Range halten
+        virtualPos = Math.min(Math.max(virtualPos, 0), totalRange);
+
+        // reale Scrollposition mit virtueller Position synchronisieren,
+        // aber nur im Bereich 0..maxScroll
+        if (maxScroll > 0) {
+            const realScroll = Math.min(virtualPos, maxScroll);
+            window.scrollTo(0, realScroll);
+        }
+
         updateTargetFraction();
     }
 
     function updateTargetFraction() {
-        const doc = document.documentElement;
-        const scrollY = window.scrollY || doc.scrollTop;
-        const maxScroll = doc.scrollHeight - window.innerHeight;
+        if (!video.duration || totalRange <= 0) return;
 
-        if (maxScroll <= 0) {
-            targetFraction = 0;
-            return;
-        }
-
-        // virtuelle Position: normale Scrollposition + zusätzlicher "Weg" am Ende
-        const virtualScroll = scrollY + bottomExtra;
-        const totalRange = maxScroll + extraRange;
-
-        let fraction = virtualScroll / totalRange;
+        let fraction = virtualPos / totalRange;
         fraction = Math.min(Math.max(fraction, 0), 1);
 
         targetFraction = fraction;
     }
 
-    // Native Scroll-Events vom Browser
+    // Native Scroll-Events: passen virtualPos an, solange wir NICHT im Extra-Bereich sind
     window.addEventListener('scroll', () => {
         const doc = document.documentElement;
         const scrollY = window.scrollY || doc.scrollTop;
-        const maxScroll = doc.scrollHeight - window.innerHeight;
+        const maxScrollNow = Math.max(doc.scrollHeight - window.innerHeight, 0);
 
-        const atBottom = scrollY >= maxScroll - 1;
+        maxScroll = maxScrollNow;
+        totalRange = maxScroll + extraRange;
 
-        // Wenn wir nicht mehr ganz unten sind, hat dieses Extra-Stück nichts mehr zu suchen
-        if (!atBottom && bottomExtra !== 0) {
-            bottomExtra = 0;
+        // nur im "normalen" Bereich übernimmt die Seite die Führung
+        if (scrollY <= maxScroll) {
+            virtualPos = scrollY;
+            updateTargetFraction();
         }
-
-        updateTargetFraction();
     });
 
-    // Mausrad / Trackpad: nur für den "Extra-Weg" am Seitenende
+    // Mausrad / Trackpad:
+    // - im normalen Bereich: Browser scrollt normal, wir fassen nichts an
+    // - am Seitenende: wir hängen das Extra-Stück für's Video dran
     window.addEventListener('wheel', (event) => {
         const doc = document.documentElement;
         const scrollY = window.scrollY || doc.scrollTop;
-        const maxScroll = doc.scrollHeight - window.innerHeight;
+        const maxScrollNow = Math.max(doc.scrollHeight - window.innerHeight, 0);
+        maxScroll = maxScrollNow;
+        totalRange = maxScroll + extraRange;
+
         const atBottom = scrollY >= maxScroll - 1;
+        const inExtra = virtualPos > maxScroll;
 
-        // Nur wenn wir wirklich am Seitenende sind, nutzt das Rad noch das Video-Extra
-        if (atBottom) {
-            // deltaY > 0 = nach unten scrollen, deltaY < 0 = nach oben
-            bottomExtra += event.deltaY;
+        const delta = event.deltaY; // >0 nach unten, <0 nach oben
 
-            if (bottomExtra < 0) bottomExtra = 0;
-            if (bottomExtra > extraRange) bottomExtra = extraRange;
-
+        // Fall 1: wir sind wirklich ganz unten und scrollen weiter nach unten
+        if (atBottom && delta > 0) {
+            event.preventDefault(); // Seite soll NICHT weiter scrollen, nur Video
+            virtualPos = Math.min(virtualPos + delta, totalRange);
+            // Seite bleibt sichtbar am Footer
+            window.scrollTo(0, maxScroll);
             updateTargetFraction();
+            return;
         }
-        // Wichtig: KEIN preventDefault -> Browser darf ganz normal scrollen
-    }, { passive: true });
 
-    // Animations-Loop zum sanften Angleichen
+        // Fall 2: wir sind im Extra-Bereich (Video-Zone) und scrollen nach oben
+        if (inExtra && delta < 0) {
+            event.preventDefault(); // erst Video zurückspulen, bevor Seite hochscrollt
+            virtualPos = Math.max(virtualPos + delta, 0);
+            // solange wir noch im Extra sind, Seite am Footer halten
+            const stillInExtra = virtualPos > maxScroll;
+            window.scrollTo(0, stillInExtra ? maxScroll : virtualPos);
+            updateTargetFraction();
+            return;
+        }
+
+        // alle anderen Fälle:
+        // Browser darf normal scrollen, wir folgen dann im scroll-Event
+        // (hier KEIN preventDefault!)
+    }, { passive: false });
+
+    // Animations-Loop für weiches Video-Scrubbing
     function render() {
         if (video.duration) {
             currentFraction += (targetFraction - currentFraction) * SMOOTHING_FACTOR;
@@ -264,19 +292,20 @@
         // Startwerte
         currentFraction = 0;
         targetFraction = 0;
-        video.currentTime = 0;
-        recalcExtraRange();
+        virtualPos = window.scrollY || document.documentElement.scrollTop || 0;
+        recalc();
     });
 
     window.addEventListener('resize', () => {
-        recalcExtraRange();
+        recalc();
     });
 
     window.addEventListener('load', () => {
-        recalcExtraRange();
+        recalc();
         render(); // Render-Loop starten
     });
 </script>
+
 
 
 
