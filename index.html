@@ -182,97 +182,90 @@
    <script>
     const video = document.getElementById('background-video');
 
-    // wie weit man unterhalb des Seitenendes "virtuell" weiter scrollen kann (nur fürs Video)
-    let extraRange = window.innerHeight * 5; // 5x Viewport-Höhe, nach Gefühl anpassbar
-    let bottomOffset = 0;                    // aktueller Extra-Weg am Seitenende (0..extraRange)
+    // wie viel "virtueller" Scrollweg NUR fürs Video unterhalb des Seitenendes
+    const EXTRA_SCROLL_FACTOR = 4;      // 4x Viewport-Höhe; größer = langsamer / mehr Weg
+    const EXTRA_WHEEL_DAMPING = 0.3;    // kleiner = feinere Kontrolle beim Extra-Scroll
 
-    let targetFraction = 0;  // Zielposition 0..1
-    let currentFraction = 0; // aktuelle Videoposition 0..1 (wird geglättet)
+    let extraScroll = 0;                // aktueller Extra-Weg unterhalb des Footers (>= 0)
 
-    const SMOOTHING_FACTOR = 0.08;  // kleiner = weicher
-    const WHEEL_DAMPING    = 0.25;  // kleiner = langsameres Video beim Scrollen
-
-    function updateFromScroll() {
+    function updateVideoFromScroll() {
         if (!video.duration) return;
 
         const doc = document.documentElement;
-        const scrollY = window.scrollY || doc.scrollTop;
-        const maxScroll = Math.max(doc.scrollHeight - window.innerHeight, 0);
+        const scrollY = window.pageYOffset || doc.scrollTop;
+        const maxScroll = doc.scrollHeight - window.innerHeight;
 
-        // Wenn wir nicht mehr am Seitenende sind, Extra-Bereich zurücksetzen
-        if (scrollY < maxScroll - 1) {
-            bottomOffset = 0;
+        // virtueller Extra-Weg nur fürs Video (unterhalb des Footers)
+        const extraMax = window.innerHeight * EXTRA_SCROLL_FACTOR;
+
+        // wenn wir nicht mehr am Seitenende sind, Extra-Weg zurücksetzen
+        if (scrollY < maxScroll - 1 && extraScroll > 0) {
+            extraScroll = 0;
         }
 
-        const totalRange = maxScroll + extraRange;
-        const virtualScroll = scrollY + bottomOffset;
+        // effektiver (virtueller) Scrollweg für das Video
+        const totalRange = maxScroll + extraMax;
+        const virtualScroll = scrollY + extraScroll;
 
-        let fraction = totalRange > 0 ? virtualScroll / totalRange : 0;
-        fraction = Math.min(Math.max(fraction, 0), 1);
+        let scrollFraction = totalRange > 0 ? virtualScroll / totalRange : 0;
+        scrollFraction = Math.min(Math.max(scrollFraction, 0), 1);
 
-        targetFraction = fraction;
+        const videoTime = scrollFraction * video.duration;
+        video.currentTime = videoTime;
     }
 
-    // Normales Scrollen: Browser macht die Bewegung, wir lesen nur mit
+    // normales Scrollen: Browser macht das, wir lesen nur mit
     window.addEventListener('scroll', () => {
-        updateFromScroll();
+        updateVideoFromScroll();
     });
 
-    // Mausrad/Trackpad: steuert den Extra-Bereich NUR am Seitenende
+    // Mausrad / Trackpad: steuert NUR den Extra-Weg am Seitenende
     window.addEventListener('wheel', (event) => {
         const doc = document.documentElement;
-        const scrollY = window.scrollY || doc.scrollTop;
-        const maxScroll = Math.max(doc.scrollHeight - window.innerHeight, 0);
+        const scrollY = window.pageYOffset || doc.scrollTop;
+        const maxScroll = doc.scrollHeight - window.innerHeight;
         const atBottom = scrollY >= maxScroll - 1;
-        const inExtra  = bottomOffset > 0;
+        const extraMax = window.innerHeight * EXTRA_SCROLL_FACTOR;
 
-        const delta = event.deltaY * WHEEL_DAMPING; // gedämpfter Impuls
+        const inExtra = extraScroll > 0;
+        const delta = event.deltaY * EXTRA_WHEEL_DAMPING; // gedämpfter Impuls
 
-        // Case 1: wir sind am Seitenende und scrollen weiter nach unten -> nur Video
+        // 1) Seite ist wirklich ganz unten und wir scrollen weiter nach unten
         if (atBottom && delta > 0) {
-            event.preventDefault();
-            bottomOffset = Math.min(bottomOffset + delta, extraRange);
-            updateFromScroll();
+            event.preventDefault(); // Seite soll NICHT weiter scrollen
+            extraScroll = Math.min(extraScroll + delta, extraMax);
+            updateVideoFromScroll();
             return;
         }
 
-        // Case 2: wir sind im Extra-Bereich und scrollen nach oben -> Video zurück
+        // 2) Wir sind im Extra-Bereich und scrollen nach oben -> Extra abbauen
         if (inExtra && delta < 0) {
             event.preventDefault();
-            bottomOffset = Math.max(bottomOffset + delta, 0);
-            updateFromScroll();
+            extraScroll = Math.max(extraScroll + delta, 0);
+            updateVideoFromScroll();
             return;
         }
 
-        // in allen anderen Fällen: Browser scrollt normal, wir lesen im scroll-Event mit
+        // alle anderen Fälle: Browser scrollt normal,
+        // wir reagieren im scroll-Event
     }, { passive: false });
 
-    // Render-Loop für weiches Nachziehen
-    function render() {
-        if (video.duration) {
-            currentFraction += (targetFraction - currentFraction) * SMOOTHING_FACTOR;
-            video.currentTime = currentFraction * video.duration;
-        }
-        requestAnimationFrame(render);
-    }
-
-    // Wenn Videometadaten geladen sind, einmal initial synchronisieren
-    video.addEventListener('loadedmetadata', () => {
-        currentFraction = 0;
-        targetFraction = 0;
-        updateFromScroll();
+    // bei Resize neu berechnen
+    window.addEventListener('resize', () => {
+        updateVideoFromScroll();
+        video.style.height = '100vh';
     });
 
-    window.addEventListener('resize', () => {
-        extraRange = window.innerHeight * 5; // bei Größenänderung anpassen
-        updateFromScroll();
+    // wenn Metadaten geladen sind, initial setzen
+    video.addEventListener('loadedmetadata', () => {
+        updateVideoFromScroll();
     });
 
     window.addEventListener('load', () => {
-        updateFromScroll();
-        render();
+        updateVideoFromScroll();
     });
 </script>
+
 
 
 
