@@ -182,84 +182,45 @@
    <script>
     const video = document.getElementById('background-video');
 
-    // Faktoren zum „Verlangsamen“ des Videos
-    const EXTRA_SCROLL_FACTOR = 4;    // wie viel „extra Weg“ nur fürs Video (in Viewport-Höhen)
-    const EXTRA_WHEEL_DAMPING = 0.3;  // Scroll-Dämpfung fürs Video am Seitenende
+    // 0..1: Position im Video (absolut, unabhängig von der Seitenposition)
+    let videoPos = 0;
 
-    let extraScroll = 0;              // aktueller Extra-Weg unterhalb des Footers (>= 0)
+    // Wie empfindlich reagiert das Video auf Scroll?
+    // kleiner = langsamer / feiner
+    const SCROLL_SENSITIVITY = 0.0005; // nach Gefühl anpassen
 
-    function updateVideoFromScroll() {
+    // Wheel-Scroll steuert NUR das Video (Seite scrollt trotzdem normal weiter)
+    window.addEventListener('wheel', (event) => {
         if (!video.duration) return;
 
-        const doc = document.documentElement;
-        const scrollY = window.pageYOffset || doc.scrollTop;
-        const maxScroll = doc.scrollHeight - window.innerHeight;
+        // deltaY > 0 = nach unten scrollen (Video vorwärts)
+        // deltaY < 0 = nach oben scrollen (Video rückwärts)
+        videoPos += event.deltaY * SCROLL_SENSITIVITY;
 
-        const extraMax = window.innerHeight * EXTRA_SCROLL_FACTOR;
-        const totalRange = maxScroll + extraMax;
+        // auf 0..1 begrenzen
+        if (videoPos < 0) videoPos = 0;
+        if (videoPos > 1) videoPos = 1;
 
-        // „virtueller“ Scroll: Seiten-Scroll + Extra-Weg fürs Video
-        const virtualScroll = scrollY + extraScroll;
+        video.currentTime = videoPos * video.duration;
+        // WICHTIG: kein preventDefault -> Seite scrollt weiterhin normal
+    }, { passive: true });
 
-        let scrollFraction = totalRange > 0 ? virtualScroll / totalRange : 0;
-        scrollFraction = Math.min(Math.max(scrollFraction, 0), 1);
-
-        const videoTime = scrollFraction * video.duration;
-        video.currentTime = videoTime;
-    }
-
-    // Normales Scrollen: Browser macht die Bewegung, wir lesen nur mit
-    window.addEventListener('scroll', () => {
-        const doc = document.documentElement;
-        const scrollY = window.pageYOffset || doc.scrollTop;
-        const maxScroll = doc.scrollHeight - window.innerHeight;
-
-        // Sobald wir NICHT mehr ganz unten sind, Extra-Scroll für's Video resetten
-        if (scrollY < maxScroll - 1 && extraScroll !== 0) {
-            extraScroll = 0;
-        }
-
-        updateVideoFromScroll();
-    });
-
-    // Mausrad / Trackpad: nur am Seitenende das Video „weiterziehen“
-    window.addEventListener('wheel', (event) => {
-        const doc = document.documentElement;
-        const scrollY = window.pageYOffset || doc.scrollTop;
-        const maxScroll = doc.scrollHeight - window.innerHeight;
-        const atBottom = scrollY >= maxScroll - 1;
-
-        const extraMax = window.innerHeight * EXTRA_SCROLL_FACTOR;
-        const delta = event.deltaY * EXTRA_WHEEL_DAMPING; // >0 nach unten, <0 nach oben
-
-        // Wenn wir ganz unten sind und weiter nach unten scrollen → nur Video, Seite bleibt stehen
-        if (atBottom && delta > 0) {
-            event.preventDefault(); // verhindert weiteres Seitenscrollen
-            extraScroll = Math.min(extraScroll + delta, extraMax);
-            updateVideoFromScroll();
-            return;
-        }
-
-        // In allen anderen Fällen: Browser scrollt normal,
-        // Video wird im 'scroll'-Event aktualisiert.
-    }, { passive: false });
-
-    // Video-Größe bei Resize anpassen (wie vorher)
+    // Bei Resize Video-Höhe beibehalten
     window.addEventListener('resize', () => {
         video.style.height = '100vh';
-        updateVideoFromScroll();
     });
 
-    // Wenn Videometadaten geladen sind, initial setzen
+    // Wenn Metadaten geladen sind, kannst du optional videoPos initial setzen
     video.addEventListener('loadedmetadata', () => {
-        updateVideoFromScroll();
+        // z.B. am Anfang bleiben
+        videoPos = 0;
+        video.currentTime = 0;
     });
 
     window.addEventListener('load', () => {
-        updateVideoFromScroll();
+        video.style.height = '100vh';
     });
 </script>
-
 
 </body>
 </html>
