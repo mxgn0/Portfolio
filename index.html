@@ -214,16 +214,24 @@
         });
 
     } else {
-        // ---------- MOBILE (iOS / Android): einfach abspielen ----------
+        // ---------- MOBILE (Android + iOS): Video soll von alleine laufen ----------
 
         video.addEventListener('loadedmetadata', () => {
-            // sicherheitshalber nochmal muten & play versuchen
             video.muted = true;
             video.play().catch(() => {
-                // falls ein Browser doch Interaktion verlangt, tut er einfach nichts;
-                // der Nutzer kann dann einmal antippen und es läuft.
+                // Android klappt meistens, iOS blockt evtl. hier
             });
         });
+
+        if (isIOS) {
+            // ---------- iOS Fallback: erstes User-Touch startet Video ----------
+            const triggerPlay = () => {
+                video.muted = true;
+                video.play().catch(() => {});
+                window.removeEventListener('touchstart', triggerPlay);
+            };
+            window.addEventListener('touchstart', triggerPlay, { passive: true });
+        }
     }
 
     // Video-Größe bei Resize beibehalten
