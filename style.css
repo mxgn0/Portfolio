@@ -35,17 +35,35 @@ section h2, section p {
 
 footer {
     position: relative;
-    background: transparent;
-    overflow: hidden;
+    width: 100%;
+    padding: 20px 0;
+    background: transparent;     /* kein fester Hintergrund */
+    color: #fff;
+    text-align: center;          /* Text zentriert */
+    font-weight: 300;
+    overflow: hidden;            /* damit das ::before nicht raussteht */
 }
 
 footer::before {
     content: '';
     position: absolute;
-    inset: 0;
+    inset: 0; /* top:0; right:0; bottom:0; left:0 */
+    z-index: -1; /* hinter dem Text */
+
     backdrop-filter: blur(1rem);
     -webkit-backdrop-filter: blur(1rem);
-    mask-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0));
-    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0));
+
+    /* Blur nach oben ausfaden */
+    mask-image: linear-gradient(to top,
+        rgba(0,0,0,1) 0%,
+        rgba(0,0,0,1) 40%,
+        rgba(0,0,0,0) 100%
+    );
+    -webkit-mask-image: linear-gradient(to top,
+        rgba(0,0,0,1) 0%,
+        rgba(0,0,0,1) 40%,
+        rgba(0,0,0,0) 100%
+    );
 }
+
 
