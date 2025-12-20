@@ -111,7 +111,7 @@
         loop
         >
         <!--<source src="images/4erHead_Houdini_PoseHead_00.Redshift_ROP1.mp4" type="video/mp4">-->
-        <source src="videos/26_final.mp4" type="video/mp4">
+        <!-- <source src="videos/26_final.mp4" type="video/mp4"> -->
         Dein Browser unterstützt dieses Videoformat nicht.
     </video>
     
@@ -184,6 +184,54 @@
   <script>
     const video = document.getElementById('background-video');
 
+    // -------------------------------
+    // 1) VIDEO-AUSWAHL (Rotation / Zufall)
+    // -------------------------------
+
+    // Deine verfügbaren Videos:
+    const videos = [
+        'images/4erHead_Houdini_PoseHead_00.Redshift_ROP1.mp4',
+        'videos/18_final.mp4',
+        'videos/26_final.mp4',
+        'videos/10_final.mp4',
+        'videos/12_final.mp4'
+        // weitere Videos hier ergänzen
+    ];
+
+    // Auswahlmodus: 'sequence' = der Reihe nach, 'random' = zufällig
+    const VIDEO_SELECTION_MODE = 'sequence'; // oder 'random'
+
+    function selectBackgroundVideo() {
+        if (!videos.length) return;
+
+        let index = 0;
+
+        if (VIDEO_SELECTION_MODE === 'random') {
+            // Zufälliges Video
+            index = Math.floor(Math.random() * videos.length);
+        } else {
+            // Rotierend (sequence) über localStorage
+            const lastIndex = parseInt(localStorage.getItem('bgVideoIndex') || '-1', 10);
+            if (isNaN(lastIndex) || lastIndex < 0 || lastIndex >= videos.length - 1) {
+                index = 0;
+            } else {
+                index = lastIndex + 1;
+            }
+            localStorage.setItem('bgVideoIndex', index);
+        }
+
+        // Quelle setzen
+        video.src = videos[index];
+        video.load();
+    }
+
+    // direkt beim Laden ein Video auswählen
+    selectBackgroundVideo();
+
+    // -------------------------------
+    // 2) DEIN BISHERIGES VERHALTEN
+    // -------------------------------
+
     // 0..1: Position im Video (absolut)
     let videoPos = 0;
 
@@ -192,6 +240,9 @@
 
     // einfache Erkennung: Maus/Trackpad vs. Touch
     const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
+
+    // iOS-Erkennung (für den Fallback)
+    const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent);
 
     if (!isCoarsePointer) {
         // ---------- DESKTOP: Scroll steuert das Video ----------
