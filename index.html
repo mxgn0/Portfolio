@@ -182,11 +182,11 @@
    <script>
     const video = document.getElementById('background-video');
 
-    // wie viel "virtueller" Scrollweg NUR fürs Video unterhalb des Seitenendes
-    const EXTRA_SCROLL_FACTOR = 4;      // 4x Viewport-Höhe; größer = langsamer / mehr Weg
-    const EXTRA_WHEEL_DAMPING = 0.3;    // kleiner = feinere Kontrolle beim Extra-Scroll
+    // Faktoren zum „Verlangsamen“ des Videos
+    const EXTRA_SCROLL_FACTOR = 4;    // wie viel „extra Weg“ nur fürs Video (in Viewport-Höhen)
+    const EXTRA_WHEEL_DAMPING = 0.3;  // Scroll-Dämpfung fürs Video am Seitenende
 
-    let extraScroll = 0;                // aktueller Extra-Weg unterhalb des Footers (>= 0)
+    let extraScroll = 0;              // aktueller Extra-Weg unterhalb des Footers (>= 0)
 
     function updateVideoFromScroll() {
         if (!video.duration) return;
@@ -195,16 +195,10 @@
         const scrollY = window.pageYOffset || doc.scrollTop;
         const maxScroll = doc.scrollHeight - window.innerHeight;
 
-        // virtueller Extra-Weg nur fürs Video (unterhalb des Footers)
         const extraMax = window.innerHeight * EXTRA_SCROLL_FACTOR;
-
-        // wenn wir nicht mehr am Seitenende sind, Extra-Weg zurücksetzen
-        if (scrollY < maxScroll - 1 && extraScroll > 0) {
-            extraScroll = 0;
-        }
-
-        // effektiver (virtueller) Scrollweg für das Video
         const totalRange = maxScroll + extraMax;
+
+        // „virtueller“ Scroll: Seiten-Scroll + Extra-Weg fürs Video
         const virtualScroll = scrollY + extraScroll;
 
         let scrollFraction = totalRange > 0 ? virtualScroll / totalRange : 0;
@@ -214,49 +208,49 @@
         video.currentTime = videoTime;
     }
 
-    // normales Scrollen: Browser macht das, wir lesen nur mit
+    // Normales Scrollen: Browser macht die Bewegung, wir lesen nur mit
     window.addEventListener('scroll', () => {
+        const doc = document.documentElement;
+        const scrollY = window.pageYOffset || doc.scrollTop;
+        const maxScroll = doc.scrollHeight - window.innerHeight;
+
+        // Sobald wir NICHT mehr ganz unten sind, Extra-Scroll für's Video resetten
+        if (scrollY < maxScroll - 1 && extraScroll !== 0) {
+            extraScroll = 0;
+        }
+
         updateVideoFromScroll();
     });
 
-    // Mausrad / Trackpad: steuert NUR den Extra-Weg am Seitenende
+    // Mausrad / Trackpad: nur am Seitenende das Video „weiterziehen“
     window.addEventListener('wheel', (event) => {
         const doc = document.documentElement;
         const scrollY = window.pageYOffset || doc.scrollTop;
         const maxScroll = doc.scrollHeight - window.innerHeight;
         const atBottom = scrollY >= maxScroll - 1;
+
         const extraMax = window.innerHeight * EXTRA_SCROLL_FACTOR;
+        const delta = event.deltaY * EXTRA_WHEEL_DAMPING; // >0 nach unten, <0 nach oben
 
-        const inExtra = extraScroll > 0;
-        const delta = event.deltaY * EXTRA_WHEEL_DAMPING; // gedämpfter Impuls
-
-        // 1) Seite ist wirklich ganz unten und wir scrollen weiter nach unten
+        // Wenn wir ganz unten sind und weiter nach unten scrollen → nur Video, Seite bleibt stehen
         if (atBottom && delta > 0) {
-            event.preventDefault(); // Seite soll NICHT weiter scrollen
+            event.preventDefault(); // verhindert weiteres Seitenscrollen
             extraScroll = Math.min(extraScroll + delta, extraMax);
             updateVideoFromScroll();
             return;
         }
 
-        // 2) Wir sind im Extra-Bereich und scrollen nach oben -> Extra abbauen
-        if (inExtra && delta < 0) {
-            event.preventDefault();
-            extraScroll = Math.max(extraScroll + delta, 0);
-            updateVideoFromScroll();
-            return;
-        }
-
-        // alle anderen Fälle: Browser scrollt normal,
-        // wir reagieren im scroll-Event
+        // In allen anderen Fällen: Browser scrollt normal,
+        // Video wird im 'scroll'-Event aktualisiert.
     }, { passive: false });
 
-    // bei Resize neu berechnen
+    // Video-Größe bei Resize anpassen (wie vorher)
     window.addEventListener('resize', () => {
-        updateVideoFromScroll();
         video.style.height = '100vh';
+        updateVideoFromScroll();
     });
 
-    // wenn Metadaten geladen sind, initial setzen
+    // Wenn Videometadaten geladen sind, initial setzen
     video.addEventListener('loadedmetadata', () => {
         updateVideoFromScroll();
     });
@@ -265,12 +259,6 @@
         updateVideoFromScroll();
     });
 </script>
-
-
-
-
-
-
 
 
 </body>
