@@ -34,11 +34,18 @@ section h2, section p {
 }
 
 footer {
-    padding: 20px;
-    background-color:  rgba(0,0,0,0); /* vollständig transparent */
-    background: linear-gradient(to top, #222, 0%, #222, 0%, transparent 100%);
-    backdrop-filter: blur(1rem);
-    text-align: center;
-    font-weight: 300; /* Dünn */
-    
+    position: relative;
+    background: transparent;
+    overflow: hidden;
 }
+
+footer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    backdrop-filter: blur(1rem);
+    -webkit-backdrop-filter: blur(1rem);
+    mask-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0));
+    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0));
+}
+
