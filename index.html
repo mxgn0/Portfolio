@@ -190,16 +190,16 @@
     let targetFraction = 0;     // gewünschte Videoposition 0..1
     let currentFraction = 0;    // tatsächliche Videoposition 0..1 (wird geglättet)
 
-    const SMOOTHING_FACTOR = 0.12;   // 0.05 = sehr weich, 0.3 = direkter
-    const EXTRA_MULTIPLIER  = 3;     // wie viele Viewport-Höhen extra nur fürs Video
-    const WHEEL_DAMPING     = 0.5;   // kleiner = Video bewegt sich langsamer pro Scrolltick
+    const SMOOTHING_FACTOR = 0.08;  // kleiner = weicher / träger
+    const WHEEL_DAMPING    = 0.25;  // kleiner = langsameres Video beim Scrollen
 
     function recalc() {
         const doc = document.documentElement;
         maxScroll = Math.max(doc.scrollHeight - window.innerHeight, 0);
 
-        // Extra-Weg nur fürs Video (z.B. 3x Bildschirmhöhe)
-        extraRange = window.innerHeight * EXTRA_MULTIPLIER;
+        // wie viel "Extra-Weg" nur fürs Video am Seitenende?
+        // hier 5x Viewport-Höhe, damit das Video langsamer durchläuft
+        extraRange = window.innerHeight * 5;
         totalRange = maxScroll + extraRange;
 
         // virtuelle Position in Range halten
@@ -253,7 +253,7 @@
         const atBottom = scrollY >= maxScroll - 1;
         const inExtra = virtualPos > maxScroll;
 
-        // gedämpfte Bewegung fürs Video
+        // gedämpfter Scroll-Impuls fürs Video
         const delta = event.deltaY * WHEEL_DAMPING; // >0 nach unten, <0 nach oben
 
         // Fall 1: wir sind wirklich ganz unten und scrollen weiter nach unten
