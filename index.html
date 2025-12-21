@@ -314,6 +314,7 @@ if (window.matchMedia('(pointer: fine)').matches) {
 window.addEventListener('mousemove', (e) => {
     dot.style.left = `${e.clientX}px`;
     dot.style.top = `${e.clientY}px`;
+    dot.style.opacity = 1; // sobald sich die Maus bewegt, einblenden
 });
 
 // Touch-Support
