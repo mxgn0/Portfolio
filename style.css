@@ -13,11 +13,6 @@
     opacity: 1;                     /* WICHTIG: standardmäßig sichtbar */
     transition: opacity 0.2s ease, transform 0.1s ease;
 }
-@media (pointer: fine) {
-    html, body, * {
-        cursor: none !important;
-    }
-}
 
 body {
     margin: 0;
@@ -87,4 +82,9 @@ footer::before {
     );
 }
 
-
+/* Auf Touch-Geräten: Cursor-Dot initial unsichtbar */
+@media (pointer: coarse) {
+    #cursor-dot {
+        opacity: 0;
+    }
+}
