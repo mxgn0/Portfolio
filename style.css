@@ -10,6 +10,12 @@ cursor-dot {
     opacity: 0; /* Start unsichtbar */
     transition: opacity 0.2s ease;
 }
+/* Desktop: Systemcursor komplett deaktivieren */
+@media (pointer: fine) {
+    * {
+        cursor: none !important;
+    }
+}
 
 
 body {
