@@ -311,6 +311,24 @@ window.addEventListener('mousemove', (e) => {
     dot.style.left = `${e.clientX}px`;
     dot.style.top = `${e.clientY}px`;
 });
+    
+// Touch-Support
+window.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    dot.style.left = `${touch.clientX}px`;
+    dot.style.top = `${touch.clientY}px`;
+    dot.style.opacity = 1; // sichtbar
+}, { passive: true });
+
+window.addEventListener('touchmove', (e) => {
+    const touch = e.touches[0];
+    dot.style.left = `${touch.clientX}px`;
+    dot.style.top = `${touch.clientY}px`;
+}, { passive: true });
+
+window.addEventListener('touchend', () => {
+    dot.style.opacity = 0; // ausblenden wenn Finger weg
+}, { passive: true });
 </script>
     
 </body>
