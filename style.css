@@ -88,3 +88,9 @@ footer::before {
         opacity: 0;
     }
 }
+/* Standard-Cursor deaktivieren (Desktop / Maus / Trackpad) */
+@media (pointer: fine) {
+    * {
+        cursor: none !important;
+    }
+}
