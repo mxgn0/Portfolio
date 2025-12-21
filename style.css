@@ -10,7 +10,7 @@
     transform: translate(-50%, -50%);
     pointer-events: none;
     mix-blend-mode: difference;
-    opacity: 1;                     /* WICHTIG: standardmäßig sichtbar */
+    opacity: 0;                     /* WICHTIG: standardmäßig sichtbar */
     transition: opacity 0.2s ease, transform 0.1s ease;
 }
 
