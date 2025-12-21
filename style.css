@@ -9,13 +9,6 @@ cursor-dot {
     transform: translate(-50%, -50%);
     transition: opacity 0.2s ease;
 }
-/* Desktop: Systemcursor komplett deaktivieren */
-@media (pointer: fine) {
-    * {
-        cursor: none !important;
-    }
-}
-
 
 body {
     margin: 0;
