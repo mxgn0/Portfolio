@@ -305,11 +305,6 @@
 <script>
 const dot = document.getElementById('cursor-dot');
 
-// Fail-safe: Desktop sofort sichtbar halten
-if (window.matchMedia('(pointer: fine)').matches) {
-    dot.style.opacity = 1;
-}
-
 // Maus folgt
 window.addEventListener('mousemove', (e) => {
     dot.style.left = `${e.clientX}px`;
