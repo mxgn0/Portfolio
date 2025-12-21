@@ -1,13 +1,20 @@
-cursor-dot {
-     width: 14px;
+/* Cursor-Dot – Basis-Style */
+#cursor-dot {
+    width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: white;
+    background: white;              /* zum Testen: notfalls mal red machen */
     position: fixed;
+    left: 50vw;                     /* Startposition – Mitte vom Screen */
+    top: 50vh;
+    transform: translate(-50%, -50%);
     pointer-events: none;
     mix-blend-mode: difference;
-    transform: translate(-50%, -50%);
+    z-index: 9999;
+    opacity: 1;                     /* WICHTIG: standardmäßig sichtbar */
+    transition: opacity 0.2s ease, transform 0.1s ease;
 }
+
 
 body {
     margin: 0;
