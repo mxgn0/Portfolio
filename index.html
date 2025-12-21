@@ -306,11 +306,17 @@
 <script>
 const dot = document.getElementById('cursor-dot');
 
+// Fail-safe: Desktop sofort sichtbar halten
+if (window.matchMedia('(pointer: fine)').matches) {
+    dot.style.opacity = 1;
+}
+
+// Maus folgt
 window.addEventListener('mousemove', (e) => {
     dot.style.left = `${e.clientX}px`;
     dot.style.top = `${e.clientY}px`;
 });
-    
+
 // Touch-Support
 window.addEventListener('touchstart', (e) => {
     const touch = e.touches[0];
@@ -326,8 +332,12 @@ window.addEventListener('touchmove', (e) => {
 }, { passive: true });
 
 window.addEventListener('touchend', () => {
-    dot.style.opacity = 0; // ausblenden wenn Finger weg
+    // nur auf Touch-Geräten ausblenden
+    if (window.matchMedia('(pointer: coarse)').matches) {
+        dot.style.opacity = 0;
+    }
 }, { passive: true });
+
 </script>
     
 </body>
