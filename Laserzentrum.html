@@ -32,7 +32,9 @@
     </style>
 </head>
 <body>
-
+        <!-- Cursor edit -->
+    <div id="cursor-dot"></div>
+    
     <header>
         <h1>Laserzentrum Mittweida</h1>
     </header>
@@ -56,6 +58,37 @@
     <footer>
         <p><a href="index.html">back</a></p>
     </footer>
+    <script>
+const dot = document.getElementById('cursor-dot');
 
+// Maus folgt
+window.addEventListener('mousemove', (e) => {
+    dot.style.left = `${e.clientX}px`;
+    dot.style.top = `${e.clientY}px`;
+    dot.style.opacity = 1; // sobald sich die Maus bewegt, einblenden
+});
+
+// Touch-Support
+window.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    dot.style.left = `${touch.clientX}px`;
+    dot.style.top = `${touch.clientY}px`;
+    dot.style.opacity = 1; // sichtbar
+}, { passive: true });
+
+window.addEventListener('touchmove', (e) => {
+    const touch = e.touches[0];
+    dot.style.left = `${touch.clientX}px`;
+    dot.style.top = `${touch.clientY}px`;
+}, { passive: true });
+
+window.addEventListener('touchend', () => {
+    // nur auf Touch-Geräten ausblenden
+    if (window.matchMedia('(pointer: coarse)').matches) {
+        dot.style.opacity = 0;
+    }
+}, { passive: true });
+
+</script>
 </body>
 </html>
