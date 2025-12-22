@@ -17,10 +17,6 @@ html, body {
     overflow-x: hidden;
 }
 
-* {
-  text-shadow: 0 0 5px rgba(0,0,0,0.9);
-}
-
 body {
     margin: 0;
     font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -30,6 +26,10 @@ body {
     text-transform: uppercase; /* Setzt alles in Großbuchstaben */
     font-weight: 300; /* Macht die Schrift dünn */
     cursor: none !important;
+}
+
+* {
+  text-shadow: 0 0 5px rgba(0,0,0,0.9);
 }
 
 header h1 {
