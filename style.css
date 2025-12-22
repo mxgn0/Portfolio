@@ -111,11 +111,3 @@ section, article, .content, .post {
     max-width: 1200px;
     margin: 0 auto;
 }
-
-img, video {
-    display: block;
-    width: 100%;
-    height: auto;
-    object-fit: contain;
-    margin: 20px auto;
-}
