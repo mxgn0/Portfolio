@@ -28,10 +28,6 @@ body {
     cursor: none !important;
 }
 
-* {
-  text-shadow: 0 0 5px rgba(0,0,0,0.9);
-}
-
 header h1 {
     font-size: 4rem;
     letter-spacing: 0.2rem;
