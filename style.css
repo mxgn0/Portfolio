@@ -5,8 +5,6 @@
     border-radius: 50%;
     background: white;              /* zum Testen: notfalls mal red machen */
     position: fixed;
-    left: 50vw;                     /* Startposition – Mitte vom Screen */
-    top: 50vh;
     transform: translate(-50%, -50%);
     pointer-events: none;
     mix-blend-mode: difference;
@@ -22,8 +20,6 @@ html, body {
 * {
   text-shadow: 0 0 5px rgba(0,0,0,0.9);
 }
-
-
 
 body {
     margin: 0;
@@ -104,5 +100,11 @@ footer::before {
 @media (pointer: fine) {
     * {
         cursor: none !important;
+    }
+}
+
+@media (max-width: 600px) {
+    body::before {
+        background: rgba(0, 0, 0, 0.85);
     }
 }
