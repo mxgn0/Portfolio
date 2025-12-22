@@ -22,7 +22,7 @@ html, body {
 
 body {
     margin: 0;
-    font-family: 'Utara', sans-serif;
+    font-family: 'Chillax', sans-serif;
     background-color: #111;
     color: #fff;
     text-shadow: 0 0 1px black;
@@ -59,12 +59,12 @@ section h2, section p {
 }
 
 h1, h2 {
-    font-family: 'Utara', sans-serif;
+    font-family: 'Chillax', sans-serif;
     font-weight: 600;
 }
 
 p, li, a {
-    font-family: 'Utara', sans-serif;
+    font-family: 'Chillax', sans-serif;
     font-weight: 400;
 }
 
