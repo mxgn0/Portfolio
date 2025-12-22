@@ -19,7 +19,7 @@ html, body {
 
 body {
     margin: 0;
-    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Chillax', sans-serif;
     background-color: #111;
     color: #fff;
     text-shadow: 0 0 1px black;
@@ -53,6 +53,16 @@ section h2, section p {
     font-weight: 300; /* Dünn */
 }
 
+h1, h2 {
+    font-family: 'Chillax', sans-serif;
+    font-weight: 600;
+}
+
+p, li, a {
+    font-family: 'Chillax', sans-serif;
+    font-weight: 400;
+}
+
 footer {
     position: relative;
     width: 100%;
@@ -76,12 +86,12 @@ footer::before {
     /* Blur nach oben ausfaden */
     mask-image: linear-gradient(to top,
         rgba(0,0,0,1) 0%,
-        rgba(0,0,0,1) 20%,
+        rgba(0,0,0,1) 10%,
         rgba(0,0,0,0) 100%
     );
     -webkit-mask-image: linear-gradient(to top,
         rgba(0,0,0,1) 0%,
-        rgba(0,0,0,1) 20%,
+        rgba(0,0,0,1) 10%,
         rgba(0,0,0,0) 100%
     );
 }
@@ -97,17 +107,4 @@ footer::before {
     * {
         cursor: none !important;
     }
-}
-
-@media (max-width: 600px) {
-    body::before {
-        background: rgba(0, 0, 0, 0.85);
-    }
-}
-
-/* Standard für Content-Bereiche */
-section, article, .content, .post {
-    width: 90vw;
-    max-width: 1200px;
-    margin: 0 auto;
 }
