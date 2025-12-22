@@ -107,3 +107,22 @@ footer::before {
         cursor: none !important;
     }
 }
+
+/* Figure selbst darf nicht breiter werden als das Fenster */
+figure {
+    margin: 0;            /* Standard-Browser-Margin entfernen */
+    padding: 0;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Videos & Bilder IMMER im Rahmen halten */
+video,
+.gallery img,
+figure > video,
+figure > img {
+    display: block;
+    width: 100%;        /* nimmt die verfügbare Breite des Containers */
+    max-width: 100%;    /* niemals breiter als der Container/Viewport */
+    height: auto;
+}
