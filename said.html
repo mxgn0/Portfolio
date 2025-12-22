@@ -13,7 +13,8 @@
             justify-content: center;
         }
         .gallery img {
-            width: 300px;
+            width: 100%;        /* passt sich dem Container an */
+            max-width: 600px; 
             height: auto;
             border: 2px solid #fff;
             border-radius: 5px;
@@ -74,7 +75,7 @@
       
         <h2>Video Examples / Sketches</h2>
         <figure>
-            <video width="1080" height="1080" autoplay muted loop>
+            <video autoplay muted loop playsinline webkit-playsinline>
                 <source src="images/said/untitled0001.mp4" type="video/mp4">
                 Dein Browser unterstützt dieses Videoformat nicht.
             </video>
@@ -105,13 +106,12 @@
             </video>
             -->
         </figure>
-
-      
     </section>
 
     <footer>
         <p><a href="index.html">back</a></p>
     </footer>
+    
 <script>
 const dot = document.getElementById('cursor-dot');
 
