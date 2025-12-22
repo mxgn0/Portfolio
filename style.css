@@ -24,7 +24,6 @@ body {
     color: #fff;
     text-shadow: 0 0 1px black;
     text-transform: uppercase; /* Setzt alles in Großbuchstaben */
-    font-weight: 300; /* Macht die Schrift dünn */
     cursor: none !important;
 }
 
