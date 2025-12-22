@@ -43,7 +43,6 @@ header h1 {
 header p {
     font-size: 1.5rem;
     margin-top: 10px;
-    font-weight: 300; /* Dünn */
 }
 
 nav a {
@@ -51,11 +50,10 @@ nav a {
     margin: 0 20px;
     text-decoration: none;
     font-size: 1.2rem;
-    font-weight: 300; /* Dünn */
 }
 
-section h2, section p {
-    font-weight: 300; /* Dünn */
+section p {
+    font-weight: 400;
 }
 
 h1, h2 {
