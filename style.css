@@ -117,7 +117,7 @@ figure {
 }
 
 /* Videos & Bilder IMMER im Rahmen halten */
-video,
+video.content-video,
 .gallery img,
 figure > video,
 figure > img {
