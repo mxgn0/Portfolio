@@ -104,3 +104,10 @@ footer::before {
         background: rgba(0, 0, 0, 0.85);
     }
 }
+
+/* Standard für Content-Bereiche */
+section, article, .content, .post {
+    width: 90vw;
+    max-width: 1200px;
+    margin: 0 auto;
+}
