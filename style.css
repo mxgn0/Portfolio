@@ -28,10 +28,13 @@ body {
 }
 
 header h1 {
-    font-size: 4rem;
-    letter-spacing: 0.2rem;
-    margin: 0;
-    font-weight: 300; /* Dünn */
+    margin: 0 0 1rem;
+    white-space: normal;            /* kein erzwungenes nowrap */
+    overflow-wrap: break-word;
+    word-break: break-word;
+    max-width: 100%;
+    min-width: 0;                   /* WICHTIG, falls header ein flex-container ist */
+    font-size: clamp(1.8rem, 5vw, 3rem);  /* skaliert schön mit der Fensterbreite */
 }
 
 header p {
