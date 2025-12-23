@@ -103,6 +103,7 @@
     </style>
 
 </head>
+
 <body>
    
     <!-- Background video -->
@@ -351,6 +352,24 @@ window.addEventListener('touchend', () => {
     });
   });
 </script>
-    
+<script>
+  const toggle = document.getElementById('readability-toggle');
+  const body = document.body;
+
+  // gespeicherten Zustand laden
+  if (localStorage.getItem('readable') === 'true') {
+    body.classList.add('readable');
+    toggle.textContent = 'Design';
+  }
+
+  toggle.addEventListener('click', () => {
+    body.classList.toggle('readable');
+
+    const isReadable = body.classList.contains('readable');
+    localStorage.setItem('readable', isReadable);
+
+    toggle.textContent = isReadable ? 'Design' : 'Read';
+  });
+</script>
 </body>
 </html>
