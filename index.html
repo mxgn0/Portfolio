@@ -334,6 +334,21 @@ window.addEventListener('touchend', () => {
 }, { passive: true });
 
 </script>
+// Cursor Animation
+<script>
+  const cursor = document.getElementById('cursor-dot');
+
+  document.querySelectorAll('a, button').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.classList.add('rotate');
+    });
+    el.addEventListener('mouseleave', () => {
+      cursor.classList.remove('rotate');
+    });
+  });
+</script>
+
+
     
 </body>
 </html>
