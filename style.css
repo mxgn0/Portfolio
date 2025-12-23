@@ -67,18 +67,39 @@ nav a {
   color: inherit; /* übernimmt var(--fg) */
 }
 
-/* Custom Cursor */
 #cursor-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: white;
+  width: 24px;
+  height: 24px;
   position: fixed;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  mix-blend-mode: difference;
+  background: transparent;
   opacity: 0;
+  mix-blend-mode: difference;
   transition: opacity 0.2s ease, transform 0.1s ease;
+}
+
+/* Diagonale Linie 1 */
+#cursor-dot::before,
+#cursor-dot::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 2px;
+  background: white;
+  transform-origin: center;
+}
+
+/* \ */
+#cursor-dot::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+/* / */
+#cursor-dot::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 /* Cursor deaktivieren */
