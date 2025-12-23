@@ -207,3 +207,25 @@ body.readable a:hover {
   color: #ff9900 !important;
   border-bottom-color: #ff9900 !important;
 }
+
+.readability-toggle {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  z-index: 1002;
+
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 500;
+
+  opacity: 0.35;
+  cursor: none;
+
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.readability-toggle:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
