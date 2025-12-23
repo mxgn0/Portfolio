@@ -139,7 +139,7 @@ footer {
 footer::before {
   content: '';
   position: absolute;
-  inset: -40px 0 -80px 0; /* oben etwas, unten deutlich mehr */
+  inset: 0;
   z-index: -1;
 
   backdrop-filter: blur(1rem);
