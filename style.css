@@ -132,7 +132,7 @@ footer {
   background: transparent;
   text-align: center;
   font-weight: 400;
-  overflow: hidden;
+  overflow: visible;
   z-index: 0;
 }
 
