@@ -104,7 +104,7 @@ nav a {
 
 /* ROTATION BEIM HOVER */
 #cursor-dot.rotate {
-  transform: translate(-50%, -50%) rotate(90deg);
+  transform: translate(-50%, -50%) rotate(180deg);
 }
 
 /* Cursor deaktivieren */
