@@ -71,15 +71,17 @@ nav a {
   width: 24px;
   height: 24px;
   position: fixed;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) rotate(0deg);
   pointer-events: none;
   background: transparent;
   opacity: 0;
   mix-blend-mode: difference;
-  transition: opacity 0.2s ease, transform 0.1s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.3s cubic-bezier(.2, .8, .2, 1);
 }
 
-/* Diagonale Linie 1 */
+/* X-Linien */
 #cursor-dot::before,
 #cursor-dot::after {
   content: '';
@@ -92,14 +94,17 @@ nav a {
   transform-origin: center;
 }
 
-/* \ */
 #cursor-dot::before {
   transform: translate(-50%, -50%) rotate(45deg);
 }
 
-/* / */
 #cursor-dot::after {
   transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+/* ROTATION BEIM HOVER */
+#cursor-dot.rotate {
+  transform: translate(-50%, -50%) rotate(90deg);
 }
 
 /* Cursor deaktivieren */
@@ -116,12 +121,6 @@ nav a {
   }
 }
 
-/*
-  Hover-Scale:
-  Dein bisheriges `a:hover ~ #cursor-dot` funktioniert nur,
-  wenn #cursor-dot im DOM nach den Links als "Sibling" liegt.
-  Robust ist: JS setzt eine Klasse auf <body> bei Hover (siehe Hinweis unten).
-*/
 body.cursor-hover #cursor-dot {
   transform: translate(-50%, -50%) scale(1.3);
 }
