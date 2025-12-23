@@ -148,7 +148,7 @@ figure > img {
 footer {
   position: relative;
   width: 100%;
-  padding: 20px 0 40px;
+  padding: 20px 0;
   background: transparent;
   text-align: center;
   font-weight: 400;
@@ -159,7 +159,7 @@ footer {
 footer::before {
   content: '';
   position: absolute;
-  inset: 0 0 -40px 0;
+  inset: 0 0 -20px 0;
   z-index: -1;
 
   backdrop-filter: blur(1rem);
