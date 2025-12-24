@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>3D Designer Portfolio</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+            extend: {
+                colors: {
+                "primary": "#1313ec",
+                "background-light": "#f6f6f8",
+                "background-dark": "#101022",
+                "surface-dark": "#16162a",
+                "surface-light": "#ffffff",
+                },
+                fontFamily: {
+                "display": ["Inter", "sans-serif"]
+                },
+                borderRadius: {
+                    "DEFAULT": "0.25rem", 
+                    "md": "0.375rem",
+                    "lg": "0.5rem", 
+                    "xl": "0.75rem", 
+                    "2xl": "1rem",
+                    "full": "9999px"
+                },
+            },
+            },
+        }
+    </script>
+<style>
+        /* Custom Cursor Implementation using CSS only */
+        body {
+            /* Using a native crosshair to simulate the experimental feel requested */
+            cursor: crosshair;
+        }
+
+        /* Hover states for interactive elements */
+        a:hover, button:hover, .interactive-hover:hover {
+            cursor: cell; /* Changes slightly on hover to indicate interactivity */
+        }
+        
+        .glass-panel {
+            background: rgba(16, 16, 34, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #101022; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #232348; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #1313ec; 
+        }
+    </style>
+</head>
+<body class="relative flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-display overflow-x-hidden selection:bg-primary selection:text-white">
+<!-- Sticky Navigation -->
+<div class="fixed top-0 left-0 right-0 z-50 px-4 sm:px-10 py-4 flex justify-center">
+<header class="glass-panel border border-white/5 rounded-full px-6 py-3 flex items-center justify-between w-full max-w-[1200px] shadow-lg shadow-black/20">
+<div class="flex items-center gap-3 text-white">
+<div class="size-8 bg-primary rounded-full flex items-center justify-center text-white">
+<span class="material-symbols-outlined text-lg">view_in_ar</span>
+</div>
+<h2 class="text-white text-lg font-bold tracking-tight">JD Portfolio</h2>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-white/70 hover:text-white text-sm font-medium transition-colors" href="#work">Work</a>
+<a class="text-white/70 hover:text-white text-sm font-medium transition-colors" href="#playground">Playground</a>
+<a class="text-white/70 hover:text-white text-sm font-medium transition-colors" href="#about">About</a>
+</nav>
+<a class="hidden sm:flex bg-white/10 hover:bg-white/20 text-white text-sm font-medium px-5 py-2 rounded-full transition-colors items-center gap-2" href="#contact">
+<span>Contact</span>
+<span class="material-symbols-outlined text-base">arrow_forward</span>
+</a>
+<!-- Mobile Menu Icon -->
+<button class="md:hidden text-white">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</header>
+</div>
+<!-- Hero Section with "Video" Background -->
+<section class="relative h-screen min-h-[600px] w-full flex items-center justify-center overflow-hidden">
+<!-- Video Background Placeholder -->
+<div class="absolute inset-0 w-full h-full z-0">
+<div class="w-full h-full bg-cover bg-center" data-alt="Abstract dark blue and purple 3D fluid simulation resembling a digital wave" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCdpanc5liqmrP7CmEQbiifV54eDMD0559dayo0PCILdArg3eR58BapbQpyB5auKnBpHyzIBET6Fqsd0ffi47iBzpbeRkSsAL9zIPsE0MRiXzrAwBNbCEPhoKkfBhDMqkvROHOoT2sRBEuXOASpvQ0EyJhTJx743X7X5pglMey5DUEsMdbs0eBPNNAY_3b2XNNYDRXrVHwiONWJ6ucETk5Avf5viE7pwKHBH5u4zoBIX39Kh5KA54ZXRZV0V3slRuaM8-fKTXjO4A");'>
+</div>
+<!-- Overlay for legibility -->
+<div class="absolute inset-0 bg-background-dark/60 bg-gradient-to-t from-background-dark via-background-dark/40 to-transparent"></div>
+</div>
+<!-- Hero Content -->
+<div class="relative z-10 px-6 max-w-[1200px] w-full flex flex-col items-center text-center mt-16">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-bold uppercase tracking-wider mb-6 backdrop-blur-sm">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+</span>
+                Available for freelance
+            </div>
+<h1 class="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.9] tracking-tight text-white mb-6">
+                Simulating Reality<br/>
+<span class="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/50">Designing Awe.</span>
+</h1>
+<p class="text-lg md:text-xl text-gray-300 max-w-2xl font-light mb-10 leading-relaxed">
+                Specializing in Houdini simulations, accessible 3D motion design, and procedural generation. Turning abstract data into tangible experiences.
+            </p>
+<div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+<a class="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-lg font-bold text-lg transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(19,19,236,0.5)]" href="#work">
+                    Explore Projects
+                    <span class="material-symbols-outlined">expand_more</span>
+</a>
+<button class="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-8 py-4 rounded-lg font-medium text-lg backdrop-blur-sm transition-colors">
+<span class="material-symbols-outlined">play_circle</span>
+                    Showreel
+                </button>
+</div>
+</div>
+<!-- Scroll Indicator -->
+<div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce opacity-50">
+<span class="text-xs uppercase tracking-widest text-white">Scroll</span>
+<span class="material-symbols-outlined text-white">keyboard_arrow_down</span>
+</div>
+</section>
+<!-- Main Content Container -->
+<div class="layout-container flex grow flex-col w-full max-w-[1200px] mx-auto px-6 md:px-10 py-10">
+<!-- Work Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10 pt-10 border-b border-white/5 pb-6" id="work">
+<div>
+<h2 class="text-white text-3xl font-bold tracking-tight mb-2">Selected Works</h2>
+<p class="text-gray-400">A curation of recent simulations and commercial projects.</p>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 rounded-lg bg-surface-dark border border-white/10 text-white text-sm hover:bg-white/5 transition-colors active:bg-primary active:border-primary">All</button>
+<button class="px-4 py-2 rounded-lg bg-transparent border border-transparent text-gray-400 text-sm hover:text-white transition-colors">Houdini</button>
+<button class="px-4 py-2 rounded-lg bg-transparent border border-transparent text-gray-400 text-sm hover:text-white transition-colors">Cinema 4D</button>
+<button class="px-4 py-2 rounded-lg bg-transparent border border-transparent text-gray-400 text-sm hover:text-white transition-colors">R&amp;D</button>
+</div>
+</div>
+<!-- Project Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-24">
+<!-- Project 1 -->
+<div class="group relative flex flex-col gap-3 interactive-hover">
+<div class="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-dark border border-white/5">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" data-alt="Abstract fluid dynamics simulation with blue and pink neon liquids mixing" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCSl_D9i_m88YOUwMgUO0Yhy4iXz-fgTDSwFcv8tUplkEauBAjeBeikKzTQbdId-i2Lav87oNmdi18k_1vjGWIVZL3VKtP9vq-1DxH5ZIBH7HperRUMZTk59gvzWHqTipaw2iLyOJ8ksDQxTLmiUryZsZSO_oWOZeWpWSPYgPTtMFnq3rztztfOxe2pEzxhA5p-fUVyLg4E75iw9jdWvxDVpgxbgmuEWh1AqRTQuwwtIKmOWE00GZtsILwZYElPa9Z_nYIYfKderQ");'>
+</div>
+<div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs px-2 py-1 rounded border border-white/10">
+                        Houdini
+                    </div>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-white text-lg font-bold group-hover:text-primary transition-colors">Fluid Dynamics Study</h3>
+<p class="text-gray-400 text-sm">R&amp;D / Simulation</p>
+</div>
+<button class="text-white opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0 duration-300">
+<span class="material-symbols-outlined">arrow_outward</span>
+</button>
+</div>
+</div>
+<!-- Project 2 -->
+<div class="group relative flex flex-col gap-3 interactive-hover">
+<div class="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-dark border border-white/5">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" data-alt="Photorealistic 3D rendering of a glass perfume bottle with water splashes" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCJrxUtmsc0bF3CNzS4pbgnUJXO3_qVNel6pOqPyMya8ATEG-v7ey5EFG2kSmhBJXQ2Bu0ruh98hrXtxWGehrGQYcu4jJbEWBf7LS04OraBrLZoPf9M2mwsViUmCUFvGHrekJfO_U09bJbN3hC4oQSMAG-MxlwrxLRnL1-wQ9PX7TizugukXXSONqp6v60bUhv810UQ6VJwXDi_2THfx8q3juzjs5OoXfFYjBZcbMBq2-HWVXTVKmdf0lSle2cLEsT2cJjAwoIDgg");'>
+</div>
+<div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs px-2 py-1 rounded border border-white/10">
+                        Octane
+                    </div>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-white text-lg font-bold group-hover:text-primary transition-colors">Luxe Fragrance</h3>
+<p class="text-gray-400 text-sm">Commercial / Product Viz</p>
+</div>
+<button class="text-white opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0 duration-300">
+<span class="material-symbols-outlined">arrow_outward</span>
+</button>
+</div>
+</div>
+<!-- Project 3 -->
+<div class="group relative flex flex-col gap-3 interactive-hover">
+<div class="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-dark border border-white/5">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" data-alt="Abstract close-up of colorful cloth simulation with wrinkles and folds" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuADDLxGLixe9JFgpiwYaCvLNY12J16WmWGJwPHe5n2NdVM1XywlecvQ71T89fI2SYoCtrDvWkBd6vIsmqGkhDCFhsxy6bVwWXFFqVGJfeueJK3LzHmrgOwi2TQRxF6ez92eZtn2imbxN0snxBAemtcTPf_DtrgDmMG4hcpxGqL_Q2y1Z2E-gVkQaj1Mzv6GK1sSSa4R5QLFpnynyp8dbvG_YecpnSHDQQOAxgARP-yjiHZ24NRsR8KpIETDNn8tfrtElhU7PqUH0g");'>
+</div>
+<div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs px-2 py-1 rounded border border-white/10">
+                        Marvelous
+                    </div>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-white text-lg font-bold group-hover:text-primary transition-colors">Velvet &amp; Silk</h3>
+<p class="text-gray-400 text-sm">Experimental Art</p>
+</div>
+<button class="text-white opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0 duration-300">
+<span class="material-symbols-outlined">arrow_outward</span>
+</button>
+</div>
+</div>
+<!-- Project 4 -->
+<div class="group relative flex flex-col gap-3 interactive-hover">
+<div class="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-dark border border-white/5">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" data-alt="Dark moody 3D landscape with fog and neon lights" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCpff0C7HIwUKxIBfiDdN75A41Edq9ndzjyquepCn_QCMMh8bvHNChObMKJq9ZjO3ezkxC10HKp0okxNkl2niqcdb_pcDo-pMsyz9mI5nFpxN0NDqtjisunF8wksODWEBYF43YbQpQAN1SoOl153SR0tPE71GHVEoYkD4TD1fBb6_7CvMtmJfZVl7sSxY5QzijNgwW_0kgCzxhT_LLNM3_zW8ga7mfQBocoamW8Z23FBSyvTvDL9fsuCg0eDWXkoORKdiHERyr-gQ");'>
+</div>
+<div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs px-2 py-1 rounded border border-white/10">
+                        Unreal Engine
+                    </div>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-white text-lg font-bold group-hover:text-primary transition-colors">Cyberpunk Environment</h3>
+<p class="text-gray-400 text-sm">Real-time / Gaming</p>
+</div>
+<button class="text-white opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0 duration-300">
+<span class="material-symbols-outlined">arrow_outward</span>
+</button>
+</div>
+</div>
+<!-- Project 5 -->
+<div class="group relative flex flex-col gap-3 interactive-hover">
+<div class="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-dark border border-white/5">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" data-alt="Abstract geometric shapes floating in a white void" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAkxUnmwaP7Ji71_itmJd4Tzi1JhkvOIHNV-m9i5n1f74v9tHCIerRPHOOemkpOMtI7NuDga8ySBtrkq5lIPkHJjClC575SDdajeCrGC51EusbLWH6tc4Y4YxfDYJw9_lYyV8wGKaDah97ARKByy2Mlx7MlPofYIDwY9owhIG_8dY6mW8gekj4nzGl40YEx7QUiy1z0QUoZBfpE7VuWGkcSEzjkKFbDuZE0HBVUWY0X0iqZRxz7Q15mOyih2KIalfTKqQnxtKke9Q");'>
+</div>
+<div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
+<div class="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white text-xs px-2 py-1 rounded border border-white/10">
+                        Redshift
+                    </div>
+</div>
+<div class="flex justify-between items-start">
+<div>
+<h3 class="text-white text-lg font-bold group-hover:text-primary transition-colors">Geometric Minimal</h3>
+<p class="text-gray-400 text-sm">Motion Graphics</p>
+</div>
+<button class="text-white opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-[-10px] group-hover:translate-x-0 duration-300">
+<span class="material-symbols-outlined">arrow_outward</span>
+</button>
+</div>
+</div>
+<!-- Add Project Placeholder (Admin View) -->
+<div class="group relative flex flex-col gap-3 cursor-pointer">
+<div class="relative w-full aspect-video rounded-xl overflow-hidden bg-white/5 border-2 border-dashed border-white/10 hover:border-primary/50 hover:bg-primary/5 transition-all flex flex-col items-center justify-center group-hover:shadow-[0_0_15px_rgba(19,19,236,0.1)]">
+<div class="size-12 rounded-full bg-white/5 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-gray-400 group-hover:text-primary">add</span>
+</div>
+<p class="text-gray-400 text-sm font-medium group-hover:text-white">Add New Project</p>
+</div>
+<div class="flex justify-between items-start opacity-50">
+<div>
+<h3 class="text-gray-500 text-lg font-bold">New Entry</h3>
+<p class="text-gray-600 text-sm">Portfolio Management</p>
+</div>
+</div>
+</div>
+</div>
+<!-- About / Profile Section -->
+<div class="bg-surface-dark rounded-3xl p-8 md:p-12 border border-white/5 relative overflow-hidden mb-20" id="about">
+<!-- Decorative background element -->
+<div class="absolute -top-20 -right-20 w-96 h-96 bg-primary/20 rounded-full blur-[100px] pointer-events-none"></div>
+<div class="flex flex-col md:flex-row gap-10 relative z-10">
+<div class="flex-shrink-0">
+<div class="w-32 h-32 md:w-48 md:h-48 rounded-2xl bg-cover bg-center shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500 border border-white/10" data-alt="Profile portrait of the designer in a dark studio setting" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBX4OHY8ZCXkxaKP1-v3bYNDrSA8r9qULjPgqV9pEJp9x0-Ny7Ng5_UjwL3S9VVSxPwMnhnyNO_fm_At8H1gpSq0LMscvYxQ1sqEDAwOwjS93z9h-QXLtTID1qsVnZtggVUrgiEAFbwHJzJsrFSSpL-R1eFV2B-BcWEbpKPjDWooFOInmTJALqvWrz6uwL-UQsZLUTFXoSWBnaitCcBgP1oUVvDbPk0P7ay8FuHyORQJ_yb2jV4vF98otzMbToYGBfcK3hkvGWq4A");'>
+</div>
+</div>
+<div class="flex-1 flex flex-col justify-center">
+<h2 class="text-3xl font-bold text-white mb-4">About the Designer</h2>
+<h3 class="text-xl text-primary font-medium mb-4">Accessible Digital Experiences &amp; Complex Simulations</h3>
+<p class="text-gray-400 text-base leading-relaxed mb-6 max-w-2xl">
+                        I am a multidisciplinary 3D artist obsessed with the intersection of technology and organic movement. 
+                        My work focuses on procedural generation and experimental motion graphics, always striving to make the impossible look tangible. 
+                        I believe in designing accessible interfaces and visuals that speak to everyone, regardless of their technical background.
+                    </p>
+<div class="flex flex-wrap gap-4 mb-8">
+<span class="px-3 py-1 bg-white/5 rounded text-xs font-medium text-gray-300 border border-white/5">Houdini FX</span>
+<span class="px-3 py-1 bg-white/5 rounded text-xs font-medium text-gray-300 border border-white/5">Cinema 4D</span>
+<span class="px-3 py-1 bg-white/5 rounded text-xs font-medium text-gray-300 border border-white/5">Octane Render</span>
+<span class="px-3 py-1 bg-white/5 rounded text-xs font-medium text-gray-300 border border-white/5">Unreal Engine 5</span>
+<span class="px-3 py-1 bg-white/5 rounded text-xs font-medium text-gray-300 border border-white/5">Motion Design</span>
+</div>
+<div class="flex flex-col sm:flex-row gap-4" id="contact">
+<button class="bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded-lg transition-colors flex items-center gap-2 w-fit">
+<span class="material-symbols-outlined">mail</span>
+                            Get in Touch
+                        </button>
+<button class="bg-transparent hover:bg-white/5 text-white border border-white/20 font-medium py-3 px-6 rounded-lg transition-colors flex items-center gap-2 w-fit">
+<span class="material-symbols-outlined">download</span>
+                            Download Resume
+                        </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Footer -->
+<footer class="border-t border-white/5 pt-10 pb-6 flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex flex-col gap-1">
+<span class="text-white font-bold text-lg">JD Portfolio</span>
+<span class="text-gray-500 text-sm">© 2023 All rights reserved.</span>
+</div>
+<div class="flex items-center gap-6">
+<a class="text-gray-400 hover:text-white transition-colors" href="#">Instagram</a>
+<a class="text-gray-400 hover:text-white transition-colors" href="#">Behance</a>
+<a class="text-gray-400 hover:text-white transition-colors" href="#">LinkedIn</a>
+<a class="text-gray-400 hover:text-white transition-colors" href="#">ArtStation</a>
+</div>
+</footer>
+</div>
+</body></html>
