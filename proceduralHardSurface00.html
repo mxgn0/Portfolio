@@ -1,1 +1,102 @@
 
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>procedural design</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        .gallery img {
+            width: 100%;
+            max-width: 600px
+            height: auto;
+            border: 2px solid #fff;
+            border-radius: 5px;
+        }
+    </style>
+    <style>
+        a {
+            color: #fff;
+            text-decoration: none;
+            transition: color 0.3s ease, border-bottom 0.3s ease;
+        }
+        a:hover {
+            color: #ff9900;
+            border-bottom: 2px solid #ff9900;
+        }
+    </style>
+</head>
+<body>
+    <!-- Custom Cursor -->
+    <div id="cursor-dot"></div>
+    
+    <header>
+        <h1>R&D / Simulation</h1>
+    </header>
+    
+    <section>
+        <h2>volume noise on torso</h2>
+    </section>
+    <section>   
+        <figure>
+          <video class="content-video" autoplay muted loop playsinline webkit-playsinline>
+                <source src="videos/proceduralDesign/shapes_vertical_volumenoise.mp4" type="video/mp4">
+                Dein Browser unterstützt dieses Videoformat nicht.
+          </video>
+          <video class="content-video" autoplay muted loop playsinline webkit-playsinline>
+                <source src="videos/proceduralDesign/horizontal_volumenoise" type="video/mp4">
+                Dein Browser unterstützt dieses Videoformat nicht.
+          </video>
+    </section>
+    
+    <section>
+    <h2>process</h2>
+        <div class="gallery">
+          
+        </div>
+    </section>
+    <footer>
+        <p><a href="index.html">home</a></p>
+    </footer>
+    <script>
+const dot = document.getElementById('cursor-dot');
+
+// Maus folgt
+window.addEventListener('mousemove', (e) => {
+    dot.style.left = `${e.clientX}px`;
+    dot.style.top = `${e.clientY}px`;
+    dot.style.opacity = 1; // sobald sich die Maus bewegt, einblenden
+});
+
+// Touch-Support
+window.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    dot.style.left = `${touch.clientX}px`;
+    dot.style.top = `${touch.clientY}px`;
+    dot.style.opacity = 1; // sichtbar
+}, { passive: true });
+
+window.addEventListener('touchmove', (e) => {
+    const touch = e.touches[0];
+    dot.style.left = `${touch.clientX}px`;
+    dot.style.top = `${touch.clientY}px`;
+}, { passive: true });
+
+window.addEventListener('touchend', () => {
+    // nur auf Touch-Geräten ausblenden
+    if (window.matchMedia('(pointer: coarse)').matches) {
+        dot.style.opacity = 0;
+    }
+}, { passive: true });
+
+</script>
+
+</body>
+</html>
