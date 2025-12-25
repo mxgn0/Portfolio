@@ -1,102 +1,324 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>procedural design</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .gallery {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-        }
-        .gallery img {
-            width: 100%;
-            max-width: 600px
-            height: auto;
-            border: 2px solid #fff;
-            border-radius: 5px;
-        }
-    </style>
-    <style>
-        a {
-            color: #fff;
-            text-decoration: none;
-            transition: color 0.3s ease, border-bottom 0.3s ease;
-        }
-        a:hover {
-            color: #ff9900;
-            border-bottom: 2px solid #ff9900;
-        }
-    </style>
-</head>
-<body>
-    <!-- Custom Cursor -->
-    <div id="cursor-dot"></div>
-    
-    <header>
-        <h1>R&D / Simulation</h1>
-    </header>
-    
-    <section>
-        <h2>volume noise on torso</h2>
-    </section>
-    <section>   
-        <figure>
-          <video class="content-video" autoplay muted loop playsinline webkit-playsinline>
-                <source src="videos/proceduralDesign/shapes_vertical_volumenoise.mp4" type="video/mp4">
-                Dein Browser unterstützt dieses Videoformat nicht.
-          </video>
-          <video class="content-video" autoplay muted loop playsinline webkit-playsinline>
-                <source src="videos/proceduralDesign/shapes_horizontal_volumenoise.mp4" type="video/mp4">
-                Dein Browser unterstützt dieses Videoformat nicht.
-          </video>
-    </section>
-    
-    <section>
-    <h2></h2>
-        <div class="gallery">
-          
-        </div>
-    </section>
-    <footer>
-        <p><a href="index.html">home</a></p>
-    </footer>
-    <script>
-const dot = document.getElementById('cursor-dot');
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>procedural design</title>
+  <link rel="stylesheet" href="style.css" />
 
-// Maus folgt
-window.addEventListener('mousemove', (e) => {
-    dot.style.left = `${e.clientX}px`;
-    dot.style.top = `${e.clientY}px`;
-    dot.style.opacity = 1; // sobald sich die Maus bewegt, einblenden
-});
-
-// Touch-Support
-window.addEventListener('touchstart', (e) => {
-    const touch = e.touches[0];
-    dot.style.left = `${touch.clientX}px`;
-    dot.style.top = `${touch.clientY}px`;
-    dot.style.opacity = 1; // sichtbar
-}, { passive: true });
-
-window.addEventListener('touchmove', (e) => {
-    const touch = e.touches[0];
-    dot.style.left = `${touch.clientX}px`;
-    dot.style.top = `${touch.clientY}px`;
-}, { passive: true });
-
-window.addEventListener('touchend', () => {
-    // nur auf Touch-Geräten ausblenden
-    if (window.matchMedia('(pointer: coarse)').matches) {
-        dot.style.opacity = 0;
+  <style>
+    /* --- Links --- */
+    a {
+      color: #fff;
+      text-decoration: none;
+      transition: color 0.3s ease, border-bottom 0.3s ease;
     }
-}, { passive: true });
+    a:hover {
+      color: #ff9900;
+      border-bottom: 2px solid #ff9900;
+    }
 
-</script>
+    /* --- Gallery Grid --- */
+    .gallery {
+      display: grid;
+      gap: 10px;
+      padding: 10px;
+      max-width: 1400px;
+      margin: 0 auto;
+      /* mindestens 4 nebeneinander, wenn Platz da ist */
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
 
+    /* sehr schmale Geräte: erzwinge 4 Spalten */
+    @media (max-width: 420px) {
+      .gallery {
+        grid-template-columns: repeat(4, minmax(70px, 1fr));
+        gap: 6px;
+      }
+    }
+
+    .gallery a {
+      display: block;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .gallery img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 1 / 1;   /* sauberes Raster */
+      object-fit: cover;     /* Thumbnail-Crop */
+      transform: scale(1);
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .gallery a:hover img {
+      transform: scale(1.03);
+      opacity: 0.95;
+    }
+
+    /* --- Lightbox --- */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.86);
+      z-index: 9999;
+      padding: 18px;
+    }
+    .lightbox.is-open { display: flex; }
+
+    .lb-figure {
+      max-width: min(1200px, 92vw);
+      max-height: 86vh;
+      margin: 0;
+      text-align: center;
+    }
+
+    .lb-figure img {
+      max-width: 100%;
+      max-height: 78vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.22);
+    }
+
+    #lbCaption {
+      margin-top: 10px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .lb-btn {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .lb-prev { left: 14px; }
+    .lb-next { right: 14px; }
+
+    .lb-close {
+      top: 14px;
+      right: 14px;
+      transform: none;
+      font-size: 24px;
+      line-height: 1;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Custom Cursor -->
+  <div id="cursor-dot"></div>
+
+  <header>
+    <h1>R&amp;D / Simulation</h1>
+  </header>
+
+  <section>
+    <h2>volume noise on torso</h2>
+
+    <figure>
+      <video class="content-video" autoplay muted loop playsinline webkit-playsinline>
+        <source src="videos/proceduralDesign/shapes_vertical_volumenoise.mp4" type="video/mp4" />
+        Dein Browser unterstützt dieses Videoformat nicht.
+      </video>
+
+      <video class="content-video" autoplay muted loop playsinline webkit-playsinline>
+        <source src="videos/proceduralDesign/shapes_horizontal_volumenoise.mp4" type="video/mp4" />
+        Dein Browser unterstützt dieses Videoformat nicht.
+      </video>
+    </figure>
+  </section>
+
+  <section>
+    <h2>gallery</h2>
+    <div class="gallery" id="gallery"></div>
+  </section>
+
+  <footer>
+    <p><a href="index.html">home</a></p>
+  </footer>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <button class="lb-btn lb-close" id="lbClose" aria-label="Close">×</button>
+    <button class="lb-btn lb-prev" id="lbPrev" aria-label="Previous">‹</button>
+
+    <figure class="lb-figure">
+      <img id="lbImg" alt="" />
+      <figcaption id="lbCaption"></figcaption>
+    </figure>
+
+    <button class="lb-btn lb-next" id="lbNext" aria-label="Next">›</button>
+  </div>
+
+  <script>
+    /* =========================
+       Cursor Dot (dein Script)
+    ========================== */
+    const dot = document.getElementById('cursor-dot');
+
+    window.addEventListener('mousemove', (e) => {
+      dot.style.left = `${e.clientX}px`;
+      dot.style.top = `${e.clientY}px`;
+      dot.style.opacity = 1;
+    });
+
+    window.addEventListener('touchstart', (e) => {
+      const touch = e.touches[0];
+      dot.style.left = `${touch.clientX}px`;
+      dot.style.top = `${touch.clientY}px`;
+      dot.style.opacity = 1;
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      const touch = e.touches[0];
+      dot.style.left = `${touch.clientX}px`;
+      dot.style.top = `${touch.clientY}px`;
+    }, { passive: true });
+
+    window.addEventListener('touchend', () => {
+      if (window.matchMedia('(pointer: coarse)').matches) {
+        dot.style.opacity = 0;
+      }
+    }, { passive: true });
+
+    /* =========================
+       Gallery: images/Procedural/untitled0001..0148
+       Passe EXT an: 'png' oder 'jpg'
+    ========================== */
+    const IMG_DIR = 'images/Procedural/';
+    const START = 1;
+    const END = 148;
+
+    // WICHTIG: setze hier die richtige Endung:
+    const EXT = 'jpg'; // z.B. 'png' (wie in deinem Screenshot) oder 'jpg'
+
+    const pad4 = (n) => String(n).padStart(4, '0');
+
+    const images = [];
+    for (let i = START; i <= END; i++) {
+      const file = `untitled${pad4(i)}.${EXT}`;
+      images.push({
+        full: `${IMG_DIR}${file}`,
+        thumb: `${IMG_DIR}${file}`,  // gleiche Datei als Thumbnail
+        caption: file
+      });
+    }
+
+    const galleryEl = document.getElementById('gallery');
+
+    images.forEach((img, index) => {
+      const a = document.createElement('a');
+      a.href = img.full;
+      a.dataset.index = String(index);
+
+      const image = document.createElement('img');
+      image.loading = 'lazy';
+      image.decoding = 'async';
+      image.src = img.thumb;
+      image.alt = img.caption || `Image ${index + 1}`;
+
+      a.appendChild(image);
+      galleryEl.appendChild(a);
+    });
+
+    /* =========================
+       Lightbox / Slider
+    ========================== */
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lbImg');
+    const lbCaption = document.getElementById('lbCaption');
+    const lbClose = document.getElementById('lbClose');
+    const lbPrev = document.getElementById('lbPrev');
+    const lbNext = document.getElementById('lbNext');
+
+    let currentIndex = 0;
+
+    function renderLightbox(index) {
+      currentIndex = index;
+      const item = images[currentIndex];
+      lbImg.src = item.full;
+      lbCaption.textContent = item.caption || '';
+    }
+
+    function openLightbox(index) {
+      renderLightbox(index);
+      lb.classList.add('is-open');
+      lb.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+      lb.classList.remove('is-open');
+      lb.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+
+    function showNext() {
+      const next = (currentIndex + 1) % images.length;
+      renderLightbox(next);
+    }
+
+    function showPrev() {
+      const prev = (currentIndex - 1 + images.length) % images.length;
+      renderLightbox(prev);
+    }
+
+    galleryEl.addEventListener('click', (e) => {
+      const a = e.target.closest('a[data-index]');
+      if (!a) return;
+      e.preventDefault();
+      openLightbox(Number(a.dataset.index));
+    });
+
+    lbClose.addEventListener('click', closeLightbox);
+    lbNext.addEventListener('click', (e) => { e.stopPropagation(); showNext(); });
+    lbPrev.addEventListener('click', (e) => { e.stopPropagation(); showPrev(); });
+
+    lb.addEventListener('click', (e) => {
+      if (e.target === lb) closeLightbox();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (!lb.classList.contains('is-open')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') showNext();
+      if (e.key === 'ArrowLeft') showPrev();
+    });
+
+    // Swipe
+    let touchX = null;
+    lb.addEventListener('touchstart', (e) => {
+      touchX = e.touches[0].clientX;
+    }, { passive: true });
+
+    lb.addEventListener('touchend', (e) => {
+      if (touchX === null) return;
+      const endX = e.changedTouches[0].clientX;
+      const dx = endX - touchX;
+      touchX = null;
+
+      if (Math.abs(dx) < 40) return;
+      if (dx < 0) showNext();
+      else showPrev();
+    }, { passive: true });
+  </script>
 </body>
 </html>
