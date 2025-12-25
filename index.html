@@ -213,7 +213,6 @@
 
     // Deine verfügbaren Videos:
     const videos = [
-        'videos/proceduralDesign/shapes_vertical_volumenoise.mp4',
         'videos/18_final.mp4',
         'videos/26_final.mp4',
         'videos/10_final.mp4',
@@ -222,6 +221,7 @@
 
         'images/4erHead_Houdini_PoseHead_00.Redshift_ROP1.mp4',
         'images/Bones/Ripps1.mp4',
+        'videos/proceduralDesign/shapes_vertical_volumenoise.mp4',
         
         'videos/Marlin_ex.mp4',
         'videos/Iguana_Ex.mp4'
@@ -229,7 +229,7 @@
     ];
 
     // Auswahlmodus: 'sequence' = der Reihe nach, 'random' = zufällig
-    const VIDEO_SELECTION_MODE = 'random'; // oder 'random'
+    const VIDEO_SELECTION_MODE = 'sequence'; // oder 'random'
 
     function selectBackgroundVideo() {
         if (!videos.length) return;
