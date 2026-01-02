@@ -184,7 +184,6 @@ footer::before {
 body.readable {
   background: #f5f5f5 !important;
   color: #111 !important;
-  text-transform: uppercase;
 }
 
 /* alles was du inline auf weiß gesetzt hast */
