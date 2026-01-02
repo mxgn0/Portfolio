@@ -28,7 +28,6 @@ body {
   font-family: 'Chillax', sans-serif;
   background: var(--bg);
   color: var(--fg);
-  text-transform: uppercase;
   line-height: 1.55;
 }
 
@@ -41,11 +40,13 @@ h2 {
   max-width: 100%;
   overflow-wrap: break-word;
   word-break: break-word;
+  text-transform: uppercase;
   min-width: 0;
 }
 
 header h1 {
   font-size: clamp(1.8rem, 5vw, 3rem);
+  text-transform: uppercase;
 }
 
 p,
@@ -58,6 +59,7 @@ a {
 header p {
   font-size: 1.5rem;
   margin: 10px 0 0;
+  text-transform: uppercase;
 }
 
 nav a {
@@ -154,6 +156,7 @@ footer {
   font-weight: 400;
   overflow: visible;
   z-index: 0;
+  text-transform: uppercase;
 }
 
 footer::before {
@@ -216,7 +219,6 @@ body.readable a:hover {
 
   font-size: 0.75rem;
   letter-spacing: 0.12em;
-  text-transform: uppercase;
   font-weight: 500;
 
   opacity: 0.35;
