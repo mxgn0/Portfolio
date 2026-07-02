@@ -1,0 +1,7 @@
+name = "rennings-board"
+main = "cf-worker-leaderboard.js"
+compatibility_date = "2026-01-01"
+
+[[kv_namespaces]]
+binding = "SCORES"
+id = "23009972ff45498cbc752e6bb0bccaca"   # die id von Schritt 2 hier einsetzen
