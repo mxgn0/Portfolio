@@ -174,6 +174,7 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
     <span class="brushes">
         <button class="ui active" id="brush-sand">sand</button>
         <button class="ui" id="brush-water">water</button>
+        <button class="ui" id="brush-statue">statue</button>
         <button class="ui" id="brush-dig">dig</button>
     </span>
 </div>
@@ -194,8 +195,11 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
         sand poured into lava becomes a stone bridge. Dig tunnels with your finger.
         Gear stations upgrade every renning that walks past: snorkel, boat, axe, lighter,
         umbrella, climbing hook, bridge planks. Find keys to open gates. Meadow, jungle,
-        mountain and cave worlds — some levels are pitch black night. Every level is
-        procedurally generated: score, stars &amp; streaks live on the leaderboard.
+        mountain and cave worlds — some levels are pitch black night. Place a few
+        <b>turn-around statues</b> to steer the crowd — and don't let anyone run head-on
+        into a torch carrier. Higher floors must be <b>unlocked</b> by clearing the ones
+        below, and pay more points. Every level is procedurally generated:
+        score, stars &amp; streaks live on the leaderboard.
     </p>
     <div class="row">
         <span class="difflabel">difficulty — floors stacked high:</span>
@@ -213,6 +217,11 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
 <div class="overlay hidden" id="endscreen">
     <h2 id="end-title">level clear</h2>
     <p id="end-text"></p>
+    <div class="row hidden" id="submit-row" style="display:none">
+        <input class="ui" id="player-name" maxlength="12" placeholder="your name"
+               style="background:rgba(0,0,0,0.45); width:11em; text-transform:uppercase;">
+        <button class="ui" id="btn-submit">submit score</button>
+    </div>
     <div class="row">
         <button class="ui" id="btn-again">retry level</button>
         <button class="ui" id="btn-next">next level</button>
@@ -223,6 +232,9 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
 
 <div class="overlay hidden" id="board">
     <h2>leader<span class="accent">board</span></h2>
+    <p class="difflabel" id="board-global-title" style="display:none">global top 10</p>
+    <ol id="board-global" style="display:none; text-align:left; font-size:0.85rem; line-height:2; margin:0; padding-left:1.4em; text-transform:none;"></ol>
+    <p class="difflabel">your device</p>
     <p id="board-stats"></p>
     <ol id="board-list" style="text-align:left; font-size:0.85rem; line-height:2; margin:0; padding-left:1.4em; text-transform:none;"></ol>
     <p class="copy">scores are stored locally on this device — global board coming with the standalone.</p>
@@ -245,6 +257,11 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
 
 const EMPTY = 0, SAND = 1, WATER = 2, STONE = 3, WOOD = 4,
       LAVA = 5, FIRE = 6, ICE = 7, SNOW = 8;
+
+// Global leaderboard: deploy cf-worker-leaderboard.js to Cloudflare Workers
+// and paste the worker URL here (e.g. 'https://rennings-board.yourname.workers.dev').
+// Leave empty to run with the local (device-only) leaderboard.
+const BOARD_API = '';
 
 const THEMES = {
     meadow:   { sky: [10, 10, 14], cap: SAND },
@@ -378,7 +395,7 @@ const idx = (x, y) => y * W + x;
 const inBounds = (x, y) => x >= 0 && x < W && y >= 0 && y < H;
 const cellAt = (x, y) => inBounds(x, y) ? grid[idx(x, y)] : STONE;
 const isSolid = (m) => m === SAND || m === STONE || m === WOOD || m === ICE || m === SNOW;
-const solidAt = (x, y) => isSolid(cellAt(x, y)) || elevatorSolidAt(x, y) || gateSolidAt(x, y);
+const solidAt = (x, y) => isSolid(cellAt(x, y)) || elevatorSolidAt(x, y) || gateSolidAt(x, y) || statueSolidAt(x, y);
 const isHot = (m) => m === LAVA || m === FIRE;
 
 /* ---------- entities ---------- */
@@ -393,6 +410,8 @@ let sparkles = [];
 let glowPts = [];         // sampled lava/fire cells for night lighting
 
 let sandLeft = 0, waterLeft = 0;   // limited supplies: tilting is free, drawing is not
+let statues = [];                  // {x, y, settled} — turn-around statues, 2 wide 5 tall
+let statuesLeft = 0;
 let totalLems = 12, needLems = 6;
 let spawned = 0, saved = 0, dead = 0;
 let spawnTimer = 0;
@@ -404,6 +423,14 @@ function elevatorSolidAt(x, y) {
     for (const el of elevators) {
         const py = Math.round(el.y);
         if (x >= el.x && x < el.x + el.w && y >= py && y < py + 2) return true;
+    }
+    return false;
+}
+
+function statueSolidAt(x, y) {
+    for (const st of statues) {
+        const sy = Math.round(st.y);
+        if (x >= st.x && x < st.x + 2 && y > sy - 5 && y <= sy) return true;
     }
     return false;
 }
@@ -463,6 +490,8 @@ function generateLevel(seed) {
     spawned = 0; saved = 0; dead = 0; spawnTimer = 0; levelTime = 0;
     sandLeft = 300 + difficulty * 50;
     waterLeft = 150 + difficulty * 25;
+    statues = [];
+    statuesLeft = [0, 3, 2, 2, 1][difficulty];
 
     const cfg = DIFFS[difficulty];
     totalLems = cfg.total;
@@ -793,8 +822,11 @@ function simPass(first) {
     if (p[0] === 0 && p[1] === 0) return;
 
     const flip = (frame & 1) === 0;
-    const sandC = flip ? [p, d1, d2] : [p, d2, d1];
-    const fluidC = flip ? [p, d1, d2, s1, s2] : [p, d2, d1, s2, s1];
+    // nothing granular or liquid ever moves screen-UP: you tilt the box,
+    // water sloshes sideways and down but never takes off
+    const down = (c) => c[1] >= 0;
+    const sandC = (flip ? [p, d1, d2] : [p, d2, d1]).filter(down);
+    const fluidC = (flip ? [p, d1, d2, s1, s2] : [p, d2, d1, s2, s1]).filter(down);
 
     const yStart = p[1] > 0 ? H - 1 : 0;
     const yEnd = p[1] > 0 ? -1 : H;
@@ -861,7 +893,7 @@ function simPass(first) {
             for (let c = 0; c < cands.length; c++) {
                 const nx = x + cands[c][0], ny = y + cands[c][1];
                 if (!inBounds(nx, ny)) continue;
-                if (elevatorSolidAt(nx, ny) || gateSolidAt(nx, ny)) continue;
+                if (elevatorSolidAt(nx, ny) || gateSolidAt(nx, ny) || statueSolidAt(nx, ny)) continue;
                 const ti = ny * W + nx;
                 const t = grid[ti];
                 if (t === EMPTY) {
@@ -899,7 +931,7 @@ function spawnLemming() {
         dir: spawnP.x < W / 2 ? 1 : -1,
         state: 'fall', vy: 0, fallDist: 0,
         acc: 0, drown: 0, buried: 0, chop: 0,
-        tpCool: 0, wob: rng() * 6.28,
+        tpCool: 0, torchCool: 0, wob: rng() * 6.28,
         snorkel: false, axe: false, umbrella: false,
         hook: false, lighter: false, boat: false, planks: 0,
         alive: true, done: false, fade: 1
@@ -956,6 +988,7 @@ function updateLemming(L, dt) {
 
     L.wob += dt * 10;
     L.tpCool = Math.max(0, L.tpCool - dt);
+    L.torchCool = Math.max(0, (L.torchCool || 0) - dt);
     let x = Math.round(L.x), y = Math.round(L.y);
 
     if (y >= H - 1) { killLemming(L, 'fall'); return; }
@@ -1191,6 +1224,22 @@ function updateLemming(L, dt) {
     }
 }
 
+/* ---------- torch danger: don't run into the guy with the lighter ---------- */
+function torchDanger() {
+    for (const A of lemmings) {
+        if (!A.alive || !A.lighter) continue;
+        if (A.torchCool > 0) continue;
+        for (const B of lemmings) {
+            if (B === A || !B.alive || B.lighter || B.done) continue;
+            if (B.dir === -A.dir && Math.abs(A.x - B.x) < 1.6 && Math.abs(A.y - B.y) < 3) {
+                killLemming(B, 'burn');
+                A.torchCool = 4;
+                break;
+            }
+        }
+    }
+}
+
 /* ---------- elevators & gates ---------- */
 function updateElevators(dt) {
     for (const el of elevators) {
@@ -1198,6 +1247,18 @@ function updateElevators(dt) {
         el.y += el.dir * 10 * dt;
         if (el.y <= el.yTop) { el.y = el.yTop; el.dir = 1; el.pause = 2.2; }
         if (el.y >= el.yBot) { el.y = el.yBot; el.dir = -1; el.pause = 2.2; }
+    }
+}
+
+function updateStatues(dt) {
+    for (const st of statues) {
+        if (st.settled) continue;
+        let sy = Math.round(st.y);
+        if (sy >= H - 2) { st.y = H - 2; st.settled = true; continue; }
+        if (isSolid(cellAt(st.x, sy + 1)) || isSolid(cellAt(st.x + 1, sy + 1))) {
+            st.settled = true; continue;
+        }
+        st.y += 30 * dt;
     }
 }
 
@@ -1240,14 +1301,16 @@ let pointer = { x: 0, y: 0 };
 const brushBtns = {
     sand: document.getElementById('brush-sand'),
     water: document.getElementById('brush-water'),
+    statue: document.getElementById('brush-statue'),
     dig: document.getElementById('brush-dig')
 };
 function setBrush(name) {
-    brush = name === 'sand' ? SAND : name === 'water' ? WATER : EMPTY;
+    brush = name === 'sand' ? SAND : name === 'water' ? WATER : name === 'statue' ? 'statue' : EMPTY;
     for (const k in brushBtns) brushBtns[k].classList.toggle('active', k === name);
 }
 brushBtns.sand.addEventListener('click', () => setBrush('sand'));
 brushBtns.water.addEventListener('click', () => setBrush('water'));
+brushBtns.statue.addEventListener('click', () => setBrush('statue'));
 brushBtns.dig.addEventListener('click', () => setBrush('dig'));
 
 function pointerToCell(e) {
@@ -1259,10 +1322,33 @@ function pointerToCell(e) {
 }
 
 canvas.addEventListener('pointerdown', (e) => {
-    pointerDown = true;
     pointer = pointerToCell(e);
+    if (brush === 'statue') {
+        placeStatue(pointer.x, pointer.y);
+        return;
+    }
+    pointerDown = true;
     canvas.setPointerCapture(e.pointerId);
 });
+
+function placeStatue(x, y) {
+    if (gameState !== 'play') return;
+    // tapping an existing statue picks it back up
+    for (let i = 0; i < statues.length; i++) {
+        const st = statues[i];
+        const sy = Math.round(st.y);
+        if (x >= st.x - 1 && x < st.x + 3 && y > sy - 7 && y <= sy + 2) {
+            statues.splice(i, 1);
+            statuesLeft++;
+            updateBrushLabels();
+            return;
+        }
+    }
+    if (statuesLeft <= 0) { toast('no statues left'); return; }
+    statues.push({ x: clampX(x), y: Math.max(2, y), settled: false });
+    statuesLeft--;
+    updateBrushLabels();
+}
 canvas.addEventListener('pointermove', (e) => {
     if (pointerDown) pointer = pointerToCell(e);
 });
@@ -1270,7 +1356,7 @@ window.addEventListener('pointerup', () => { pointerDown = false; });
 window.addEventListener('pointercancel', () => { pointerDown = false; });
 
 function applyBrush() {
-    if (!pointerDown || gameState !== 'play') return;
+    if (!pointerDown || gameState !== 'play' || brush === 'statue') return;
     const R = brush === EMPTY ? 5 : 4;
     let used = false;
     for (let dy = -R; dy <= R; dy++) {
@@ -1298,8 +1384,10 @@ function applyBrush() {
 function updateBrushLabels() {
     brushBtns.sand.textContent = `sand ${Math.max(0, sandLeft)}`;
     brushBtns.water.textContent = `water ${Math.max(0, waterLeft)}`;
+    brushBtns.statue.textContent = `statue ${Math.max(0, statuesLeft)}`;
     brushBtns.sand.style.opacity = sandLeft > 0 ? '' : '0.4';
     brushBtns.water.style.opacity = waterLeft > 0 ? '' : '0.4';
+    brushBtns.statue.style.opacity = statuesLeft > 0 ? '' : '0.4';
 }
 
 /* =========================================================
@@ -1388,6 +1476,20 @@ function drawEntities(t) {
             ctx.fillRect(kx - 0.35 * fx, ky, 0.7 * fx, 2.6 * fy);
             ctx.fillRect(kx + 0.35 * fx, ky + 1.8 * fy, 0.8 * fx, 0.5 * fy);
         }
+    }
+
+    // statues
+    for (const st of statues) {
+        const sx = st.x * fx, sy = Math.round(st.y) * fy;
+        ctx.fillStyle = '#b8bdc9';
+        ctx.fillRect(sx, sy - 3.4 * fy, 2 * fx, 4.4 * fy);              // body
+        ctx.fillStyle = '#d5d9e2';
+        ctx.fillRect(sx + 0.2 * fx, sy - 4.8 * fy, 1.6 * fx, 1.5 * fy); // head
+        ctx.fillStyle = '#ff9900';
+        ctx.fillRect(sx + 0.4 * fx, sy - 4.4 * fy, 0.4 * fx, 0.4 * fy); // eyes
+        ctx.fillRect(sx + 1.2 * fx, sy - 4.4 * fy, 0.4 * fx, 0.4 * fy);
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.fillRect(sx - 0.4 * fx, sy + 0.6 * fy, 2.8 * fx, 0.6 * fy); // base
     }
 
     // gear stations
@@ -1563,6 +1665,7 @@ function drawNight(fx, fy) {
         if (!g.unlocked) hole(g.keyX * fx, g.keyY * fy, 11 * fx, 0.85);
     }
     for (const el of elevators) hole((el.x + el.w / 2) * fx, el.y * fy, 10 * fx, 0.7);
+    for (const st of statues) hole((st.x + 1) * fx, (st.y - 2) * fy, 9 * fx, 0.7);
     for (const i of glowPts) {
         hole((i % W) * fx, ((i / W) | 0) * fy, 9 * fx, 0.85);   // lava & fire glow
     }
@@ -1586,13 +1689,20 @@ const endText = document.getElementById('end-text');
 
 /* ---------- score, streaks & local leaderboard ---------- */
 function loadStats() {
-    try {
-        const s = JSON.parse(localStorage.getItem('rn_stats'));
-        if (s && typeof s === 'object') {
-            return Object.assign({ cleared: 0, streak: 0, bestStreak: 0, totalSaved: 0, board: [] }, s);
-        }
-    } catch (e) {}
-    return { cleared: 0, streak: 0, bestStreak: 0, totalSaved: 0, board: [] };
+    let s = null;
+    try { s = JSON.parse(localStorage.getItem('rn_stats')); } catch (e) {}
+    if (!s || typeof s !== 'object') s = {};
+    s = Object.assign({ cleared: 0, streak: 0, bestStreak: 0, totalSaved: 0, board: [] }, s);
+    s.clearedByDiff = Object.assign({ 1: 0, 2: 0, 3: 0, 4: 0 }, s.clearedByDiff || {});
+    return s;
+}
+
+// floors unlock one by one: clear lvl n once to unlock lvl n+1
+function unlockedDiff() {
+    const S = loadStats();
+    let u = 1;
+    while (u < 4 && S.clearedByDiff[u] > 0) u++;
+    return u;
 }
 function saveStats(s) {
     try { localStorage.setItem('rn_stats', JSON.stringify(s)); } catch (e) {}
@@ -1640,6 +1750,8 @@ function checkEnd() {
         S.streak++;
         S.bestStreak = Math.max(S.bestStreak, S.streak);
         S.totalSaved += saved;
+        const firstClear = S.clearedByDiff[difficulty] === 0;
+        S.clearedByDiff[difficulty]++;
         S.board.push({
             s: sc, st, d: difficulty, theme, night: levelNight, seed: rngSeed,
             t: Math.round(levelTime), date: new Date().toISOString().slice(0, 10)
@@ -1652,6 +1764,18 @@ function checkEnd() {
         endText.textContent =
             `${saved} rennings made it home in ${fmtTime(levelTime)} — score ${sc} · ${starStr(st)} · ` +
             `streak ${S.streak} (best ${S.bestStreak}) · lvl ${difficulty} ${theme}${levelNight ? ' night' : ''} · seed #${rngSeed}`;
+        if (firstClear && difficulty < 4) toast(`lvl ${difficulty + 1} unlocked!`);
+        lastWinScore = {
+            score: sc, d: difficulty, theme, seed: rngSeed,
+            t: Math.round(levelTime), stars: st
+        };
+        if (BOARD_API) {
+            const row = document.getElementById('submit-row');
+            row.style.display = '';
+            document.getElementById('btn-submit').disabled = false;
+            document.getElementById('player-name').value = localStorage.getItem('rn_name') || '';
+        }
+        refreshDiffButtons();
         endscreen.classList.remove('hidden');
         return;
     }
@@ -1679,22 +1803,88 @@ function newLevel() {
 
 /* ---------- difficulty ---------- */
 const btnDiff = document.getElementById('btn-diff');
+function refreshDiffButtons() {
+    const u = unlockedDiff();
+    document.querySelectorAll('.diffbtn').forEach(b => {
+        const d = parseInt(b.dataset.d, 10);
+        const locked = d > u;
+        b.textContent = locked ? d + ' \uD83D\uDD12' : String(d);
+        b.style.opacity = locked ? '0.35' : '';
+        b.classList.toggle('active', d === difficulty);
+    });
+}
 function setDifficulty(d, regen) {
+    if (d > unlockedDiff()) {
+        toast(`clear lvl ${d - 1} first to unlock lvl ${d}`);
+        refreshDiffButtons();
+        return;
+    }
     difficulty = d;
     localStorage.setItem('rn_diff', String(d));
     btnDiff.textContent = 'lvl ' + d;
-    document.querySelectorAll('.diffbtn').forEach(b => {
-        b.classList.toggle('active', parseInt(b.dataset.d, 10) === d);
-    });
+    refreshDiffButtons();
     if (regen) newLevel();
 }
-btnDiff.addEventListener('click', () => setDifficulty(difficulty % 4 + 1, true));
+btnDiff.addEventListener('click', () => {
+    const next = difficulty % 4 + 1;
+    setDifficulty(next > unlockedDiff() ? 1 : next, true);
+});
 document.querySelectorAll('.diffbtn').forEach(b => {
     b.addEventListener('click', () => setDifficulty(parseInt(b.dataset.d, 10), false));
 });
 
+/* ---------- global leaderboard (optional, via Cloudflare Worker) ---------- */
+let lastWinScore = null;
+
+async function submitScore() {
+    if (!BOARD_API || !lastWinScore) return;
+    const input = document.getElementById('player-name');
+    const name = (input.value || '').trim().slice(0, 12);
+    if (!name) { toast('enter a name first'); return; }
+    localStorage.setItem('rn_name', name);
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    try {
+        const r = await fetch(BOARD_API.replace(/\/$/, '') + '/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, ...lastWinScore })
+        });
+        const j = await r.json();
+        toast(j.rank ? `global rank #${j.rank}!` : 'score submitted!');
+        document.getElementById('submit-row').style.display = 'none';
+        lastWinScore = null;
+    } catch (e) {
+        toast('could not reach leaderboard');
+        btn.disabled = false;
+    }
+}
+document.getElementById('btn-submit').addEventListener('click', submitScore);
+
+async function renderGlobalBoard() {
+    if (!BOARD_API) return;
+    const title = document.getElementById('board-global-title');
+    const list = document.getElementById('board-global');
+    title.style.display = '';
+    list.style.display = '';
+    list.innerHTML = '<li>loading…</li>';
+    try {
+        const r = await fetch(BOARD_API.replace(/\/$/, '') + '/top');
+        const top = await r.json();
+        list.innerHTML = '';
+        if (!top.length) list.innerHTML = '<li>no global scores yet — be the first!</li>';
+        for (const e of top.slice(0, 10)) {
+            const li = document.createElement('li');
+            li.textContent = `${e.name} — ${e.score} pts · lvl ${e.d} ${e.theme || ''} · ${e.date || ''}`;
+            list.appendChild(li);
+        }
+    } catch (e) {
+        list.innerHTML = '<li>leaderboard unreachable</li>';
+    }
+}
+
 const boardOverlay = document.getElementById('board');
-function openBoard() { renderBoard(); boardOverlay.classList.remove('hidden'); }
+function openBoard() { renderBoard(); renderGlobalBoard(); boardOverlay.classList.remove('hidden'); }
 document.getElementById('btn-board').addEventListener('click', openBoard);
 document.getElementById('btn-board2').addEventListener('click', openBoard);
 document.getElementById('btn-board-close').addEventListener('click', () => boardOverlay.classList.add('hidden'));
@@ -1725,6 +1915,8 @@ function loop(now) {
 
         updateElevators(dt);
         updateGates(dt);
+        updateStatues(dt);
+        torchDanger();
         spawnTimer -= dt;
         if (spawned < totalLems && spawnTimer <= 0) {
             spawnLemming();
@@ -1748,7 +1940,8 @@ window.addEventListener('resize', () => {
     if (gameState !== 'intro') generateLevel(seed);
 });
 
-setDifficulty(difficulty, false);
+difficulty = Math.min(difficulty, 4);
+setDifficulty(Math.min(difficulty, unlockedDiff()), false);
 resize();
 generateLevel((Math.random() * 1e9) | 0);
 gameState = 'intro';
