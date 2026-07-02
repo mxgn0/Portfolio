@@ -875,6 +875,16 @@ function spawnLemming() {
 
 function waterAt(x, y) { return cellAt(x, y) === WATER; }
 
+// is there water/lava (not just a deep air shaft) under this column?
+function fluidBelow(x, y) {
+    for (let k = 1; k <= 14; k++) {
+        const m = cellAt(x, y + k);
+        if (m === WATER || m === LAVA) return true;
+        if (isSolid(m)) return false;
+    }
+    return false;
+}
+
 function killLemming(L, how) {
     if (!L.alive) return;
     L.alive = false;
@@ -1100,8 +1110,8 @@ function updateLemming(L, dt) {
         if (wall === 0) {
             let drop = 0;
             while (drop < 3 && !solidAt(nx, y + drop + 1)) drop++;
-            if (drop >= 3 && L.planks > 0) {
-                // bridge builder: lay a plank and keep walking
+            if (drop >= 3 && L.planks > 0 && fluidBelow(nx, y)) {
+                // bridge builder: only bridge over water/lava, never over open shafts
                 const t = cellAt(nx, y + 1);
                 if (t === EMPTY || t === WATER || t === LAVA) {
                     grid[idx(nx, y + 1)] = WOOD;
@@ -1117,6 +1127,9 @@ function updateLemming(L, dt) {
                 L.x = nx; L.y = y - wall;
             } else { L.dir *= -1; break; }
         } else {
+            // standing on an elevator platform facing a wall: wait for the ride
+            // instead of turning around and wandering off
+            if (elevatorSolidAt(x, y + 1)) break;
             let woodWall = false;
             for (let k = 0; k < 5; k++) if (cellAt(nx, y - k) === WOOD) woodWall = true;
             if (woodWall && L.lighter) {
