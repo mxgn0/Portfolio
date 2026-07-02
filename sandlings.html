@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MXGN — sandlings</title>
+<meta name="description" content="Sandlings – falling sand lemmings browser game with gyro controls by MXGN">
+<style>
+@import url('https://fonts.cdnfonts.com/css/chillax');
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: 'Chillax', sans-serif;
+    color: #fff;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+    overscroll-behavior: none;
+}
+
+#game {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+/* ---------- HUD ---------- */
+.hud-top {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    z-index: 10;
+    pointer-events: none;
+    text-transform: uppercase;
+}
+
+.hud-top a, .hud-top button {
+    pointer-events: auto;
+}
+
+.hud-bottom {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    z-index: 10;
+    pointer-events: none;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+}
+
+.hud-bottom .stats { opacity: 0.9; text-shadow: 0 1px 3px #000; }
+.hud-bottom .brushes { display: flex; gap: 6px; pointer-events: auto; }
+
+button.ui, a.ui {
+    font-family: 'Chillax', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #fff;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.35);
+    padding: 7px 11px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color .2s ease, color .2s ease;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+button.ui:hover, a.ui:hover { border-color: #ff9900; color: #ff9900; }
+button.ui.active { border-color: #ff9900; color: #ff9900; }
+
+.spacer { flex: 1; }
+
+#title {
+    font-size: 0.85rem;
+    letter-spacing: 0.16em;
+    opacity: 0.85;
+    text-shadow: 0 1px 3px #000;
+}
+
+/* ---------- overlays ---------- */
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 24px;
+    text-transform: uppercase;
+}
+
+.overlay.hidden { display: none; }
+.overlay h2 { margin: 0; font-size: clamp(1.6rem, 6vw, 2.6rem); letter-spacing: 0.1em; }
+.overlay p { margin: 0; max-width: 520px; font-size: 0.9rem; line-height: 1.7; opacity: 0.85; text-transform: none; }
+.overlay .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.overlay .accent { color: #ff9900; }
+
+#toast {
+    position: fixed;
+    top: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 15;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 6px 12px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div class="hud-top">
+    <a class="ui" href="play.html">&larr; arcade</a>
+    <span id="title">sandlings</span>
+    <span class="spacer"></span>
+    <button class="ui" id="btn-tilt" style="display:none">enable tilt</button>
+    <button class="ui" id="btn-retry" title="restart this level">retry</button>
+    <button class="ui" id="btn-new" title="generate a new level">new level</button>
+</div>
+
+<div class="hud-bottom">
+    <span class="stats" id="stats">–</span>
+    <span class="brushes">
+        <button class="ui active" id="brush-sand">sand</button>
+        <button class="ui" id="brush-water">water</button>
+        <button class="ui" id="brush-dig">dig</button>
+    </span>
+</div>
+
+<div id="toast"></div>
+
+<div class="overlay" id="intro">
+    <h2>sand<span class="accent">lings</span></h2>
+    <p>
+        The whole world is physical pixel sand. Sandlings pour out of the portal and march
+        blindly — walls turn them around, water drowns them, deep falls hurt them.
+        Get enough of them to the exit door.
+    </p>
+    <p>
+        <b>Tilt your phone</b> to shift sand and water across the screen.
+        Desktop: <b>arrow keys</b> tilt gravity. Draw with sand / water, or dig tunnels
+        with your finger or mouse. Gear stations (snorkel, axe, umbrella) upgrade every
+        sandling that walks past. Every level is procedurally generated — no two are the same.
+    </p>
+    <div class="row">
+        <button class="ui" id="btn-start">start</button>
+    </div>
+</div>
+
+<div class="overlay hidden" id="endscreen">
+    <h2 id="end-title">level clear</h2>
+    <p id="end-text"></p>
+    <div class="row">
+        <button class="ui" id="btn-again">retry level</button>
+        <button class="ui" id="btn-next">next level</button>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+/* =========================================================
+   SANDLINGS — falling-sand lemmings, gyro powered
+   materials in the cell grid:
+   0 empty | 1 sand | 2 water | 3 stone | 4 wood
+   ========================================================= */
+
+const EMPTY = 0, SAND = 1, WATER = 2, STONE = 3, WOOD = 4;
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+let W = 0, H = 0;              // grid size in cells
+let grid, shade;               // Uint8Array cell material + per-cell color jitter
+let buffer, bufCtx, img;       // offscreen pixel buffer (1 cell = 1 px)
+
+let rngSeed = (Math.random() * 1e9) | 0;
+let rng = mulberry32(rngSeed);
+
+function mulberry32(a) {
+    return function () {
+        a |= 0; a = (a + 0x6D2B79F5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+/* ---------- gravity ---------- */
+const grav = { x: 0, y: 1 };          // normalized-ish gravity vector
+let keyTilt = 0;                      // -1 | 0 | 1 from arrow keys
+let gyroActive = false;
+
+function updateGravityFromKeys() {
+    const a = Math.PI / 2 + keyTilt * 0.72;   // 90° = straight down
+    grav.x = Math.cos(a);
+    grav.y = Math.sin(a);
+}
+
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') { keyTilt = -1; updateGravityFromKeys(); }
+    if (e.key === 'ArrowRight' || e.key === 'd') { keyTilt = 1; updateGravityFromKeys(); }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'w' || e.key === 's') {
+        keyTilt = 0; updateGravityFromKeys();
+    }
+    if (e.key === 'r') restartLevel();
+    if (e.key === 'n') newLevel();
+});
+window.addEventListener('keyup', (e) => {
+    if (['ArrowLeft', 'ArrowRight', 'a', 'd'].includes(e.key)) {
+        keyTilt = 0; updateGravityFromKeys();
+    }
+});
+
+function screenAngle() {
+    if (screen.orientation && typeof screen.orientation.angle === 'number') {
+        return screen.orientation.angle;
+    }
+    return window.orientation || 0;
+}
+
+function onOrientation(e) {
+    if (e.beta === null || e.gamma === null) return;
+    gyroActive = true;
+    const gx0 = Math.sin(e.gamma * Math.PI / 180);
+    const gy0 = Math.sin(e.beta * Math.PI / 180);
+    let gx = gx0, gy = gy0;
+    const ang = screenAngle();
+    if (ang === 90) { gx = gy0; gy = -gx0; }
+    else if (ang === -90 || ang === 270) { gx = -gy0; gy = gx0; }
+    else if (ang === 180) { gx = -gx0; gy = -gy0; }
+
+    const len = Math.hypot(gx, gy);
+    if (len < 0.15) { gx = 0; gy = 0.35; }      // device lying flat: gentle down
+    else if (len > 1) { gx /= len; gy /= len; }
+    // smooth a little so sand doesn't jitter
+    grav.x += (gx - grav.x) * 0.35;
+    grav.y += (gy - grav.y) * 0.35;
+}
+
+const btnTilt = document.getElementById('btn-tilt');
+function setupGyro() {
+    if (typeof DeviceOrientationEvent === 'undefined') return;
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        // iOS: needs user gesture
+        btnTilt.style.display = '';
+        btnTilt.addEventListener('click', () => {
+            DeviceOrientationEvent.requestPermission().then((state) => {
+                if (state === 'granted') {
+                    window.addEventListener('deviceorientation', onOrientation);
+                    btnTilt.style.display = 'none';
+                    toast('tilt enabled — shake it!');
+                }
+            }).catch(() => {});
+        });
+    } else {
+        window.addEventListener('deviceorientation', onOrientation);
+    }
+}
+setupGyro();
+
+/* ---------- toast ---------- */
+const toastEl = document.getElementById('toast');
+let toastTimer = null;
+function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+}
+
+/* ---------- grid helpers ---------- */
+const idx = (x, y) => y * W + x;
+const inBounds = (x, y) => x >= 0 && x < W && y >= 0 && y < H;
+const cellAt = (x, y) => inBounds(x, y) ? grid[idx(x, y)] : STONE; // walls outside
+const isSolid = (m) => m === SAND || m === STONE || m === WOOD;
+const solidAt = (x, y) => isSolid(cellAt(x, y)) || elevatorSolidAt(x, y);
+
+function surfaceY(x) {
+    for (let y = 0; y < H; y++) if (isSolid(cellAt(x, y))) return y;
+    return H;
+}
+
+/* ---------- entities ---------- */
+let lemmings = [];
+let stations = [];        // {x, y, type: 'snorkel'|'axe'|'umbrella'}
+let portals = [];         // pairs: [{x,y},{x,y}]
+let elevators = [];       // {x, w, yTop, yBot, y, dir, pause}
+let spawnP = { x: 0, y: 0 };
+let goalP = { x: 0, y: 0 };
+let sparkles = [];        // little effect particles
+
+let totalLems = 12, needLems = 6;
+let spawned = 0, saved = 0, dead = 0;
+let spawnTimer = 0;
+const SPAWN_EVERY = 1.4;
+let gameState = 'intro';  // intro | play | won | lost
+let levelTime = 0;
+
+function elevatorSolidAt(x, y) {
+    for (const el of elevators) {
+        const py = Math.round(el.y);
+        if (x >= el.x && x < el.x + el.w && y >= py && y < py + 2) return true;
+    }
+    return false;
+}
+
+/* =========================================================
+   LEVEL GENERATION
+   ========================================================= */
+function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.floor(window.innerWidth * dpr);
+    canvas.height = Math.floor(window.innerHeight * dpr);
+    // aim for ~36k cells so the sim stays fast on phones
+    const cell = Math.max(3, Math.ceil(Math.sqrt((canvas.width * canvas.height) / 36000)));
+    W = Math.floor(canvas.width / cell);
+    H = Math.floor(canvas.height / cell);
+    grid = new Uint8Array(W * H);
+    shade = new Uint8Array(W * H);
+    buffer = document.createElement('canvas');
+    buffer.width = W; buffer.height = H;
+    bufCtx = buffer.getContext('2d');
+    img = bufCtx.createImageData(W, H);
+}
+
+function heightMap() {
+    // layered sine noise ground line
+    const base = H * 0.72;
+    const amp = H * 0.05;
+    const p1 = rng() * 99, p2 = rng() * 99, p3 = rng() * 99;
+    const f1 = 2 + rng() * 2, f2 = 5 + rng() * 3, f3 = 11 + rng() * 5;
+    const h = new Array(W);
+    for (let x = 0; x < W; x++) {
+        const t = x / W;
+        h[x] = Math.floor(base
+            + Math.sin(t * f1 + p1) * amp
+            + Math.sin(t * f2 + p2) * amp * 0.5
+            + Math.sin(t * f3 + p3) * amp * 0.25);
+    }
+    return h;
+}
+
+function fillColumn(x, fromY, mat) {
+    for (let y = Math.max(0, fromY); y < H; y++) grid[idx(x, y)] = mat;
+}
+
+function generateLevel(seed) {
+    rngSeed = seed;
+    rng = mulberry32(seed);
+    grid.fill(EMPTY);
+    for (let i = 0; i < shade.length; i++) shade[i] = (rng() * 40) | 0;
+
+    lemmings = []; stations = []; portals = []; elevators = []; sparkles = [];
+    spawned = 0; saved = 0; dead = 0; spawnTimer = 0; levelTime = 0;
+
+    const h = heightMap();
+    for (let x = 0; x < W; x++) {
+        // stone body with a layer of loose sand on top
+        const sandDepth = 3 + ((rng() * 3) | 0);
+        for (let y = h[x]; y < H; y++) {
+            grid[idx(x, y)] = (y < h[x] + sandDepth) ? SAND : STONE;
+        }
+    }
+
+    const mirror = rng() < 0.5;              // travel right→left sometimes
+    const fx = (f) => Math.floor((mirror ? 1 - f : f) * W);
+    const travelDir = mirror ? -1 : 1;
+
+    // pick 3 obstacle types; water pool is always in
+    const extras = ['forest', 'cliff', 'chasm', 'drop'];
+    for (let i = extras.length - 1; i > 0; i--) {
+        const j = (rng() * (i + 1)) | 0;
+        [extras[i], extras[j]] = [extras[j], extras[i]];
+    }
+    const obstacles = ['pool', extras[0], extras[1]];
+    // shuffle their order along the path
+    for (let i = obstacles.length - 1; i > 0; i--) {
+        const j = (rng() * (i + 1)) | 0;
+        [obstacles[i], obstacles[j]] = [obstacles[j], obstacles[i]];
+    }
+
+    const slotFr = [0.26, 0.48, 0.70];
+    obstacles.forEach((type, i) => {
+        const cx = fx(slotFr[i] + (rng() - 0.5) * 0.04);
+        buildObstacle(type, cx, travelDir, h);
+    });
+
+    // spawn + goal on solid ground
+    const sx = fx(0.06);
+    spawnP = { x: clampX(sx), y: surfaceY(clampX(sx)) - 4 };
+    const gx = fx(0.94);
+    goalP = { x: clampX(gx), y: surfaceY(clampX(gx)) - 1 };
+
+    totalLems = 12;
+    needLems = 6;
+    gameState = 'play';
+    updateStats();
+}
+
+const clampX = (x) => Math.max(2, Math.min(W - 3, x));
+
+function buildObstacle(type, cx, dir, h) {
+    const before = clampX(cx - dir * Math.floor(W * 0.09));
+
+    if (type === 'pool') {
+        const half = Math.floor(W * 0.07);
+        const a = clampX(cx - half), b = clampX(cx + half);
+        let rim = H;
+        for (let x = a; x <= b; x++) rim = Math.min(rim, h[x]);
+        rim += 1;
+        const depth = 10 + ((rng() * 5) | 0);
+        for (let x = a; x <= b; x++) {
+            for (let y = 0; y < rim + depth && y < H; y++) grid[idx(x, y)] = EMPTY;
+            // stone basin so the water can't leak away
+            for (let y = rim + depth; y < Math.min(rim + depth + 3, H); y++) grid[idx(x, y)] = STONE;
+            for (let y = rim + 1; y < rim + depth && y < H; y++) grid[idx(x, y)] = WATER;
+        }
+        // stone rims so the pool edges are stable
+        for (const x of [a - 1, a, b, b + 1]) {
+            if (x < 0 || x >= W) continue;
+            for (let y = rim; y < rim + depth + 3 && y < H; y++) {
+                if (grid[idx(x, y)] !== WATER || x === a - 1 || x === b + 1) {
+                    if (x === a - 1 || x === b + 1) grid[idx(x, y)] = STONE;
+                }
+            }
+        }
+        addStation('snorkel', before);
+    }
+
+    if (type === 'forest') {
+        const half = Math.floor(W * 0.06);
+        const trees = 3 + ((rng() * 2) | 0);
+        for (let i = 0; i < trees; i++) {
+            const tx = clampX(cx - half + ((rng() * half * 2) | 0));
+            const ground = surfaceY(tx);
+            const height = 8 + ((rng() * 4) | 0);
+            const trunkW = 2;
+            for (let dx = 0; dx < trunkW; dx++) {
+                for (let y = ground - height; y < ground; y++) {
+                    if (inBounds(tx + dx, y)) grid[idx(tx + dx, y)] = WOOD;
+                }
+            }
+            // canopy blob
+            const cy = ground - height;
+            const r = 3 + ((rng() * 2) | 0);
+            for (let dy = -r; dy <= r; dy++) {
+                for (let dx = -r; dx <= r; dx++) {
+                    if (dx * dx + dy * dy <= r * r && inBounds(tx + 1 + dx, cy + dy)) {
+                        grid[idx(tx + 1 + dx, cy + dy)] = WOOD;
+                    }
+                }
+            }
+        }
+        addStation('axe', before);
+    }
+
+    if (type === 'cliff') {
+        // terrain steps UP in travel direction, too high to climb → elevator
+        const rise = 16 + ((rng() * 6) | 0);
+        const edge = cx;
+        for (let x = 0; x < W; x++) {
+            const past = dir > 0 ? x >= edge : x <= edge;
+            if (past) {
+                const newTop = Math.max(6, h[x] - rise);
+                for (let y = newTop; y < h[x]; y++) grid[idx(x, y)] = STONE;
+                h[x] = newTop;
+            }
+        }
+        const lowY = surfaceY(clampX(edge - dir * 4));
+        const highY = surfaceY(clampX(edge + dir * 4));
+        const ew = 6;
+        const ex = dir > 0 ? clampX(edge - ew) : clampX(edge);
+        elevators.push({
+            x: ex, w: ew,
+            yTop: Math.max(2, highY - 1),
+            yBot: Math.min(H - 3, lowY - 1),
+            y: Math.min(H - 3, lowY - 1),
+            dir: -1, pause: 0
+        });
+    }
+
+    if (type === 'chasm') {
+        // bottomless gap, crossed by a portal pair
+        const half = Math.floor(W * 0.05);
+        const a = clampX(cx - half), b = clampX(cx + half);
+        for (let x = a; x <= b; x++) fillColumn(x, 0, EMPTY);
+        // stone lips
+        for (const x of [a - 1, b + 1]) {
+            if (x >= 0 && x < W) {
+                const top = surfaceY(x);
+                for (let y = top; y < Math.min(top + 6, H); y++) grid[idx(x, y)] = STONE;
+            }
+        }
+        const pa = clampX(a - 3), pb = clampX(b + 3);
+        portals.push([
+            { x: pa, y: surfaceY(pa) - 3 },
+            { x: pb, y: surfaceY(pb) - 3 }
+        ]);
+    }
+
+    if (type === 'drop') {
+        // terrain steps DOWN in travel direction, deadly fall → umbrella
+        const fall = Math.floor(H * 0.3);
+        const edge = cx;
+        for (let x = 0; x < W; x++) {
+            const past = dir > 0 ? x >= edge : x <= edge;
+            if (past) {
+                const newTop = Math.min(H - 6, h[x] + fall);
+                for (let y = h[x]; y < newTop; y++) grid[idx(x, y)] = EMPTY;
+                // keep a sand cap on the lowered ground
+                for (let y = newTop; y < Math.min(newTop + 3, H); y++) grid[idx(x, y)] = SAND;
+                h[x] = newTop;
+            }
+        }
+        addStation('umbrella', before);
+    }
+}
+
+function addStation(type, x) {
+    stations.push({ x: clampX(x), type });
+}
+
+/* =========================================================
+   SAND / WATER SIMULATION
+   ========================================================= */
+function dirFromAngle(a) {
+    return [
+        Math.max(-1, Math.min(1, Math.round(Math.cos(a)))),
+        Math.max(-1, Math.min(1, Math.round(Math.sin(a))))
+    ];
+}
+
+let frame = 0;
+
+function simPass() {
+    const a = Math.atan2(grav.y, grav.x);
+    const p = dirFromAngle(a);
+    const d1 = dirFromAngle(a + Math.PI / 4);
+    const d2 = dirFromAngle(a - Math.PI / 4);
+    const s1 = dirFromAngle(a + Math.PI / 2);
+    const s2 = dirFromAngle(a - Math.PI / 2);
+    if (p[0] === 0 && p[1] === 0) return;
+
+    const flip = (frame & 1) === 0;
+    const sandC = flip ? [p, d1, d2] : [p, d2, d1];
+    const waterC = flip ? [p, d1, d2, s1, s2] : [p, d2, d1, s2, s1];
+
+    const yStart = p[1] > 0 ? H - 1 : 0;
+    const yEnd = p[1] > 0 ? -1 : H;
+    const yStep = p[1] > 0 ? -1 : 1;
+    const xStart = p[0] > 0 ? W - 1 : 0;
+    const xEnd = p[0] > 0 ? -1 : W;
+    const xStep = p[0] > 0 ? -1 : 1;
+
+    for (let y = yStart; y !== yEnd; y += yStep) {
+        const row = y * W;
+        for (let x = xStart; x !== xEnd; x += xStep) {
+            const m = grid[row + x];
+            if (m !== SAND && m !== WATER) continue;
+            const cands = m === SAND ? sandC : waterC;
+            for (let c = 0; c < cands.length; c++) {
+                const nx = x + cands[c][0], ny = y + cands[c][1];
+                if (!inBounds(nx, ny)) continue;
+                if (elevatorSolidAt(nx, ny)) continue;
+                const t = grid[ny * W + nx];
+                if (t === EMPTY) {
+                    grid[ny * W + nx] = m;
+                    grid[row + x] = EMPTY;
+                    const si = shade[row + x];
+                    shade[row + x] = shade[ny * W + nx];
+                    shade[ny * W + nx] = si;
+                    break;
+                }
+                if (m === SAND && t === WATER) {
+                    grid[ny * W + nx] = SAND;
+                    grid[row + x] = WATER;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+/* =========================================================
+   LEMMINGS
+   ========================================================= */
+const WALK_SPEED = 11;       // cells per second
+const FALL_LIMIT = 34;       // cells of free fall before splat
+const G_FALL = 55;
+
+function spawnLemming() {
+    lemmings.push({
+        x: spawnP.x, y: spawnP.y,
+        dir: spawnP.x < W / 2 ? 1 : -1,
+        state: 'fall', vy: 0, fallDist: 0,
+        acc: 0, drown: 0, buried: 0, chop: 0,
+        tpCool: 0, wob: rng() * 6.28,
+        snorkel: false, axe: false, umbrella: false,
+        alive: true, done: false, fade: 1
+    });
+    spawned++;
+    sparkleBurst(spawnP.x, spawnP.y, '#b57cff');
+    updateStats();
+}
+
+function waterAt(x, y) { return cellAt(x, y) === WATER; }
+
+function killLemming(L, how) {
+    if (!L.alive) return;
+    L.alive = false;
+    L.state = 'dead';
+    dead++;
+    sparkleBurst(L.x, L.y, how === 'drown' ? '#3aa0ff' : '#ff5544');
+    updateStats();
+    checkEnd();
+}
+
+function saveLemming(L) {
+    if (!L.alive || L.done) return;
+    L.done = true;
+    L.alive = false;
+    saved++;
+    sparkleBurst(L.x, L.y, '#ff9900');
+    updateStats();
+    checkEnd();
+}
+
+function updateLemming(L, dt) {
+    if (!L.alive) { L.fade = Math.max(0, L.fade - dt * 1.5); return; }
+
+    L.wob += dt * 10;
+    L.tpCool = Math.max(0, L.tpCool - dt);
+    let x = Math.round(L.x), y = Math.round(L.y);
+
+    // fell out of the world
+    if (y >= H - 1) { killLemming(L, 'fall'); return; }
+
+    // pushed around by sand: if body cell filled, climb out of it
+    if (isSolid(cellAt(x, y)) && !solidAt(x, y + 1)) L.y -= 1;
+    if (isSolid(cellAt(x, y - 1)) && isSolid(cellAt(x, y))) {
+        L.buried += dt;
+        if (L.buried > 1.6) { killLemming(L, 'buried'); return; }
+    } else L.buried = 0;
+
+    // reached the goal?
+    if (Math.abs(L.x - goalP.x) < 3 && Math.abs(L.y - goalP.y) < 6) { saveLemming(L); return; }
+
+    // portals
+    for (const pair of portals) {
+        for (let i = 0; i < 2; i++) {
+            const P = pair[i], Q = pair[1 - i];
+            if (L.tpCool <= 0 && Math.abs(L.x - P.x) < 2.2 && Math.abs(L.y - P.y) < 4) {
+                L.x = Q.x; L.y = Q.y;
+                L.tpCool = 2;
+                L.fallDist = 0; L.vy = 0;
+                sparkleBurst(Q.x, Q.y, '#b57cff');
+            }
+        }
+    }
+
+    // gear stations
+    for (const s of stations) {
+        if (Math.abs(L.x - s.x) < 2.5 && Math.abs(L.y - (surfaceY(s.x) - 1)) < 5) {
+            if (s.type === 'snorkel' && !L.snorkel) { L.snorkel = true; sparkleBurst(L.x, L.y - 3, '#3ae0ff'); }
+            if (s.type === 'axe' && !L.axe) { L.axe = true; sparkleBurst(L.x, L.y - 3, '#c96f3b'); }
+            if (s.type === 'umbrella' && !L.umbrella) { L.umbrella = true; sparkleBurst(L.x, L.y - 3, '#ff7ad9'); }
+        }
+    }
+
+    x = Math.round(L.x); y = Math.round(L.y);
+    // ankle-deep puddles are walkable; body-deep water = swim (snorkel) / drown (head under)
+    const bodyWater = waterAt(x, y - 1);
+    const headUnder = bodyWater && waterAt(x, y - 2);
+    const inWater = L.snorkel ? bodyWater : headUnder;
+
+    /* ---- swimming / drowning ---- */
+    if (inWater) {
+        L.fallDist = 0; L.vy = 0;
+        if (L.snorkel) {
+            L.state = 'swim';
+            // float up to the surface
+            if (waterAt(x, y - 2)) L.y -= dt * 12;
+            L.acc += WALK_SPEED * 0.8 * dt;
+            while (L.acc >= 1) {
+                L.acc -= 1;
+                const nx = x + L.dir;
+                if (!inBounds(nx, 2)) { L.dir *= -1; break; }
+                // climb out onto land (swimmers are eager climbers)
+                let wall = 0;
+                while (wall < 6 && solidAt(nx, y - wall)) wall++;
+                if (wall > 0 && wall <= 5) { L.x = nx; L.y = y - wall; break; }
+                if (wall > 5) { L.dir *= -1; break; }
+                L.x = nx;
+                x = Math.round(L.x);
+            }
+            L.drown = 0;
+        } else {
+            L.state = 'drowning';
+            L.drown += dt;
+            if (!solidAt(x, y + 1)) L.y += dt * 6;      // sink
+            if (L.drown > 3) { killLemming(L, 'drown'); return; }
+        }
+        return;
+    }
+    L.drown = 0;
+
+    /* ---- chopping wood ---- */
+    if (L.state === 'chop') {
+        L.chop -= dt;
+        if (L.chop <= 0) {
+            const nx = x + L.dir;
+            for (let k = -9; k <= 1; k++) {
+                if (inBounds(nx, y + k) && grid[idx(nx, y + k)] === WOOD) grid[idx(nx, y + k)] = EMPTY;
+                if (inBounds(nx + L.dir, y + k) && grid[idx(nx + L.dir, y + k)] === WOOD) grid[idx(nx + L.dir, y + k)] = EMPTY;
+            }
+            sparkleBurst(nx, y - 2, '#c96f3b');
+            L.state = 'walk';
+        }
+        return;
+    }
+
+    const supported = solidAt(x, y + 1);
+
+    /* ---- falling ---- */
+    if (!supported) {
+        L.state = 'fall';
+        const vmax = L.umbrella ? 7 : 42;
+        L.vy = Math.min(vmax, L.vy + G_FALL * dt);
+        let dy = L.vy * dt;
+        while (dy > 0) {
+            const step = Math.min(1, dy);
+            const ny = Math.round(L.y + step);
+            if (solidAt(x, ny + 1)) {
+                L.y = ny;
+                // landed
+                if (L.fallDist > FALL_LIMIT && !L.umbrella) { killLemming(L, 'splat'); return; }
+                L.fallDist = 0; L.vy = 0; L.state = 'walk';
+                break;
+            }
+            L.y += step;
+            L.fallDist += L.umbrella ? 0 : step;
+            dy -= step;
+        }
+        return;
+    }
+
+    /* ---- riding elevator ---- */
+    let riding = false;
+    for (const el of elevators) {
+        const py = Math.round(el.y);
+        if (x >= el.x && x < el.x + el.w && Math.abs((y + 1) - py) <= 1) {
+            L.y = py - 1;                     // stick to the platform
+            if (el.pause <= 0) riding = true; // moving: stay put like a good passenger
+        }
+    }
+    if (riding) { L.state = 'ride'; L.fallDist = 0; L.vy = 0; return; }
+
+    /* ---- walking ---- */
+    L.state = 'walk';
+    L.fallDist = 0; L.vy = 0;
+    L.acc += WALK_SPEED * dt;
+    while (L.acc >= 1) {
+        L.acc -= 1;
+        x = Math.round(L.x); y = Math.round(L.y);
+        const nx = x + L.dir;
+        if (nx < 1 || nx > W - 2) { L.dir *= -1; break; }
+
+        // wall height ahead
+        let wall = 0;
+        while (wall < 5 && solidAt(nx, y - wall)) wall++;
+
+        if (wall === 0) {
+            // flat or downhill: snap down up to 2, else start falling
+            let drop = 0;
+            while (drop < 3 && !solidAt(nx, y + drop + 1)) drop++;
+            L.x = nx;
+            if (drop <= 2) L.y = y + drop;
+            // if drop === 3 → next tick enters fall state naturally
+        } else if (wall <= 2) {
+            // climbable step
+            if (!solidAt(nx, y - wall) && !solidAt(x, y - wall)) {
+                L.x = nx; L.y = y - wall;
+            } else { L.dir *= -1; break; }
+        } else {
+            // tall wall: wood + axe → chop, otherwise turn around
+            let woodWall = false;
+            for (let k = 0; k < 5; k++) if (cellAt(nx, y - k) === WOOD) woodWall = true;
+            if (woodWall && L.axe) {
+                L.state = 'chop';
+                L.chop = 0.5;
+            } else {
+                L.dir *= -1;
+            }
+            break;
+        }
+    }
+}
+
+/* ---------- elevators ---------- */
+function updateElevators(dt) {
+    for (const el of elevators) {
+        if (el.pause > 0) { el.pause -= dt; continue; }
+        el.y += el.dir * 9 * dt;
+        if (el.y <= el.yTop) { el.y = el.yTop; el.dir = 1; el.pause = 2.2; }
+        if (el.y >= el.yBot) { el.y = el.yBot; el.dir = -1; el.pause = 2.2; }
+    }
+}
+
+/* ---------- sparkles ---------- */
+function sparkleBurst(x, y, color) {
+    for (let i = 0; i < 10; i++) {
+        sparkles.push({
+            x, y,
+            vx: (Math.random() - 0.5) * 22,
+            vy: (Math.random() - 0.8) * 22,
+            life: 0.7 + Math.random() * 0.5,
+            color
+        });
+    }
+}
+
+function updateSparkles(dt) {
+    for (let i = sparkles.length - 1; i >= 0; i--) {
+        const s = sparkles[i];
+        s.life -= dt;
+        if (s.life <= 0) { sparkles.splice(i, 1); continue; }
+        s.x += s.vx * dt; s.y += s.vy * dt;
+        s.vy += 25 * dt;
+    }
+}
+
+/* =========================================================
+   INPUT: draw sand / water / dig
+   ========================================================= */
+let brush = SAND;
+let pointerDown = false;
+let pointer = { x: 0, y: 0 };
+
+const brushBtns = {
+    sand: document.getElementById('brush-sand'),
+    water: document.getElementById('brush-water'),
+    dig: document.getElementById('brush-dig')
+};
+function setBrush(name) {
+    brush = name === 'sand' ? SAND : name === 'water' ? WATER : EMPTY;
+    for (const k in brushBtns) brushBtns[k].classList.toggle('active', k === name);
+}
+brushBtns.sand.addEventListener('click', () => setBrush('sand'));
+brushBtns.water.addEventListener('click', () => setBrush('water'));
+brushBtns.dig.addEventListener('click', () => setBrush('dig'));
+
+function pointerToCell(e) {
+    const r = canvas.getBoundingClientRect();
+    return {
+        x: Math.floor((e.clientX - r.left) / r.width * W),
+        y: Math.floor((e.clientY - r.top) / r.height * H)
+    };
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+    pointerDown = true;
+    pointer = pointerToCell(e);
+    canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', (e) => {
+    if (pointerDown) pointer = pointerToCell(e);
+});
+window.addEventListener('pointerup', () => { pointerDown = false; });
+window.addEventListener('pointercancel', () => { pointerDown = false; });
+
+function applyBrush() {
+    if (!pointerDown || gameState !== 'play') return;
+    const R = brush === EMPTY ? 4 : 3;
+    for (let dy = -R; dy <= R; dy++) {
+        for (let dx = -R; dx <= R; dx++) {
+            if (dx * dx + dy * dy > R * R) continue;
+            const x = pointer.x + dx, y = pointer.y + dy;
+            if (!inBounds(x, y)) continue;
+            const cur = grid[idx(x, y)];
+            if (brush === EMPTY) {
+                if (cur !== EMPTY) grid[idx(x, y)] = EMPTY;   // dig everything
+            } else if (cur === EMPTY) {
+                if (Math.random() < 0.65) grid[idx(x, y)] = brush;
+            }
+        }
+    }
+}
+
+/* =========================================================
+   RENDERING
+   ========================================================= */
+function renderGrid() {
+    const d = img.data;
+    for (let i = 0; i < W * H; i++) {
+        const m = grid[i];
+        const s = shade[i];
+        let r = 8, g = 8, b = 12, al = 255;
+        if (m === EMPTY) { r = 10; g = 10; b = 14; }
+        else if (m === SAND) { r = 210 + (s >> 1); g = 175 + (s >> 1); b = 90 + (s >> 2); }
+        else if (m === WATER) { r = 40; g = 120 + (s >> 1); b = 220 + (s & 31); }
+        else if (m === STONE) { r = 90 + (s >> 1); g = 90 + (s >> 1); b = 100 + (s >> 1); }
+        else if (m === WOOD) { r = 110 + (s >> 1); g = 70 + (s >> 2); b = 40; }
+        d[i * 4] = r; d[i * 4 + 1] = g; d[i * 4 + 2] = b; d[i * 4 + 3] = al;
+    }
+    bufCtx.putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(buffer, 0, 0, canvas.width, canvas.height);
+}
+
+function cellPx() { return { fx: canvas.width / W, fy: canvas.height / H }; }
+
+function drawEntities(t) {
+    const { fx, fy } = cellPx();
+
+    // spawn portal: swirling ring
+    drawPortalRing(spawnP.x, spawnP.y, t, '#b57cff', fx, fy);
+
+    // goal door
+    const gx = goalP.x * fx, gy = goalP.y * fy;
+    ctx.fillStyle = '#241a10';
+    ctx.fillRect(gx - 3 * fx, gy - 8 * fy, 6 * fx, 9 * fy);
+    ctx.fillStyle = '#ff9900';
+    ctx.fillRect(gx - 3 * fx, gy - 8 * fy, 6 * fx, 1.2 * fy);
+    ctx.fillRect(gx - 3 * fx, gy - 8 * fy, 1 * fx, 9 * fy);
+    ctx.fillRect(gx + 2 * fx, gy - 8 * fy, 1 * fx, 9 * fy);
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+    ctx.fillStyle = `rgba(255,153,0,${0.25 + pulse * 0.3})`;
+    ctx.fillRect(gx - 2 * fx, gy - 7 * fy, 4 * fx, 8 * fy);
+
+    // chasm portals
+    for (const pair of portals) {
+        drawPortalRing(pair[0].x, pair[0].y, t, '#3ae0ff', fx, fy);
+        drawPortalRing(pair[1].x, pair[1].y, t * 1.3, '#3ae0ff', fx, fy);
+    }
+
+    // elevators
+    for (const el of elevators) {
+        ctx.fillStyle = '#c9c9d4';
+        ctx.fillRect(el.x * fx, el.y * fy, el.w * fx, 2 * fy);
+        ctx.fillStyle = '#ff9900';
+        ctx.fillRect(el.x * fx, el.y * fy, el.w * fx, 0.5 * fy);
+        // rails
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.fillRect((el.x + el.w / 2 - 0.25) * fx, el.yTop * fy, 0.5 * fx, (el.yBot - el.yTop + 2) * fy);
+    }
+
+    // gear stations
+    for (const s of stations) {
+        const sy = surfaceY(s.x) - 1;
+        const px = s.x * fx, py = sy * fy;
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.fillRect(px - 1.5 * fx, py - 0.5 * fy, 3 * fx, 1 * fy); // pedestal
+        const bob = Math.sin(t * 2.5 + s.x) * 0.8;
+        const iy = py - (4 + bob) * fy;
+        if (s.type === 'snorkel') {
+            ctx.fillStyle = '#3ae0ff';
+            ctx.fillRect(px - fx, iy, 2 * fx, 2.4 * fy);
+            ctx.fillRect(px + fx, iy - 1.6 * fy, 0.8 * fx, 2 * fy);
+        } else if (s.type === 'axe') {
+            ctx.fillStyle = '#9b6a43';
+            ctx.fillRect(px - 0.4 * fx, iy - fy, 0.8 * fx, 3.6 * fy);
+            ctx.fillStyle = '#d8d8e0';
+            ctx.fillRect(px - 1.6 * fx, iy - fy, 2 * fx, 1.4 * fy);
+        } else if (s.type === 'umbrella') {
+            ctx.fillStyle = '#ff7ad9';
+            ctx.beginPath();
+            ctx.arc(px, iy, 1.8 * fx, Math.PI, 0);
+            ctx.fill();
+            ctx.fillRect(px - 0.3 * fx, iy, 0.6 * fx, 2.6 * fy);
+        }
+    }
+
+    // lemmings
+    for (const L of lemmings) {
+        if (L.fade <= 0) continue;
+        ctx.globalAlpha = L.fade;
+        const lx = L.x * fx, ly = L.y * fy;
+        const wob = L.state === 'walk' ? Math.sin(L.wob) * 0.3 : 0;
+
+        if (!L.alive && !L.done) {
+            // ghost floating up
+            L.y -= 0.05;
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.fillRect(lx - fx, ly - 3 * fy, 2 * fx, 3 * fy);
+            ctx.globalAlpha = 1;
+            continue;
+        }
+
+        // body (blue), head (skin), hair (green) — classic
+        ctx.fillStyle = '#3b6fe0';
+        ctx.fillRect(lx - fx, ly - 2 * fy + wob * fy, 2 * fx, 2 * fy);
+        ctx.fillStyle = '#f0c8a0';
+        ctx.fillRect(lx - fx, ly - 3.4 * fy + wob * fy, 2 * fx, 1.5 * fy);
+        ctx.fillStyle = '#59e05a';
+        ctx.fillRect(lx - fx, ly - 4.2 * fy + wob * fy, 2 * fx, 0.9 * fy);
+        // eye shows direction
+        ctx.fillStyle = '#111';
+        ctx.fillRect(lx + (L.dir > 0 ? 0.3 : -0.9) * fx, ly - 3.1 * fy + wob * fy, 0.6 * fx, 0.6 * fy);
+
+        // gear indicators
+        if (L.snorkel) {
+            ctx.fillStyle = '#3ae0ff';
+            ctx.fillRect(lx + (L.dir > 0 ? fx : -1.6 * fx), ly - 3.6 * fy, 0.6 * fx, 1.6 * fy);
+        }
+        if (L.axe) {
+            ctx.fillStyle = '#d8d8e0';
+            ctx.fillRect(lx + (L.dir > 0 ? 1.1 * fx : -1.8 * fx), ly - 1.8 * fy, 0.7 * fx, 0.7 * fy);
+        }
+        if (L.umbrella && L.state === 'fall') {
+            ctx.fillStyle = '#ff7ad9';
+            ctx.beginPath();
+            ctx.arc(lx, ly - 5 * fy, 2.2 * fx, Math.PI, 0);
+            ctx.fill();
+        } else if (L.umbrella) {
+            ctx.fillStyle = '#ff7ad9';
+            ctx.fillRect(lx - 0.3 * fx, ly - 5.2 * fy, 0.6 * fx, 1 * fy);
+        }
+        // drowning bubbles
+        if (L.state === 'drowning') {
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            const bub = (levelTime * 6 + L.wob) % 4;
+            ctx.fillRect(lx, ly - (4 + bub) * fy, 0.5 * fx, 0.5 * fy);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    // sparkles
+    for (const s of sparkles) {
+        ctx.globalAlpha = Math.min(1, s.life * 2);
+        ctx.fillStyle = s.color;
+        ctx.fillRect(s.x * fx, s.y * fy, Math.max(1.5, fx * 0.6), Math.max(1.5, fy * 0.6));
+    }
+    ctx.globalAlpha = 1;
+}
+
+function drawPortalRing(x, y, t, color, fx, fy) {
+    const px = x * fx, py = y * fy;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1.5, fx * 0.5);
+    for (let i = 0; i < 2; i++) {
+        const r = (3 + i * 1.4 + Math.sin(t * 2 + i * 2) * 0.5) * fx;
+        ctx.beginPath();
+        ctx.ellipse(px, py, r * 0.6, r, Math.sin(t + i) * 0.4, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+}
+
+/* ---------- HUD / game flow ---------- */
+const statsEl = document.getElementById('stats');
+function updateStats() {
+    statsEl.textContent = `saved ${saved}/${needLems} · out ${spawned}/${totalLems} · lost ${dead}`;
+}
+
+const endscreen = document.getElementById('endscreen');
+const endTitle = document.getElementById('end-title');
+const endText = document.getElementById('end-text');
+
+function checkEnd() {
+    if (gameState !== 'play') return;
+    if (saved >= needLems) {
+        gameState = 'won';
+        endTitle.textContent = 'level clear';
+        endTitle.style.color = '#ff9900';
+        endText.textContent = `${saved} sandlings made it home. seed #${rngSeed}`;
+        endscreen.classList.remove('hidden');
+        return;
+    }
+    const finished = spawned >= totalLems && lemmings.every(L => !L.alive);
+    if (finished && saved < needLems) {
+        gameState = 'lost';
+        endTitle.textContent = 'all lost';
+        endTitle.style.color = '#ff5544';
+        endText.textContent = `only ${saved} of ${needLems} needed sandlings survived. tilt smarter, dig better.`;
+        endscreen.classList.remove('hidden');
+    }
+}
+
+function restartLevel() {
+    endscreen.classList.add('hidden');
+    generateLevel(rngSeed);
+}
+function newLevel() {
+    endscreen.classList.add('hidden');
+    generateLevel((Math.random() * 1e9) | 0);
+}
+
+document.getElementById('btn-retry').addEventListener('click', restartLevel);
+document.getElementById('btn-new').addEventListener('click', newLevel);
+document.getElementById('btn-again').addEventListener('click', restartLevel);
+document.getElementById('btn-next').addEventListener('click', newLevel);
+document.getElementById('btn-start').addEventListener('click', () => {
+    document.getElementById('intro').classList.add('hidden');
+    newLevel();
+});
+
+/* ---------- main loop ---------- */
+let lastT = performance.now();
+
+function loop(now) {
+    const dt = Math.min(0.05, (now - lastT) / 1000);
+    lastT = now;
+    frame++;
+
+    if (gameState === 'play') {
+        levelTime += dt;
+        applyBrush();
+        simPass();
+        if (frame & 1) simPass();     // extra pass every other frame → livelier water
+
+        updateElevators(dt);
+        spawnTimer -= dt;
+        if (spawned < totalLems && spawnTimer <= 0) {
+            spawnLemming();
+            spawnTimer = SPAWN_EVERY;
+        }
+        for (const L of lemmings) updateLemming(L, dt);
+        updateSparkles(dt);
+    }
+
+    if (grid) {
+        renderGrid();
+        drawEntities(now / 1000);
+    }
+    requestAnimationFrame(loop);
+}
+
+window.addEventListener('resize', () => {
+    const seed = rngSeed;
+    resize();
+    if (gameState !== 'intro') generateLevel(seed);
+});
+
+resize();
+generateLevel((Math.random() * 1e9) | 0);
+gameState = 'intro';   // show intro over a living background level
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
