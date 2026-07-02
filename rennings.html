@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>MXGN — lemmings "physics"</title>
-<meta name="description" content="lemmings physics – falling sand browser game with gyro controls, procedural multi-floor levels, lava, night worlds. © MXGN">
+<title>MXGN — rennings</title>
+<meta name="description" content="rennings – falling sand browser game with gyro controls, procedural multi-floor levels, lava, night worlds, local leaderboard. © MXGN">
 <meta name="copyright" content="© 2026 MXGN. All rights reserved.">
-<!-- lemmings "physics" — concept, code & pixels © 2026 MXGN -->
+<!-- rennings — concept, code & pixels © 2026 MXGN -->
 <style>
 @import url('https://fonts.cdnfonts.com/css/chillax');
 
@@ -160,9 +160,10 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
 
 <div class="hud-top">
     <a class="ui" href="play.html">&larr; arcade</a>
-    <span id="title">lemmings "physics"</span>
+    <span id="title">rennings</span>
     <span class="spacer"></span>
     <button class="ui" id="btn-tilt" style="display:none">enable tilt</button>
+    <button class="ui" id="btn-board" title="local leaderboard">best</button>
     <button class="ui" id="btn-diff" title="difficulty = how many floors the world is stacked high">lvl 2</button>
     <button class="ui" id="btn-retry" title="restart this level">retry</button>
     <button class="ui" id="btn-new" title="generate a new level">new</button>
@@ -180,19 +181,21 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
 <div id="toast"></div>
 
 <div class="overlay" id="intro">
-    <h2>lemmings <span class="accent">"physics"</span></h2>
+    <h2>renn<span class="accent">ings</span></h2>
     <p>
-        The whole world is physical pixel sand. Lemmings pour out of the portal and march
+        The whole world is physical pixel sand. Rennings pour out of the portal and march
         blindly — walls turn them around, deep water drowns them, falls hurt them,
         lava burns them. Get enough of them to the exit door.
     </p>
     <p>
         <b>Tilt your phone</b> to shift sand, snow, water and lava across the screen
-        (desktop: <b>arrow keys</b>). Draw sand/water or dig with your finger. Gear stations
-        upgrade every lemming that walks past: snorkel, boat, axe, lighter, umbrella,
-        climbing hook, bridge planks. Find keys to open gates. Pour sand into lava to
-        turn it into stone. Meadow, jungle, mountain and cave worlds — some levels are
-        pitch black night. Every level is procedurally generated.
+        (desktop: <b>arrow keys</b>). Your sand &amp; water supply is <b>limited</b> —
+        tilting the world is free. Water quenches lava into stone and puts out fires;
+        sand poured into lava becomes a stone bridge. Dig tunnels with your finger.
+        Gear stations upgrade every renning that walks past: snorkel, boat, axe, lighter,
+        umbrella, climbing hook, bridge planks. Find keys to open gates. Meadow, jungle,
+        mountain and cave worlds — some levels are pitch black night. Every level is
+        procedurally generated: score, stars &amp; streaks live on the leaderboard.
     </p>
     <div class="row">
         <span class="difflabel">difficulty — floors stacked high:</span>
@@ -204,7 +207,7 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
     <div class="row">
         <button class="ui" id="btn-start">start</button>
     </div>
-    <p class="copy">lemmings "physics" — concept, code &amp; pixels &copy; 2026 MXGN. all rights reserved.</p>
+    <p class="copy">rennings — concept, code &amp; pixels &copy; 2026 MXGN. all rights reserved.</p>
 </div>
 
 <div class="overlay hidden" id="endscreen">
@@ -213,6 +216,18 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
     <div class="row">
         <button class="ui" id="btn-again">retry level</button>
         <button class="ui" id="btn-next">next level</button>
+        <button class="ui" id="btn-board2">leaderboard</button>
+    </div>
+    <p class="copy">&copy; 2026 MXGN</p>
+</div>
+
+<div class="overlay hidden" id="board">
+    <h2>leader<span class="accent">board</span></h2>
+    <p id="board-stats"></p>
+    <ol id="board-list" style="text-align:left; font-size:0.85rem; line-height:2; margin:0; padding-left:1.4em; text-transform:none;"></ol>
+    <p class="copy">scores are stored locally on this device — global board coming with the standalone.</p>
+    <div class="row">
+        <button class="ui" id="btn-board-close">close</button>
     </div>
     <p class="copy">&copy; 2026 MXGN</p>
 </div>
@@ -221,7 +236,7 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
 'use strict';
 
 /* =========================================================
-   LEMMINGS "PHYSICS" — © 2026 MXGN
+   RENNINGS — © 2026 MXGN
    falling-sand lemmings, gyro powered
    materials in the cell grid:
    0 empty | 1 sand | 2 water | 3 stone | 4 wood
@@ -239,11 +254,12 @@ const THEMES = {
 };
 
 const DIFFS = {
-    1: { need: 5, total: 12, night: 0 },
-    2: { need: 6, total: 12, night: 0.2 },
-    3: { need: 7, total: 13, night: 0.35 },
-    4: { need: 8, total: 14, night: 0.5 }
+    1: { need: 7, total: 12, night: 0 },
+    2: { need: 8, total: 13, night: 0.2 },
+    3: { need: 9, total: 14, night: 0.35 },
+    4: { need: 10, total: 14, night: 0.5 }
 };
+const PAR_TIME = { 1: 90, 2: 150, 3: 210, 4: 270 };   // seconds for the time bonus
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -254,7 +270,7 @@ let grid, shade;               // Uint8Array cell material + per-cell jitter (fi
 let buffer, bufCtx, img;       // offscreen pixel buffer (1 cell = 1 px)
 let nightCv, nightCtx;         // darkness overlay
 
-let difficulty = parseInt(localStorage.getItem('lp_diff') || '2', 10);
+let difficulty = parseInt(localStorage.getItem('rn_diff') || '2', 10);
 if (!(difficulty >= 1 && difficulty <= 4)) difficulty = 2;
 let theme = 'meadow';
 let levelNight = false;
@@ -275,10 +291,19 @@ function mulberry32(a) {
 const grav = { x: 0, y: 1 };
 let keyTilt = 0;
 
+// gravity is clamped to a cone around straight down: you tilt a sandbox,
+// you never flip it — sand shifts and slides but can't "take off"
+const MAX_TILT = 1.1;   // ~63 degrees
+function setGravityTarget(tx, ty, lerp) {
+    let a = Math.atan2(tx, ty);   // 0 = straight down
+    a = Math.max(-MAX_TILT, Math.min(MAX_TILT, a));
+    const gx = Math.sin(a), gy = Math.cos(a);
+    grav.x += (gx - grav.x) * lerp;
+    grav.y += (gy - grav.y) * lerp;
+}
+
 function updateGravityFromKeys() {
-    const a = Math.PI / 2 + keyTilt * 0.72;
-    grav.x = Math.cos(a);
-    grav.y = Math.sin(a);
+    setGravityTarget(Math.sin(keyTilt * 0.9), Math.cos(keyTilt * 0.9), 1);
 }
 
 window.addEventListener('keydown', (e) => {
@@ -305,19 +330,17 @@ function screenAngle() {
 
 function onOrientation(e) {
     if (e.beta === null || e.gamma === null) return;
-    const gx0 = Math.sin(e.gamma * Math.PI / 180);
-    const gy0 = Math.sin(e.beta * Math.PI / 180);
+    // 35° of device tilt = full effect → responsive without being twitchy
+    const gx0 = Math.max(-1, Math.min(1, e.gamma / 35));
+    const gy0 = Math.max(-1, Math.min(1, e.beta / 35));
     let gx = gx0, gy = gy0;
     const ang = screenAngle();
     if (ang === 90) { gx = gy0; gy = -gx0; }
     else if (ang === -90 || ang === 270) { gx = -gy0; gy = gx0; }
     else if (ang === 180) { gx = -gx0; gy = -gy0; }
 
-    const len = Math.hypot(gx, gy);
-    if (len < 0.15) { gx = 0; gy = 0.35; }
-    else if (len > 1) { gx /= len; gy /= len; }
-    grav.x += (gx - grav.x) * 0.35;
-    grav.y += (gy - grav.y) * 0.35;
+    if (Math.hypot(gx, gy) < 0.1) { gx = 0; gy = 1; }   // lying flat: plain down
+    setGravityTarget(gx, gy, 0.5);
 }
 
 const btnTilt = document.getElementById('btn-tilt');
@@ -369,6 +392,7 @@ let goalP = { x: 0, y: 0 };
 let sparkles = [];
 let glowPts = [];         // sampled lava/fire cells for night lighting
 
+let sandLeft = 0, waterLeft = 0;   // limited supplies: tilting is free, drawing is not
 let totalLems = 12, needLems = 6;
 let spawned = 0, saved = 0, dead = 0;
 let spawnTimer = 0;
@@ -437,6 +461,8 @@ function generateLevel(seed) {
 
     lemmings = []; stations = []; portals = []; elevators = []; gates = []; sparkles = [];
     spawned = 0; saved = 0; dead = 0; spawnTimer = 0; levelTime = 0;
+    sandLeft = 300 + difficulty * 50;
+    waterLeft = 150 + difficulty * 25;
 
     const cfg = DIFFS[difficulty];
     totalLems = cfg.total;
@@ -535,6 +561,7 @@ function generateLevel(seed) {
     document.getElementById('title').textContent =
         `lvl ${difficulty} · ${theme}${levelNight ? ' · night' : ''}`;
     updateStats();
+    updateBrushLabels();
 }
 
 function rockBottom(k, bandH, bands) {
@@ -1245,6 +1272,7 @@ window.addEventListener('pointercancel', () => { pointerDown = false; });
 function applyBrush() {
     if (!pointerDown || gameState !== 'play') return;
     const R = brush === EMPTY ? 5 : 4;
+    let used = false;
     for (let dy = -R; dy <= R; dy++) {
         for (let dx = -R; dx <= R; dx++) {
             if (dx * dx + dy * dy > R * R) continue;
@@ -1252,12 +1280,26 @@ function applyBrush() {
             if (!inBounds(x, y)) continue;
             const cur = grid[idx(x, y)];
             if (brush === EMPTY) {
-                if (cur !== EMPTY) grid[idx(x, y)] = EMPTY;
+                if (cur !== EMPTY) grid[idx(x, y)] = EMPTY;   // digging is free
             } else if (cur === EMPTY) {
-                if (Math.random() < 0.65) grid[idx(x, y)] = brush;
+                if (brush === SAND && sandLeft <= 0) continue;
+                if (brush === WATER && waterLeft <= 0) continue;
+                if (Math.random() < 0.65) {
+                    grid[idx(x, y)] = brush;
+                    if (brush === SAND) sandLeft--; else waterLeft--;
+                    used = true;
+                }
             }
         }
     }
+    if (used) updateBrushLabels();
+}
+
+function updateBrushLabels() {
+    brushBtns.sand.textContent = `sand ${Math.max(0, sandLeft)}`;
+    brushBtns.water.textContent = `water ${Math.max(0, waterLeft)}`;
+    brushBtns.sand.style.opacity = sandLeft > 0 ? '' : '0.4';
+    brushBtns.water.style.opacity = waterLeft > 0 ? '' : '0.4';
 }
 
 /* =========================================================
@@ -1530,30 +1572,98 @@ function drawNight(fx, fy) {
 
 /* ---------- HUD / game flow ---------- */
 const statsEl = document.getElementById('stats');
+function fmtTime(t) {
+    const m = Math.floor(t / 60), sec = Math.floor(t % 60);
+    return `${m}:${String(sec).padStart(2, '0')}`;
+}
 function updateStats() {
-    statsEl.textContent = `saved ${saved}/${needLems} · out ${spawned}/${totalLems} · lost ${dead}`;
+    statsEl.textContent = `saved ${saved}/${needLems} · out ${spawned}/${totalLems} · lost ${dead} · ${fmtTime(levelTime)}`;
 }
 
 const endscreen = document.getElementById('endscreen');
 const endTitle = document.getElementById('end-title');
 const endText = document.getElementById('end-text');
 
+/* ---------- score, streaks & local leaderboard ---------- */
+function loadStats() {
+    try {
+        const s = JSON.parse(localStorage.getItem('rn_stats'));
+        if (s && typeof s === 'object') {
+            return Object.assign({ cleared: 0, streak: 0, bestStreak: 0, totalSaved: 0, board: [] }, s);
+        }
+    } catch (e) {}
+    return { cleared: 0, streak: 0, bestStreak: 0, totalSaved: 0, board: [] };
+}
+function saveStats(s) {
+    try { localStorage.setItem('rn_stats', JSON.stringify(s)); } catch (e) {}
+}
+
+function levelScore() {
+    const par = PAR_TIME[difficulty];
+    const timeBonus = Math.max(0, Math.round((par - levelTime) * 5));
+    return Math.max(0, difficulty * (saved * 100 - dead * 20) + difficulty * timeBonus);
+}
+function levelStars() {
+    let st = 1;
+    if (saved >= Math.min(totalLems - 1, needLems + 2)) st++;
+    if (levelTime <= PAR_TIME[difficulty]) st++;
+    return st;
+}
+const starStr = (n) => '\u2605'.repeat(n) + '\u2606'.repeat(3 - n);
+
+function renderBoard() {
+    const S = loadStats();
+    document.getElementById('board-stats').textContent =
+        `levels cleared ${S.cleared} · best streak ${S.bestStreak} · rennings rescued ${S.totalSaved}`;
+    const list = document.getElementById('board-list');
+    list.innerHTML = '';
+    if (!S.board.length) {
+        const li = document.createElement('li');
+        li.textContent = 'no scores yet — go save some rennings!';
+        list.appendChild(li);
+    }
+    for (const e of S.board) {
+        const li = document.createElement('li');
+        li.textContent = `${e.s} pts — ${starStr(e.st)} · lvl ${e.d} ${e.theme}${e.night ? ' night' : ''} · seed #${e.seed} · ${fmtTime(e.t)} · ${e.date}`;
+        list.appendChild(li);
+    }
+}
+
 function checkEnd() {
     if (gameState !== 'play') return;
     if (saved >= needLems) {
         gameState = 'won';
+        const sc = levelScore();
+        const st = levelStars();
+        const S = loadStats();
+        S.cleared++;
+        S.streak++;
+        S.bestStreak = Math.max(S.bestStreak, S.streak);
+        S.totalSaved += saved;
+        S.board.push({
+            s: sc, st, d: difficulty, theme, night: levelNight, seed: rngSeed,
+            t: Math.round(levelTime), date: new Date().toISOString().slice(0, 10)
+        });
+        S.board.sort((a, b) => b.s - a.s);
+        S.board = S.board.slice(0, 10);
+        saveStats(S);
         endTitle.textContent = 'level clear';
         endTitle.style.color = '#ff9900';
-        endText.textContent = `${saved} lemmings made it home. lvl ${difficulty} ${theme}${levelNight ? ' night' : ''} · seed #${rngSeed}`;
+        endText.textContent =
+            `${saved} rennings made it home in ${fmtTime(levelTime)} — score ${sc} · ${starStr(st)} · ` +
+            `streak ${S.streak} (best ${S.bestStreak}) · lvl ${difficulty} ${theme}${levelNight ? ' night' : ''} · seed #${rngSeed}`;
         endscreen.classList.remove('hidden');
         return;
     }
     const finished = spawned >= totalLems && lemmings.every(L => !L.alive);
     if (finished && saved < needLems) {
         gameState = 'lost';
+        const S = loadStats();
+        S.streak = 0;
+        saveStats(S);
         endTitle.textContent = 'all lost';
         endTitle.style.color = '#ff5544';
-        endText.textContent = `only ${saved} of ${needLems} needed lemmings survived. tilt smarter, dig better.`;
+        endText.textContent = `only ${saved} of ${needLems} needed rennings survived — streak broken. tilt smarter, dig better.`;
         endscreen.classList.remove('hidden');
     }
 }
@@ -1571,7 +1681,7 @@ function newLevel() {
 const btnDiff = document.getElementById('btn-diff');
 function setDifficulty(d, regen) {
     difficulty = d;
-    localStorage.setItem('lp_diff', String(d));
+    localStorage.setItem('rn_diff', String(d));
     btnDiff.textContent = 'lvl ' + d;
     document.querySelectorAll('.diffbtn').forEach(b => {
         b.classList.toggle('active', parseInt(b.dataset.d, 10) === d);
@@ -1582,6 +1692,12 @@ btnDiff.addEventListener('click', () => setDifficulty(difficulty % 4 + 1, true))
 document.querySelectorAll('.diffbtn').forEach(b => {
     b.addEventListener('click', () => setDifficulty(parseInt(b.dataset.d, 10), false));
 });
+
+const boardOverlay = document.getElementById('board');
+function openBoard() { renderBoard(); boardOverlay.classList.remove('hidden'); }
+document.getElementById('btn-board').addEventListener('click', openBoard);
+document.getElementById('btn-board2').addEventListener('click', openBoard);
+document.getElementById('btn-board-close').addEventListener('click', () => boardOverlay.classList.add('hidden'));
 
 document.getElementById('btn-retry').addEventListener('click', restartLevel);
 document.getElementById('btn-new').addEventListener('click', newLevel);
@@ -1594,6 +1710,7 @@ document.getElementById('btn-start').addEventListener('click', () => {
 
 /* ---------- main loop ---------- */
 let lastT = performance.now();
+let lastShownSec = -1;
 
 function loop(now) {
     const dt = Math.min(0.05, (now - lastT) / 1000);
@@ -1615,6 +1732,7 @@ function loop(now) {
         }
         for (const L of lemmings) updateLemming(L, dt);
         updateSparkles(dt);
+        if ((levelTime | 0) !== lastShownSec) { lastShownSec = levelTime | 0; updateStats(); }
     }
 
     if (grid) {
