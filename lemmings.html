@@ -547,6 +547,8 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands) {
     const airTop = k * bandH + (k === 0 && theme !== 'cave' ? 0 : 5);
 
     if (type === 'pool' || type === 'icepool' || type === 'lavapool') {
+        // station must sit clearly BEFORE the basin, never on its rim
+        const poolStX = clampX(cx - dir * Math.floor(W * 0.1));
         const half = Math.floor(W * (type === 'lavapool' ? 0.055 : 0.07));
         const a = clampX(cx - half), b = clampX(cx + half);
         let rim = 0;
@@ -570,8 +572,8 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands) {
                 if (!isSolid(grid[idx(x, y)])) grid[idx(x, y)] = STONE;
             }
         }
-        if (type === 'pool') addStation(rng() < 0.5 ? 'snorkel' : 'boat', stX, k, bandH);
-        if (type === 'lavapool') addStation('bridge', stX, k, bandH);
+        if (type === 'pool') addStation(rng() < 0.5 ? 'snorkel' : 'boat', poolStX, k, bandH);
+        if (type === 'lavapool') addStation('bridge', poolStX, k, bandH);
         // icepool: walk across the frozen top — but careful with fire
     }
 
@@ -615,7 +617,7 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands) {
         }
         const lowX = clampX(edge - dir * 4), highX = clampX(edge + dir * 4);
         if (difficulty >= 2 && rng() < 0.5) {
-            addStation('hook', clampX(edge - dir * Math.floor(W * 0.06)), k, bandH, h[lowX] - 1);
+            addStation('hook', clampX(edge - dir * Math.floor(W * 0.06)), k, bandH);
         } else {
             const ew = 7;
             const ex = dir > 0 ? clampX(edge - ew) : clampX(edge);
@@ -688,10 +690,17 @@ function addStation(type, x, k, bandH, yOverride) {
     let y = yOverride;
     if (y === undefined) {
         const from = Math.max(1, k * bandH + 2);
-        y = H - 2;
+        y = -1;
+        // prefer real air above ground (never the bottom of a pool)
         for (let yy = from; yy < H - 1; yy++) {
-            if (!isSolid(cellAt(gx, yy)) && isSolid(cellAt(gx, yy + 1))) { y = yy; break; }
+            if (cellAt(gx, yy) === EMPTY && isSolid(cellAt(gx, yy + 1))) { y = yy; break; }
         }
+        if (y < 0) {
+            for (let yy = from; yy < H - 1; yy++) {
+                if (!isSolid(cellAt(gx, yy)) && isSolid(cellAt(gx, yy + 1))) { y = yy; break; }
+            }
+        }
+        if (y < 0) y = H - 2;
     }
     stations.push({ x: gx, y, type });
 }
