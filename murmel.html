@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MXGN — murmel</title>
+<meta name="description" content="murmel – gyro marble labyrinth. tilt your phone to roll a marble through procedural mazes full of sand, ice, lava and holes. © MXGN">
+<meta name="copyright" content="© 2026 MXGN. All rights reserved.">
+<!-- murmel — concept, code & pixels © 2026 Max Jänichen -->
+<style>
+@import url('https://fonts.cdnfonts.com/css/chillax');
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    font-family: 'Chillax', sans-serif;
+    color: #fff;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+    overscroll-behavior: none;
+}
+
+#game {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* ---------- HUD ---------- */
+.hud-top {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    z-index: 10;
+    pointer-events: none;
+    text-transform: uppercase;
+}
+
+.hud-top a, .hud-top button { pointer-events: auto; }
+
+.hud-bottom {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    z-index: 10;
+    pointer-events: none;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+}
+
+.hud-bottom .stats { opacity: 0.9; text-shadow: 0 1px 3px #000; }
+
+button.ui, a.ui {
+    font-family: 'Chillax', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #fff;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(255,255,255,0.35);
+    padding: 7px 11px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color .2s ease, color .2s ease;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+button.ui:hover, a.ui:hover { border-color: #ff9900; color: #ff9900; }
+button.ui.active { border-color: #ff9900; color: #ff9900; }
+
+.spacer { flex: 1; }
+
+#title {
+    font-size: 0.8rem;
+    letter-spacing: 0.14em;
+    opacity: 0.85;
+    text-shadow: 0 1px 3px #000;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---------- overlays ---------- */
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 24px;
+    text-transform: uppercase;
+    overflow-y: auto;
+}
+
+.overlay.hidden { display: none; }
+.overlay h2 { margin: 0; font-size: clamp(1.5rem, 6vw, 2.5rem); letter-spacing: 0.1em; }
+.overlay p { margin: 0; max-width: 540px; font-size: 0.85rem; line-height: 1.65; opacity: 0.85; text-transform: none; }
+.overlay .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+.overlay .accent { color: #ff9900; }
+.overlay .difflabel { font-size: 0.75rem; letter-spacing: 0.12em; opacity: 0.7; }
+.overlay .copy { font-size: 0.68rem; opacity: 0.45; letter-spacing: 0.1em; margin-top: 10px; }
+
+#toast {
+    position: fixed;
+    top: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 15;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 6px 12px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    white-space: nowrap;
+}
+#toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div class="hud-top">
+    <a class="ui" href="play.html">&larr; arcade</a>
+    <span id="title">murmel</span>
+    <span class="spacer"></span>
+    <button class="ui" id="btn-tilt" style="display:none">enable tilt</button>
+    <button class="ui" id="btn-board" title="local leaderboard">best</button>
+    <button class="ui" id="btn-diff" title="difficulty = maze size">lvl 1</button>
+    <button class="ui" id="btn-retry" title="restart this maze">retry</button>
+    <button class="ui" id="btn-new" title="generate a new maze">new</button>
+</div>
+
+<div class="hud-bottom">
+    <span class="stats" id="stats">–</span>
+</div>
+
+<div id="toast"></div>
+
+<div class="overlay" id="intro">
+    <h2>mur<span class="accent">mel</span></h2>
+    <p>
+        A marble in a maze — and gravity is your only controller.
+        <b>Tilt your phone</b> to roll it (desktop: <b>arrow keys / WASD</b>,
+        or hold the mouse — the marble rolls toward it). The bubble level
+        up top shows your tilt.
+    </p>
+    <p>
+        Every maze is procedurally generated and full of the same matter the
+        rennings world is made of: <b>sand</b> slows you down, on <b>ice</b> you
+        skate with zero grip, <b>lava</b> melts marbles, and <b>holes</b> swallow
+        them — roll fast and you can shoot right across a hole.
+        Grab the <b>coins</b>, touch <b>checkpoints</b> to save your spot, and reach
+        the <b>orange goal ring</b>. You have three marbles. Bigger mazes must be
+        <b>unlocked</b> by clearing the ones before — score, stars &amp; streaks
+        live on the leaderboard.
+    </p>
+    <div class="row">
+        <span class="difflabel">difficulty — maze size:</span>
+        <button class="ui diffbtn" data-d="1">1</button>
+        <button class="ui diffbtn" data-d="2">2</button>
+        <button class="ui diffbtn" data-d="3">3</button>
+        <button class="ui diffbtn" data-d="4">4</button>
+    </div>
+    <div class="row">
+        <button class="ui" id="btn-start">start</button>
+    </div>
+    <p class="copy">murmel — concept, code &amp; pixels &copy; 2026 MXGN. all rights reserved.</p>
+</div>
+
+<div class="overlay hidden" id="endscreen">
+    <h2 id="end-title">maze clear</h2>
+    <p id="end-text"></p>
+    <div class="row">
+        <button class="ui" id="btn-again">retry maze</button>
+        <button class="ui" id="btn-next">next maze</button>
+        <button class="ui" id="btn-board2">leaderboard</button>
+        <a class="ui" href="play.html">arcade</a>
+    </div>
+    <p class="copy">&copy; 2026 MXGN</p>
+</div>
+
+<div class="overlay hidden" id="board">
+    <h2>leader<span class="accent">board</span></h2>
+    <p class="difflabel">your device</p>
+    <p id="board-stats"></p>
+    <ol id="board-list" style="text-align:left; font-size:0.85rem; line-height:2; margin:0; padding-left:1.4em; text-transform:none;"></ol>
+    <p class="copy">scores are stored locally on this device.</p>
+    <div class="row">
+        <button class="ui" id="btn-board-close">close</button>
+    </div>
+    <p class="copy">&copy; 2026 MXGN</p>
+</div>
+
+<script>
+'use strict';
+
+/* =========================================================
+   MURMEL — © 2026 MXGN
+   gyro marble labyrinth, sibling of rennings
+   ========================================================= */
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+const DIFFS = {
+    1: { cols: 9,  rows: 6,  par: 40,  holes: 2,  lava: 0, sand: 3,  ice: 2, coins: 6  },
+    2: { cols: 13, rows: 8,  par: 70,  holes: 5,  lava: 2, sand: 5,  ice: 4, coins: 10 },
+    3: { cols: 17, rows: 11, par: 110, holes: 8,  lava: 4, sand: 8,  ice: 6, coins: 14 },
+    4: { cols: 21, rows: 13, par: 160, holes: 12, lava: 6, sand: 10, ice: 9, coins: 18 }
+};
+
+let difficulty = parseInt(localStorage.getItem('mm_diff') || '1', 10);
+if (!(difficulty >= 1 && difficulty <= 4)) difficulty = 1;
+
+let rngSeed = (Math.random() * 1e9) | 0;
+let rng = mulberry32(rngSeed);
+
+function mulberry32(a) {
+    return function () {
+        a |= 0; a = (a + 0x6D2B79F5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+/* ---------- tilt input: gyro, keys, pointer ---------- */
+const tilt = { x: 0, y: 0 };          // smoothed, unit range
+const tiltTarget = { x: 0, y: 0 };
+const keys = { x: 0, y: 0 };
+let pointerTilt = null;               // {x,y} while pointer held
+
+function screenAngle() {
+    if (screen.orientation && typeof screen.orientation.angle === 'number') {
+        return screen.orientation.angle;
+    }
+    return window.orientation || 0;
+}
+
+function onOrientation(e) {
+    if (e.beta === null || e.gamma === null) return;
+    // 28° of device tilt = full throttle
+    const gx0 = Math.max(-1, Math.min(1, e.gamma / 28));
+    const gy0 = Math.max(-1, Math.min(1, e.beta / 28));
+    let gx = gx0, gy = gy0;
+    const ang = screenAngle();
+    if (ang === 90) { gx = gy0; gy = -gx0; }
+    else if (ang === -90 || ang === 270) { gx = -gy0; gy = gx0; }
+    else if (ang === 180) { gx = -gx0; gy = -gy0; }
+    tiltTarget.x = gx;
+    tiltTarget.y = gy;
+}
+
+const btnTilt = document.getElementById('btn-tilt');
+function setupGyro() {
+    if (typeof DeviceOrientationEvent === 'undefined') return;
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+        btnTilt.style.display = '';
+        btnTilt.addEventListener('click', () => {
+            DeviceOrientationEvent.requestPermission().then((state) => {
+                if (state === 'granted') {
+                    window.addEventListener('deviceorientation', onOrientation);
+                    btnTilt.style.display = 'none';
+                    toast('tilt enabled — easy now!');
+                }
+            }).catch(() => {});
+        });
+    } else {
+        window.addEventListener('deviceorientation', onOrientation);
+    }
+}
+setupGyro();
+
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') keys.x = -1;
+    if (e.key === 'ArrowRight' || e.key === 'd') keys.x = 1;
+    if (e.key === 'ArrowUp' || e.key === 'w') keys.y = -1;
+    if (e.key === 'ArrowDown' || e.key === 's') keys.y = 1;
+    if (e.key === 'r') restartMaze();
+    if (e.key === 'n') newMaze();
+});
+window.addEventListener('keyup', (e) => {
+    if (['ArrowLeft', 'a', 'ArrowRight', 'd'].includes(e.key)) keys.x = 0;
+    if (['ArrowUp', 'w', 'ArrowDown', 's'].includes(e.key)) keys.y = 0;
+});
+
+canvas.addEventListener('pointerdown', (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    pointerTilt = pointerToTilt(e);
+});
+canvas.addEventListener('pointermove', (e) => { if (pointerTilt) pointerTilt = pointerToTilt(e); });
+window.addEventListener('pointerup', () => { pointerTilt = null; });
+window.addEventListener('pointercancel', () => { pointerTilt = null; });
+
+function pointerToTilt(e) {
+    // marble rolls toward the held pointer
+    const r = canvas.getBoundingClientRect();
+    const px = (e.clientX - r.left) * (canvas.width / r.width);
+    const py = (e.clientY - r.top) * (canvas.height / r.height);
+    const s = Math.min(canvas.width, canvas.height) * 0.3;
+    return {
+        x: Math.max(-1, Math.min(1, (px - ball.x) / s)),
+        y: Math.max(-1, Math.min(1, (py - ball.y) / s))
+    };
+}
+
+/* ---------- toast ---------- */
+const toastEl = document.getElementById('toast');
+let toastTimer = null;
+function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2200);
+}
+
+/* ---------- maze state ---------- */
+let gridC = 0, gridR = 0;             // maze size in cells
+let openR, openD;                     // per cell: passage right / down open?
+let cell = 0, wallT = 0;              // px sizes
+let bx0 = 0, by0 = 0;                 // board origin px
+let wallRects = [];                   // {x,y,w,h}
+let rectsByCell = [];                 // cell -> indexes into wallRects
+let padType;                          // per cell: 0 none 1 sand 2 ice 3 lava
+const P_NONE = 0, P_SAND = 1, P_ICE = 2, P_LAVA = 3;
+let holes = [];                       // {x, y, r}
+let coins = [];                       // {x, y, taken, ph}
+let checkpoints = [];                 // {x, y, hit}
+let startP = { x: 0, y: 0 }, goalP = { x: 0, y: 0 };
+let boardCv = null, boardCtx = null;  // prerendered floor+walls
+
+const ball = { x: 0, y: 0, vx: 0, vy: 0, r: 8, safe: 0, falling: 0, fx: 0, fy: 0 };
+let marbles = 3, coinsGot = 0;
+let respawn = { x: 0, y: 0 };
+let levelTime = 0;
+let gameState = 'intro';
+let sparkles = [];
+
+const cellId = (c, r) => r * gridC + c;
+
+/* =========================================================
+   MAZE GENERATION — recursive backtracker + braiding
+   ========================================================= */
+function generateMaze(seed) {
+    rngSeed = seed;
+    rng = mulberry32(seed);
+    const cfg = DIFFS[difficulty];
+
+    // portrait phones get the maze standing upright
+    const portrait = canvas.height > canvas.width;
+    gridC = portrait ? cfg.rows : cfg.cols;
+    gridR = portrait ? cfg.cols : cfg.rows;
+
+    const N = gridC * gridR;
+    openR = new Uint8Array(N);
+    openD = new Uint8Array(N);
+    padType = new Uint8Array(N);
+    holes = []; coins = []; checkpoints = []; sparkles = [];
+
+    /* ---- carve a perfect maze ---- */
+    const visited = new Uint8Array(N);
+    const stack = [0];
+    visited[0] = 1;
+    while (stack.length) {
+        const cur = stack[stack.length - 1];
+        const c = cur % gridC, r = (cur / gridC) | 0;
+        const nbs = [];
+        if (c > 0 && !visited[cur - 1]) nbs.push([cur - 1, 'L']);
+        if (c < gridC - 1 && !visited[cur + 1]) nbs.push([cur + 1, 'R']);
+        if (r > 0 && !visited[cur - gridC]) nbs.push([cur - gridC, 'U']);
+        if (r < gridR - 1 && !visited[cur + gridC]) nbs.push([cur + gridC, 'D']);
+        if (!nbs.length) { stack.pop(); continue; }
+        const [nxt, dir] = nbs[(rng() * nbs.length) | 0];
+        if (dir === 'R') openR[cur] = 1;
+        if (dir === 'L') openR[nxt] = 1;
+        if (dir === 'D') openD[cur] = 1;
+        if (dir === 'U') openD[nxt] = 1;
+        visited[nxt] = 1;
+        stack.push(nxt);
+    }
+
+    /* ---- braid: open some dead ends into loops ---- */
+    for (let i = 0; i < N; i++) {
+        const c = i % gridC, r = (i / gridC) | 0;
+        let exits = 0;
+        if (c > 0 && openR[i - 1]) exits++;
+        if (c < gridC - 1 && openR[i]) exits++;
+        if (r > 0 && openD[i - gridC]) exits++;
+        if (r < gridR - 1 && openD[i]) exits++;
+        if (exits === 1 && rng() < 0.35) {
+            const walls = [];
+            if (c > 0 && !openR[i - 1]) walls.push('L');
+            if (c < gridC - 1 && !openR[i]) walls.push('R');
+            if (r > 0 && !openD[i - gridC]) walls.push('U');
+            if (r < gridR - 1 && !openD[i]) walls.push('D');
+            if (walls.length) {
+                const w = walls[(rng() * walls.length) | 0];
+                if (w === 'L') openR[i - 1] = 1;
+                if (w === 'R') openR[i] = 1;
+                if (w === 'U') openD[i - gridC] = 1;
+                if (w === 'D') openD[i] = 1;
+            }
+        }
+    }
+
+    /* ---- BFS from the start: goal = farthest cell ---- */
+    const start = 0;
+    const dist = new Int32Array(N).fill(-1);
+    const parent = new Int32Array(N).fill(-1);
+    dist[start] = 0;
+    const q = [start];
+    for (let qi = 0; qi < q.length; qi++) {
+        const cur = q[qi];
+        const c = cur % gridC, r = (cur / gridC) | 0;
+        const step = (nxt) => {
+            if (dist[nxt] === -1) { dist[nxt] = dist[cur] + 1; parent[nxt] = cur; q.push(nxt); }
+        };
+        if (c > 0 && openR[cur - 1]) step(cur - 1);
+        if (c < gridC - 1 && openR[cur]) step(cur + 1);
+        if (r > 0 && openD[cur - gridC]) step(cur - gridC);
+        if (r < gridR - 1 && openD[cur]) step(cur + gridC);
+    }
+    let goal = start;
+    for (let i = 0; i < N; i++) if (dist[i] > dist[goal]) goal = i;
+
+    // shortest path start → goal (kept free of deadly stuff)
+    const path = [];
+    for (let i = goal; i !== -1; i = parent[i]) path.push(i);
+    path.reverse();
+    const onPath = new Uint8Array(N);
+    for (const i of path) onPath[i] = 1;
+
+    /* ---- layout ---- */
+    layoutBoard();
+
+    const cellCenter = (i) => ({
+        x: bx0 + (i % gridC) * cell + cell / 2,
+        y: by0 + ((i / gridC) | 0) * cell + cell / 2
+    });
+
+    startP = cellCenter(start);
+    goalP = cellCenter(goal);
+
+    /* ---- checkpoints along the way ---- */
+    const cpAt = difficulty === 1 ? [0.5] : [0.33, 0.66];
+    for (const f of cpAt) {
+        const i = path[Math.floor(path.length * f)];
+        const p = cellCenter(i);
+        checkpoints.push({ x: p.x, y: p.y, hit: false, cell: i });
+    }
+    const reserved = new Set([start, goal, ...checkpoints.map(cp => cp.cell)]);
+
+    /* ---- hazards & loot ---- */
+    const pickCells = (n, ok) => {
+        const out = [];
+        let guard = 0;
+        while (out.length < n && guard++ < 900) {
+            const i = (rng() * N) | 0;
+            if (reserved.has(i)) continue;
+            if (!ok(i)) continue;
+            reserved.add(i);
+            out.push(i);
+        }
+        return out;
+    };
+
+    // lava never sits on the shortest path — there is always a clean line
+    for (const i of pickCells(cfg.lava, (i) => !onPath[i] && dist[i] > 2)) padType[i] = P_LAVA;
+    for (const i of pickCells(cfg.sand, () => true)) padType[i] = P_SAND;
+    for (const i of pickCells(cfg.ice, () => true)) padType[i] = P_ICE;
+
+    // holes are smaller than the corridor: a steady hand rolls around them,
+    // momentum carries you straight across
+    for (const i of pickCells(cfg.holes, (i) => dist[i] > 1)) {
+        const p = cellCenter(i);
+        holes.push({
+            x: p.x + (rng() - 0.5) * cell * 0.2,
+            y: p.y + (rng() - 0.5) * cell * 0.2,
+            r: cell * (0.2 + rng() * 0.06)
+        });
+    }
+
+    // coins prefer the branches off the main path — detours pay
+    const offPath = [];
+    for (let i = 0; i < N; i++) if (!onPath[i] && !reserved.has(i) && padType[i] !== P_LAVA) offPath.push(i);
+    for (let n = 0; n < cfg.coins; n++) {
+        let i;
+        if (offPath.length && rng() < 0.75) i = offPath.splice((rng() * offPath.length) | 0, 1)[0];
+        else i = path[(rng() * path.length) | 0];
+        const p = cellCenter(i);
+        coins.push({
+            x: p.x + (rng() - 0.5) * cell * 0.3,
+            y: p.y + (rng() - 0.5) * cell * 0.3,
+            taken: false, ph: rng() * 6.28
+        });
+    }
+
+    /* ---- reset run state ---- */
+    ball.x = startP.x; ball.y = startP.y;
+    ball.vx = 0; ball.vy = 0;
+    ball.r = cell * 0.17;
+    ball.safe = 1.2; ball.falling = 0;
+    respawn = { x: startP.x, y: startP.y };
+    marbles = 3; coinsGot = 0; levelTime = 0;
+    gameState = 'play';
+
+    prerenderBoard();
+    document.getElementById('title').textContent = `lvl ${difficulty} · maze #${rngSeed}`;
+    updateStats();
+}
+
+/* ---------- board layout & collision rects ---------- */
+function layoutBoard() {
+    const mTop = 54 * DPR, mBot = 54 * DPR, mSide = 10 * DPR;
+    cell = Math.floor(Math.min(
+        (canvas.width - mSide * 2) / gridC,
+        (canvas.height - mTop - mBot) / gridR
+    ));
+    wallT = Math.max(3, Math.floor(cell * 0.14));
+    bx0 = Math.floor((canvas.width - gridC * cell) / 2);
+    by0 = Math.floor(mTop + (canvas.height - mTop - mBot - gridR * cell) / 2);
+
+    /* wall rectangles (deduped via edge ownership) */
+    wallRects = [];
+    const h = wallT / 2;
+    // outer frame
+    wallRects.push({ x: bx0 - h, y: by0 - h, w: gridC * cell + wallT, h: wallT });
+    wallRects.push({ x: bx0 - h, y: by0 + gridR * cell - h, w: gridC * cell + wallT, h: wallT });
+    wallRects.push({ x: bx0 - h, y: by0 - h, w: wallT, h: gridR * cell + wallT });
+    wallRects.push({ x: bx0 + gridC * cell - h, y: by0 - h, w: wallT, h: gridR * cell + wallT });
+    for (let r = 0; r < gridR; r++) {
+        for (let c = 0; c < gridC; c++) {
+            const i = cellId(c, r);
+            if (c < gridC - 1 && !openR[i]) {
+                wallRects.push({ x: bx0 + (c + 1) * cell - h, y: by0 + r * cell - h, w: wallT, h: cell + wallT });
+            }
+            if (r < gridR - 1 && !openD[i]) {
+                wallRects.push({ x: bx0 + c * cell - h, y: by0 + (r + 1) * cell - h, w: cell + wallT, h: wallT });
+            }
+        }
+    }
+
+    // spatial lookup: rect indexes per cell (with 1-cell apron)
+    rectsByCell = new Array(gridC * gridR);
+    for (let i = 0; i < rectsByCell.length; i++) rectsByCell[i] = [];
+    wallRects.forEach((w, wi) => {
+        const c0 = Math.max(0, Math.floor((w.x - bx0) / cell) - 1);
+        const c1 = Math.min(gridC - 1, Math.floor((w.x + w.w - bx0) / cell) + 1);
+        const r0 = Math.max(0, Math.floor((w.y - by0) / cell) - 1);
+        const r1 = Math.min(gridR - 1, Math.floor((w.y + w.h - by0) / cell) + 1);
+        for (let r = r0; r <= r1; r++) {
+            for (let c = c0; c <= c1; c++) rectsByCell[cellId(c, r)].push(wi);
+        }
+    });
+}
+
+/* =========================================================
+   PHYSICS
+   ========================================================= */
+const ACCEL = 1500;         // px/s² at full tilt (scaled by DPR at use)
+const RESTITUTION = 0.36;
+
+function cellOfBall() {
+    const c = Math.max(0, Math.min(gridC - 1, Math.floor((ball.x - bx0) / cell)));
+    const r = Math.max(0, Math.min(gridR - 1, Math.floor((ball.y - by0) / cell)));
+    return cellId(c, r);
+}
+
+function updateBall(dt) {
+    if (ball.falling > 0) {
+        ball.falling -= dt;
+        // spiral into the hole
+        ball.x += (ball.fx - ball.x) * dt * 9;
+        ball.y += (ball.fy - ball.y) * dt * 9;
+        if (ball.falling <= 0) loseMarble('hole');
+        return;
+    }
+
+    ball.safe = Math.max(0, ball.safe - dt);
+
+    // input priority: pointer > keys > gyro
+    if (pointerTilt) { tiltTarget.x = pointerTilt.x; tiltTarget.y = pointerTilt.y; }
+    else if (keys.x || keys.y) { tiltTarget.x = keys.x; tiltTarget.y = keys.y; }
+    else if (typeof DeviceOrientationEvent === 'undefined') { tiltTarget.x = 0; tiltTarget.y = 0; }
+    tilt.x += (tiltTarget.x - tilt.x) * Math.min(1, dt * 10);
+    tilt.y += (tiltTarget.y - tilt.y) * Math.min(1, dt * 10);
+
+    const here = padType[cellOfBall()];
+    const scale = cell / 46;                       // physics tuned at 46px cells
+    const acc = ACCEL * scale * (here === P_SAND ? 0.55 : 1);
+    ball.vx += tilt.x * acc * dt;
+    ball.vy += tilt.y * acc * dt;
+
+    const fric = here === P_SAND ? 6.5 : here === P_ICE ? 0.1 : 1.7;
+    const damp = Math.exp(-fric * dt);
+    ball.vx *= damp; ball.vy *= damp;
+
+    const vmax = 1300 * scale;
+    const sp = Math.hypot(ball.vx, ball.vy);
+    if (sp > vmax) { ball.vx *= vmax / sp; ball.vy *= vmax / sp; }
+
+    // sub-stepped integration so fast marbles never tunnel through walls
+    const steps = Math.max(1, Math.ceil((sp * dt) / (ball.r * 0.6)));
+    for (let s = 0; s < steps; s++) {
+        ball.x += (ball.vx * dt) / steps;
+        ball.y += (ball.vy * dt) / steps;
+        collideWalls();
+    }
+
+    /* ---- pads & pickups ---- */
+    const hereAfter = padType[cellOfBall()];
+    if (hereAfter === P_LAVA && ball.safe <= 0) {
+        // molten floor: the pad occupies the cell's inner square
+        const i = cellOfBall();
+        const px = bx0 + (i % gridC) * cell, py = by0 + ((i / gridC) | 0) * cell;
+        const inset = cell * 0.16;
+        if (ball.x > px + inset && ball.x < px + cell - inset &&
+            ball.y > py + inset && ball.y < py + cell - inset) {
+            sparkleBurst(ball.x, ball.y, '#ff6a00');
+            loseMarble('lava');
+            return;
+        }
+    }
+
+    // holes: slow marbles get caught, fast ones fly across
+    const catchV = 620 * scale;
+    for (const hle of holes) {
+        const d = Math.hypot(ball.x - hle.x, ball.y - hle.y);
+        if (d < hle.r && sp < catchV && ball.safe <= 0) {
+            ball.falling = 0.45;
+            ball.fx = hle.x; ball.fy = hle.y;
+            return;
+        }
+    }
+
+    for (const c of coins) {
+        if (!c.taken && Math.hypot(ball.x - c.x, ball.y - c.y) < ball.r + cell * 0.12) {
+            c.taken = true;
+            coinsGot++;
+            sparkleBurst(c.x, c.y, '#ffd34d');
+            updateStats();
+        }
+    }
+
+    for (const cp of checkpoints) {
+        if (!cp.hit && Math.hypot(ball.x - cp.x, ball.y - cp.y) < cell * 0.34) {
+            cp.hit = true;
+            respawn = { x: cp.x, y: cp.y };
+            sparkleBurst(cp.x, cp.y, '#b57cff');
+            toast('checkpoint!');
+        }
+    }
+
+    if (Math.hypot(ball.x - goalP.x, ball.y - goalP.y) < cell * 0.3) {
+        winMaze();
+    }
+}
+
+function collideWalls() {
+    const list = rectsByCell[cellOfBall()];
+    for (const wi of list) {
+        const w = wallRects[wi];
+        const nx = Math.max(w.x, Math.min(ball.x, w.x + w.w));
+        const ny = Math.max(w.y, Math.min(ball.y, w.y + w.h));
+        const dx = ball.x - nx, dy = ball.y - ny;
+        const d2 = dx * dx + dy * dy;
+        if (d2 >= ball.r * ball.r) continue;
+        const d = Math.sqrt(d2) || 0.0001;
+        const push = ball.r - d;
+        const ux = dx / d, uy = dy / d;
+        ball.x += ux * push;
+        ball.y += uy * push;
+        const vn = ball.vx * ux + ball.vy * uy;
+        if (vn < 0) {
+            ball.vx -= (1 + RESTITUTION) * vn * ux;
+            ball.vy -= (1 + RESTITUTION) * vn * uy;
+        }
+    }
+}
+
+function loseMarble(how) {
+    marbles--;
+    updateStats();
+    if (marbles <= 0) {
+        gameState = 'lost';
+        endTitle.textContent = 'out of marbles';
+        endTitle.style.color = '#ff5544';
+        endText.textContent =
+            `the maze keeps them — lvl ${difficulty} · maze #${rngSeed} · ${fmtTime(levelTime)} · ` +
+            `coins ${coinsGot}/${coins.length}`;
+        const S = loadStats();
+        S.streak = 0;
+        saveStats(S);
+        endscreen.classList.remove('hidden');
+        return;
+    }
+    toast(how === 'lava' ? 'molten! marble lost' : 'swallowed! marble lost');
+    ball.x = respawn.x; ball.y = respawn.y;
+    ball.vx = 0; ball.vy = 0;
+    ball.safe = 1.2; ball.falling = 0;
+}
+
+/* ---------- sparkles ---------- */
+function sparkleBurst(x, y, color) {
+    for (let i = 0; i < 10; i++) {
+        sparkles.push({
+            x, y,
+            vx: (Math.random() - 0.5) * 130 * (cell / 46),
+            vy: (Math.random() - 0.8) * 130 * (cell / 46),
+            life: 0.6 + Math.random() * 0.4,
+            color
+        });
+    }
+}
+function updateSparkles(dt) {
+    for (let i = sparkles.length - 1; i >= 0; i--) {
+        const s = sparkles[i];
+        s.life -= dt;
+        if (s.life <= 0) { sparkles.splice(i, 1); continue; }
+        s.x += s.vx * dt; s.y += s.vy * dt;
+        s.vy += 160 * dt * (cell / 46);
+    }
+}
+
+/* =========================================================
+   RENDERING
+   ========================================================= */
+function prerenderBoard() {
+    boardCv = document.createElement('canvas');
+    boardCv.width = canvas.width; boardCv.height = canvas.height;
+    boardCtx = boardCv.getContext('2d');
+    const b = boardCtx;
+
+    b.fillStyle = '#0a0a0f';
+    b.fillRect(0, 0, boardCv.width, boardCv.height);
+    b.fillStyle = '#14141d';
+    b.fillRect(bx0, by0, gridC * cell, gridR * cell);
+
+    // faint checker so motion reads
+    b.fillStyle = 'rgba(255,255,255,0.018)';
+    for (let r = 0; r < gridR; r++) {
+        for (let c = 0; c < gridC; c++) {
+            if ((c + r) & 1) b.fillRect(bx0 + c * cell, by0 + r * cell, cell, cell);
+        }
+    }
+
+    // pads (sand & ice are static; lava is animated live)
+    for (let i = 0; i < gridC * gridR; i++) {
+        const px = bx0 + (i % gridC) * cell, py = by0 + ((i / gridC) | 0) * cell;
+        const inset = cell * 0.1;
+        if (padType[i] === P_SAND) {
+            b.fillStyle = 'rgba(210,175,90,0.6)';
+            b.fillRect(px + inset, py + inset, cell - inset * 2, cell - inset * 2);
+            b.fillStyle = 'rgba(255,235,170,0.35)';
+            const drng = mulberry32(i * 7919 + rngSeed);
+            for (let n = 0; n < 14; n++) {
+                b.fillRect(px + inset + drng() * (cell - inset * 2), py + inset + drng() * (cell - inset * 2), 2, 2);
+            }
+        } else if (padType[i] === P_ICE) {
+            b.fillStyle = 'rgba(150,205,240,0.4)';
+            b.fillRect(px + inset, py + inset, cell - inset * 2, cell - inset * 2);
+            b.strokeStyle = 'rgba(220,245,255,0.5)';
+            b.lineWidth = 1.5;
+            b.beginPath();
+            b.moveTo(px + cell * 0.25, py + cell * 0.6);
+            b.lineTo(px + cell * 0.5, py + cell * 0.35);
+            b.lineTo(px + cell * 0.75, py + cell * 0.55);
+            b.stroke();
+        }
+    }
+
+    // walls
+    for (const w of wallRects) {
+        b.fillStyle = '#4a4e5c';
+        b.fillRect(w.x, w.y, w.w, w.h);
+        b.fillStyle = 'rgba(255,255,255,0.1)';
+        b.fillRect(w.x, w.y, w.w, Math.min(2.5, w.h));
+    }
+}
+
+function render(t, dt) {
+    if (!boardCv) return;
+    ctx.drawImage(boardCv, 0, 0);
+
+    /* lava pads: animated */
+    for (let i = 0; i < gridC * gridR; i++) {
+        if (padType[i] !== P_LAVA) continue;
+        const px = bx0 + (i % gridC) * cell, py = by0 + ((i / gridC) | 0) * cell;
+        const inset = cell * 0.16;
+        const glow = 0.75 + Math.sin(t * 3 + i) * 0.25;
+        ctx.fillStyle = `rgba(235,90,20,${glow})`;
+        ctx.fillRect(px + inset, py + inset, cell - inset * 2, cell - inset * 2);
+        ctx.fillStyle = 'rgba(255,200,60,0.5)';
+        const brng = mulberry32(i * 131 + ((t * 2) | 0));
+        for (let n = 0; n < 4; n++) {
+            ctx.fillRect(px + inset + brng() * (cell - inset * 2), py + inset + brng() * (cell - inset * 2), 3, 3);
+        }
+    }
+
+    /* holes */
+    for (const h of holes) {
+        const g = ctx.createRadialGradient(h.x, h.y, h.r * 0.1, h.x, h.y, h.r);
+        g.addColorStop(0, '#000');
+        g.addColorStop(0.75, '#05050a');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, h.r * 0.92, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    /* goal: pulsing orange ring over a hole */
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3);
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(goalP.x, goalP.y, cell * 0.26, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = `rgba(255,153,0,${0.55 + pulse * 0.45})`;
+    ctx.lineWidth = Math.max(2, cell * 0.06);
+    ctx.beginPath();
+    ctx.arc(goalP.x, goalP.y, cell * (0.3 + pulse * 0.05), 0, Math.PI * 2);
+    ctx.stroke();
+
+    /* checkpoints */
+    for (const cp of checkpoints) {
+        ctx.strokeStyle = cp.hit ? 'rgba(181,124,255,0.35)' : 'rgba(181,124,255,0.9)';
+        ctx.lineWidth = Math.max(1.5, cell * 0.04);
+        ctx.beginPath();
+        ctx.arc(cp.x, cp.y, cell * (0.22 + (cp.hit ? 0 : Math.sin(t * 2.5) * 0.04)), 0, Math.PI * 2);
+        ctx.stroke();
+    }
+
+    /* coins */
+    for (const c of coins) {
+        if (c.taken) continue;
+        const squash = Math.abs(Math.sin(t * 3 + c.ph));
+        ctx.fillStyle = '#ffd34d';
+        ctx.beginPath();
+        ctx.ellipse(c.x, c.y, cell * 0.11 * (0.35 + squash * 0.65), cell * 0.11, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillRect(c.x - 1, c.y - cell * 0.05, 2, 2);
+    }
+
+    /* start pad */
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(startP.x, startP.y, cell * 0.24, 0, Math.PI * 2);
+    ctx.stroke();
+
+    /* the marble */
+    const shrink = ball.falling > 0 ? Math.max(0.15, ball.falling / 0.45) : 1;
+    const blink = ball.safe > 0 && ((t * 8) | 0) % 2 === 0 ? 0.45 : 1;
+    ctx.globalAlpha = blink;
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath();
+    ctx.ellipse(ball.x + ball.r * 0.25, ball.y + ball.r * 0.35, ball.r * shrink, ball.r * 0.8 * shrink, 0, 0, Math.PI * 2);
+    ctx.fill();
+    const bg = ctx.createRadialGradient(
+        ball.x - ball.r * 0.35, ball.y - ball.r * 0.35, ball.r * 0.1,
+        ball.x, ball.y, ball.r * shrink
+    );
+    bg.addColorStop(0, '#ffc46a');
+    bg.addColorStop(0.5, '#ff9900');
+    bg.addColorStop(1, '#a35d00');
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r * shrink, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath();
+    ctx.arc(ball.x - ball.r * 0.32 * shrink, ball.y - ball.r * 0.35 * shrink, ball.r * 0.16 * shrink, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    /* sparkles */
+    for (const s of sparkles) {
+        ctx.globalAlpha = Math.min(1, s.life * 2);
+        ctx.fillStyle = s.color;
+        ctx.fillRect(s.x, s.y, 3, 3);
+    }
+    ctx.globalAlpha = 1;
+
+    drawBubbleLevel();
+}
+
+/* ---------- 2D bubble level ---------- */
+function drawBubbleLevel() {
+    const u = Math.min(canvas.width, canvas.height);
+    const r = u * 0.035;
+    const cx = canvas.width / 2, cy = 30 * DPR;
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = Math.max(1.5, u * 0.003);
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.3, cy); ctx.lineTo(cx + r * 0.3, cy);
+    ctx.moveTo(cx, cy - r * 0.3); ctx.lineTo(cx, cy + r * 0.3);
+    ctx.stroke();
+    const m = Math.hypot(tilt.x, tilt.y);
+    ctx.fillStyle = m > 0.08 ? '#ff9900' : 'rgba(255,255,255,0.55)';
+    ctx.beginPath();
+    ctx.arc(cx + tilt.x * r * 0.75, cy + tilt.y * r * 0.75, Math.max(2.5, r * 0.18), 0, Math.PI * 2);
+    ctx.fill();
+}
+
+/* =========================================================
+   HUD / SCORING / FLOW  (same family as rennings)
+   ========================================================= */
+const statsEl = document.getElementById('stats');
+function fmtTime(t) {
+    const m = Math.floor(t / 60), sec = Math.floor(t % 60);
+    return `${m}:${String(sec).padStart(2, '0')}`;
+}
+function updateStats() {
+    statsEl.textContent =
+        `${'●'.repeat(marbles)}${'○'.repeat(Math.max(0, 3 - marbles))} · ` +
+        `coins ${coinsGot}/${coins.length} · ${fmtTime(levelTime)}`;
+}
+
+const endscreen = document.getElementById('endscreen');
+const endTitle = document.getElementById('end-title');
+const endText = document.getElementById('end-text');
+
+function loadStats() {
+    let s = null;
+    try { s = JSON.parse(localStorage.getItem('mm_stats')); } catch (e) {}
+    if (!s || typeof s !== 'object') s = {};
+    s = Object.assign({ cleared: 0, streak: 0, bestStreak: 0, totalCoins: 0, board: [] }, s);
+    s.clearedByDiff = Object.assign({ 1: 0, 2: 0, 3: 0, 4: 0 }, s.clearedByDiff || {});
+    return s;
+}
+function saveStats(s) {
+    try { localStorage.setItem('mm_stats', JSON.stringify(s)); } catch (e) {}
+}
+function unlockedDiff() {
+    const S = loadStats();
+    let u = 1;
+    while (u < 4 && S.clearedByDiff[u] > 0) u++;
+    return u;
+}
+
+function mazeScore() {
+    const par = DIFFS[difficulty].par;
+    const timeBonus = Math.max(0, Math.round((par - levelTime) * 4));
+    return coinsGot * 15 + marbles * 40 + timeBonus + difficulty * 100;
+}
+function mazeStars() {
+    let st = 1;
+    if (coinsGot >= coins.length) st++;
+    if (levelTime <= DIFFS[difficulty].par && marbles === 3) st++;
+    return st;
+}
+const starStr = (n) => '★'.repeat(n) + '☆'.repeat(3 - n);
+
+function winMaze() {
+    if (gameState !== 'play') return;
+    gameState = 'won';
+    sparkleBurst(goalP.x, goalP.y, '#ff9900');
+    const sc = mazeScore();
+    const st = mazeStars();
+    const S = loadStats();
+    S.cleared++;
+    S.streak++;
+    S.bestStreak = Math.max(S.bestStreak, S.streak);
+    S.totalCoins += coinsGot;
+    const firstClear = S.clearedByDiff[difficulty] === 0;
+    S.clearedByDiff[difficulty]++;
+    S.board.push({
+        s: sc, st, d: difficulty, seed: rngSeed,
+        t: Math.round(levelTime), date: new Date().toISOString().slice(0, 10)
+    });
+    S.board.sort((a, b) => b.s - a.s);
+    S.board = S.board.slice(0, 10);
+    saveStats(S);
+    endTitle.textContent = 'maze clear';
+    endTitle.style.color = '#ff9900';
+    endText.textContent =
+        `rolled home in ${fmtTime(levelTime)} — score ${sc} · ${starStr(st)} · ` +
+        `coins ${coinsGot}/${coins.length} · marbles left ${marbles} · ` +
+        `streak ${S.streak} (best ${S.bestStreak}) · lvl ${difficulty} · maze #${rngSeed}`;
+    if (firstClear && difficulty < 4) toast(`lvl ${difficulty + 1} unlocked!`);
+    refreshDiffButtons();
+    endscreen.classList.remove('hidden');
+}
+
+function renderBoard() {
+    const S = loadStats();
+    document.getElementById('board-stats').textContent =
+        `mazes cleared ${S.cleared} · best streak ${S.bestStreak} · coins collected ${S.totalCoins}`;
+    const list = document.getElementById('board-list');
+    list.innerHTML = '';
+    if (!S.board.length) {
+        const li = document.createElement('li');
+        li.textContent = 'no scores yet — go roll!';
+        list.appendChild(li);
+    }
+    for (const e of S.board) {
+        const li = document.createElement('li');
+        li.textContent = `${e.s} pts — ${starStr(e.st)} · lvl ${e.d} · maze #${e.seed} · ${fmtTime(e.t)} · ${e.date}`;
+        list.appendChild(li);
+    }
+}
+
+/* ---------- difficulty & buttons ---------- */
+const btnDiff = document.getElementById('btn-diff');
+function refreshDiffButtons() {
+    const u = unlockedDiff();
+    document.querySelectorAll('.diffbtn').forEach(b => {
+        const d = parseInt(b.dataset.d, 10);
+        const locked = d > u;
+        b.textContent = locked ? d + ' 🔒' : String(d);
+        b.style.opacity = locked ? '0.35' : '';
+        b.classList.toggle('active', d === difficulty);
+    });
+}
+function setDifficulty(d, regen) {
+    if (d > unlockedDiff()) {
+        toast(`clear lvl ${d - 1} first to unlock lvl ${d}`);
+        refreshDiffButtons();
+        return;
+    }
+    difficulty = d;
+    localStorage.setItem('mm_diff', String(d));
+    btnDiff.textContent = 'lvl ' + d;
+    refreshDiffButtons();
+    if (regen) newMaze();
+}
+btnDiff.addEventListener('click', () => {
+    const next = difficulty % 4 + 1;
+    setDifficulty(next > unlockedDiff() ? 1 : next, true);
+});
+document.querySelectorAll('.diffbtn').forEach(b => {
+    b.addEventListener('click', () => setDifficulty(parseInt(b.dataset.d, 10), false));
+});
+
+function restartMaze() {
+    endscreen.classList.add('hidden');
+    generateMaze(rngSeed);
+}
+function newMaze() {
+    endscreen.classList.add('hidden');
+    generateMaze((Math.random() * 1e9) | 0);
+}
+
+document.getElementById('btn-retry').addEventListener('click', restartMaze);
+document.getElementById('btn-new').addEventListener('click', newMaze);
+document.getElementById('btn-again').addEventListener('click', restartMaze);
+document.getElementById('btn-next').addEventListener('click', newMaze);
+document.getElementById('btn-start').addEventListener('click', () => {
+    document.getElementById('intro').classList.add('hidden');
+    newMaze();
+});
+
+const boardOverlay = document.getElementById('board');
+function openBoard() { renderBoard(); boardOverlay.classList.remove('hidden'); }
+document.getElementById('btn-board').addEventListener('click', openBoard);
+document.getElementById('btn-board2').addEventListener('click', openBoard);
+document.getElementById('btn-board-close').addEventListener('click', () => boardOverlay.classList.add('hidden'));
+
+/* ---------- main loop ---------- */
+let DPR = 1;
+function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.floor(window.innerWidth * DPR);
+    canvas.height = Math.floor(window.innerHeight * DPR);
+    if (gameState !== 'intro') generateMaze(rngSeed);
+}
+window.addEventListener('resize', resize);
+
+let lastT = performance.now();
+let lastShownSec = -1;
+function loop(now) {
+    const dt = Math.min(0.04, (now - lastT) / 1000);
+    lastT = now;
+    if (gameState === 'play') {
+        levelTime += dt;
+        updateBall(dt);
+        updateSparkles(dt);
+        if ((levelTime | 0) !== lastShownSec) { lastShownSec = levelTime | 0; updateStats(); }
+    } else {
+        updateSparkles(dt);
+    }
+    render(now / 1000, dt);
+    requestAnimationFrame(loop);
+}
+
+difficulty = Math.min(difficulty, unlockedDiff());
+setDifficulty(difficulty, false);
+resize();
+generateMaze(rngSeed);
+gameState = 'intro';
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
