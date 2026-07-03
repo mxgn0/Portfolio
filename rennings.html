@@ -215,10 +215,9 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
         tilting the world is free. Water quenches lava into stone and puts out fires;
         sand poured into lava becomes a stone bridge. Dig tunnels with your finger.
         Rennings <b>skate helplessly across ice</b> when the world tips, and boats
-        only really move when you tilt — ferry them across. Watch for floating
-        stone basins full of water or sand: tip the world (or dig the rim) to
-        spill them — a water spill over lava paves a bridge, a sand spill piles
-        into a ramp.
+        only really move when you tilt — ferry them across. Sand and snow
+        <b>heap up into steep little piles</b> as you tip the world; water sloshes
+        into crests and settles flat again when you hold still.
         On their own the rennings won't make it — every obstacle hides its matching
         gear in a <b>supply crate</b> somewhere earlier on the path: snorkel, boat, axe,
         lighter, umbrella, climbing hook, bridge planks. Some crates sit on rock
@@ -229,7 +228,9 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
         Falls kill quickly without an umbrella.
         From lvl 2 on levels mix three obstacle types, lvl 3+ even more —
         and the dice decide how big a forest, lake or lava pool gets.
-        Find hidden keys to open gates. On <b>roundtrip</b> levels the exit door
+        Some levels drown a whole floor under one <b>giant lake, forest or frozen
+        sea</b>. Find hidden keys to open gates — even floor exits can be locked,
+        and a key is never anywhere near its door. On <b>roundtrip</b> levels the exit
         sits right next to the spawn — locked. The key waits at the far end of
         the world, beside a portal home: the whole level is the detour. Meadow, jungle,
         mountain and cave worlds — some levels are pitch black night. Place a few
@@ -694,19 +695,48 @@ function generateLevel(seed) {
 
     function obstacleHalf(type, sz, maxHalf) {
         let half = 5;
-        if (type === 'pool' || type === 'icepool') half = Math.floor(W * 0.06 * sz);
+        if (type === 'pool' || type === 'icepool') half = Math.min(Math.floor(W * 0.22), Math.floor(W * 0.06 * sz));
         else if (type === 'lavapool') half = Math.min(26, Math.floor(W * 0.05 * sz)); // one renning's 60 planks must span it
-        else if (type === 'forest') half = Math.floor(W * 0.055 * sz);
+        else if (type === 'forest') half = Math.min(Math.floor(W * 0.20), Math.floor(W * 0.055 * sz));
         // cliffs / drops / keydoors are edges, not areas
         return Math.max(4, Math.min(half, Math.max(5, maxHalf)));
     }
 
-    // some levels roll a GIANT obstacle type — huge forest, wide lake …
-    const giantType = rng() < 0.4 ? chosen[(rng() * chosen.length) | 0] : null;
+    // some levels dedicate a whole floor to ONE colossal obstacle —
+    // a real lake, a deep forest, a frozen sea spanning half the world
+    const areaTypes = chosen.filter(t => t === 'pool' || t === 'forest' || t === 'icepool');
+    const giantType = areaTypes.length && rng() < 0.55
+        ? areaTypes[(rng() * areaTypes.length) | 0] : null;
+    const giantFloor = giantType ? (rng() * bands) | 0 : -1;
 
     let slotNo = 0;
     let gearPlaced = 0;
+    // the very first fetch of the level always sits on open ground
+    // in the spawn zone — after that the crates wander off the path
+    const firstOpts = { ground: true, firstZone: true };
+    const handleResult = (res, k, f) => {
+        if (res && res.gear) {
+            placeCache(res.gear, k, gearPlaced++ === 0 ? firstOpts : {});
+        }
+        if (res && res.gate) {
+            const s = pickSpot(k, gearPlaced++ === 0 ? firstOpts : {})
+                || { x: clampX(fxk(k, f) - dirs[k] * 11), y: G[k][clampX(fxk(k, f) - dirs[k] * 11)] };
+            res.gate.keyX = s.x;
+            res.gate.keyY = s.y - 4;
+        }
+    };
+
     for (let k = 0; k < bands; k++) {
+        if (k === giantFloor) {
+            const f = 0.38 + rng() * 0.18;
+            const maxHalf = Math.floor(Math.min(f - 0.16, 0.80 - f) * W);
+            const half = obstacleHalf(giantType, 2.6 + rng(), maxHalf);
+            pushZone(k, 0.07, f - half / W - 0.015);
+            const res = buildObstacle(giantType, fxk(k, f), dirs[k], G[k], k, bandH, bands, half);
+            handleResult(res, k, f);
+            pushZone(k, f + half / W + 0.02, 0.80);
+            continue;
+        }
         // obstacle count per floor varies with the dice
         let n = bands === 1 ? 3 : difficulty >= 3 ? 3 : 2;
         if (rng() < 0.35) n += rng() < 0.5 ? -1 : 1;
@@ -721,9 +751,8 @@ function generateLevel(seed) {
             const type = chosen[slotNo++ % chosen.length];
             const f = fr[i];
             const rightF = i < n - 1 ? fr[i + 1] : 0.86;
-            let sz = 0.75 + rng() * 0.6;
-            if (type === giantType) sz = 1.9 + rng() * 1.1;
-            else if (rng() < 0.15) sz *= 1.6;
+            let sz = 0.6 + rng() * 1.1;
+            if (rng() < 0.15) sz *= 1.6;
             // reserve room on the left so the zone before this obstacle
             // survives — crates need somewhere to spawn
             const maxHalf = Math.floor(Math.min(f - leftF - 0.085, (rightF - f) * 0.45) * W);
@@ -731,18 +760,7 @@ function generateLevel(seed) {
             pushZone(k, leftF, f - half / W - 0.015);
             const res = buildObstacle(type, fxk(k, f), dirs[k], G[k], k, bandH, bands, half);
             leftF = f + half / W + 0.02;
-            // the very first fetch of the level always sits on open ground
-            // in the spawn zone — after that the crates wander off the path
-            const firstOpts = { ground: true, firstZone: true };
-            if (res && res.gear) {
-                placeCache(res.gear, k, gearPlaced++ === 0 ? firstOpts : {});
-            }
-            if (res && res.gate) {
-                const s = pickSpot(k, gearPlaced++ === 0 ? firstOpts : {})
-                    || { x: clampX(fxk(k, f) - dirs[k] * 11), y: G[k][clampX(fxk(k, f) - dirs[k] * 11)] };
-                res.gate.keyX = s.x;
-                res.gate.keyY = s.y - 4;
-            }
+            handleResult(res, k, f);
         }
         pushZone(k, leftF, 0.80);
     }
@@ -753,6 +771,20 @@ function generateLevel(seed) {
         // descent gear lands on the walking path of its own floor —
         // rennings sweep it up before they reach the shaft
         if (need) placeCache(need, k, { ground: true });
+        // sometimes the descent itself is locked — the key hides back
+        // along the path, so the door is never where its key is
+        if (difficulty >= 2 && rng() < 0.3) {
+            const gpx = fxk(k, 0.845);
+            const gpy = G[k][gpx];
+            const s = pickSpot(k, {});
+            if (s) {
+                gates.push({
+                    x: gpx, yTop: Math.max(k * bandH + 3, gpy - 18),
+                    yBot: Math.min(H - 2, gpy + 3),
+                    open: 0, unlocked: false, keyX: s.x, keyY: s.y - 4
+                });
+            }
+        }
     }
 
     /* ---- bonus crates: optional detours that pay out resources ---- */
@@ -807,20 +839,6 @@ function rockBottom(k, bandH, bands) {
     return (k === bands - 1) ? H : Math.min(H, (k + 1) * bandH + 4);
 }
 
-// floating stone basin holding a payload of sand or water — TILT the
-// world (or dig the rim) to spill it. rennings walk underneath.
-function buildBasin(bx, top, mat, ceil) {
-    for (let dx = -6; dx <= 6; dx++) {
-        const px = clampX(bx + dx);
-        for (let yy = top; yy <= top + 8; yy++) {
-            if (yy <= ceil || !inBounds(px, yy)) continue;
-            if (Math.abs(dx) >= 5 || yy >= top + 7) grid[idx(px, yy)] = STONE;
-            else if (yy >= top + 2) grid[idx(px, yy)] = mat;
-            else grid[idx(px, yy)] = EMPTY;   // freeboard: a hard tilt sloshes it out
-        }
-    }
-}
-
 // returns { gear } for obstacles whose gear crate the caller must place,
 // { gate } for keydoors (caller picks the key spot), or null
 function buildObstacle(type, cx, dir, h, k, bandH, bands, half) {
@@ -853,16 +871,7 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands, half) {
             }
         }
         if (type === 'pool') return { gear: rng() < 0.5 ? 'snorkel' : 'boat' };
-        if (type === 'lavapool') {
-            // half the time no planks are granted: a water basin floats above
-            // the lava instead — tilt it over (or dig its rim) and the spill
-            // quenches the surface into a walkable stone bridge
-            if (difficulty >= 2 && rim - airTop >= 30 && rng() < 0.5) {
-                buildBasin(cx, rim - 20, WATER, airTop);
-                return null;
-            }
-            return { gear: 'bridge' };
-        }
+        if (type === 'lavapool') return { gear: 'bridge' };
         return null;   // icepool: walk across the frozen top — but careful with fire
     }
 
@@ -903,13 +912,6 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands, half) {
                 for (let y = newTop; y < h[x]; y++) grid[idx(x, y)] = STONE;
                 h[x] = newTop;
             }
-        }
-        // sometimes a sand silo floats beside the cliff face: tilt it out
-        // and the pile ramps the crowd up — quicker than waiting for hooks
-        if (difficulty >= 2 && rng() < 0.4) {
-            const bx = clampX(edge - dir * 9);
-            const top = Math.max(airTop + 3, h[bx] - rise - 6);
-            if (h[bx] - top > 14) buildBasin(bx, top, SAND, airTop);
         }
         return { gear: 'hook' };
     }
@@ -1041,8 +1043,25 @@ function simPass(first) {
     // nothing granular or liquid ever moves screen-UP: you tilt the box,
     // water sloshes sideways and down but never takes off
     const down = (c) => c[1] >= 0;
-    const sandC = (flip ? [p, d1, d2] : [p, d2, d1]).filter(down);
-    const fluidC = (flip ? [p, d1, d2, s1, s2] : [p, d2, d1, s2, s1]).filter(down);
+    // candidates carry [dx, dy, probability, needsFallRoom]:
+    // grains only slide diagonally when there is room to KEEP falling
+    // past the target — so sand & snow settle into steep little heaps
+    // instead of flattening out. water spreads sideways lazily enough
+    // to slosh into crests, but always levels out when held still.
+    const tag = (c, pr, room) => [c[0], c[1], pr, room];
+    const sandC = (flip ? [tag(p, 1, 0), tag(d1, 0.6, 1), tag(d2, 0.6, 1)]
+                        : [tag(p, 1, 0), tag(d2, 0.6, 1), tag(d1, 0.6, 1)]).filter(down);
+    const snowC = (flip ? [tag(p, 1, 0), tag(d1, 0.4, 1), tag(d2, 0.4, 1)]
+                        : [tag(p, 1, 0), tag(d2, 0.4, 1), tag(d1, 0.4, 1)]).filter(down);
+    let fluidC = (flip ? [tag(p, 1, 0), tag(d1, 0.95, 0), tag(d2, 0.95, 0), tag(s1, 0.5, 0), tag(s2, 0.5, 0)]
+                       : [tag(p, 1, 0), tag(d2, 0.95, 0), tag(d1, 0.95, 0), tag(s2, 0.5, 0), tag(s1, 0.5, 0)]).filter(down);
+    // hard tilts (>~50°) let fluids ride up the low side — the only way a
+    // full pool can crest against a wall or pour over its rim. the move is
+    // still downhill in the TILTED potential, so nothing ever "takes off":
+    // level the world and gravity pulls every crest flat again.
+    if (Math.abs(grav.x) - Math.abs(grav.y) > 0.15) {
+        fluidC = fluidC.concat([tag([grav.x > 0 ? 1 : -1, -1], 0.45, 0)]);
+    }
 
     const yStart = p[1] > 0 ? H - 1 : 0;
     const yEnd = p[1] > 0 ? -1 : H;
@@ -1105,10 +1124,17 @@ function simPass(first) {
                 if ((frame + x + y) & 1) continue;   // lava flows sluggishly
             }
 
-            const cands = (m === SAND || m === SNOW) ? sandC : fluidC;
+            const cands = m === SAND ? sandC : m === SNOW ? snowC : fluidC;
             for (let c = 0; c < cands.length; c++) {
-                const nx = x + cands[c][0], ny = y + cands[c][1];
+                const cd = cands[c];
+                const nx = x + cd[0], ny = y + cd[1];
                 if (!inBounds(nx, ny)) continue;
+                if (cd[2] < 1 && Math.random() > cd[2]) continue;
+                if (cd[3]) {
+                    // heap rule: diagonal slides need fall-room past the target
+                    const rx = nx + p[0], ry = ny + p[1];
+                    if (!inBounds(rx, ry) || grid[ry * W + rx] !== EMPTY) continue;
+                }
                 if (elevatorSolidAt(nx, ny) || gateSolidAt(nx, ny) || statueSolidAt(nx, ny)) continue;
                 const ti = ny * W + nx;
                 const t = grid[ti];
