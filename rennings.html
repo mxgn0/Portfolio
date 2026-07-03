@@ -210,9 +210,15 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
     </p>
     <p>
         <b>Tilt your phone</b> to shift sand, snow, water and lava across the screen
-        (desktop: <b>arrow keys</b>). Your sand &amp; water supply is <b>limited</b> —
+        (desktop: <b>arrow keys</b>) — the spirit level up top shows how far the world
+        is tipped. Your sand &amp; water supply is <b>limited</b> —
         tilting the world is free. Water quenches lava into stone and puts out fires;
         sand poured into lava becomes a stone bridge. Dig tunnels with your finger.
+        Rennings <b>skate helplessly across ice</b> when the world tips, and boats
+        only really move when you tilt — ferry them across. Watch for floating
+        stone basins full of water or sand: tip the world (or dig the rim) to
+        spill them — a water spill over lava paves a bridge, a sand spill piles
+        into a ramp.
         On their own the rennings won't make it — every obstacle hides its matching
         gear in a <b>supply crate</b> somewhere earlier on the path: snorkel, boat, axe,
         lighter, umbrella, climbing hook, bridge planks. Some crates sit on rock
@@ -223,7 +229,9 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
         Falls kill quickly without an umbrella.
         From lvl 2 on levels mix three obstacle types, lvl 3+ even more —
         and the dice decide how big a forest, lake or lava pool gets.
-        Find hidden keys to open gates. Meadow, jungle,
+        Find hidden keys to open gates. On <b>roundtrip</b> levels the exit door
+        sits right next to the spawn — locked. The key waits at the far end of
+        the world, beside a portal home: the whole level is the detour. Meadow, jungle,
         mountain and cave worlds — some levels are pitch black night. Place a few
         <b>turn-around statues</b> to steer the crowd — and don't let anyone run head-on
         into a torch carrier. Higher floors must be <b>unlocked</b> by clearing the ones
@@ -320,6 +328,7 @@ let difficulty = parseInt(localStorage.getItem('rn_diff') || '2', 10);
 if (!(difficulty >= 1 && difficulty <= 4)) difficulty = 2;
 let theme = 'meadow';
 let levelNight = false;
+let roundtrip = false;    // exit next to spawn, key at the far end
 
 let rngSeed = (Math.random() * 1e9) | 0;
 let rng = mulberry32(rngSeed);
@@ -480,8 +489,8 @@ function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.floor(window.innerWidth * dpr);
     canvas.height = Math.floor(window.innerHeight * dpr);
-    // finer raster: ~62k cells, still fast on phones
-    const cell = Math.max(2, Math.ceil(Math.sqrt((canvas.width * canvas.height) / 62000)));
+    // finer raster: ~96k cells for more intricate levels, still ok on phones
+    const cell = Math.max(2, Math.ceil(Math.sqrt((canvas.width * canvas.height) / 96000)));
     W = Math.floor(canvas.width / cell);
     H = Math.floor(canvas.height / cell);
     grid = new Uint8Array(W * H);
@@ -533,6 +542,10 @@ function generateLevel(seed) {
     const themeNames = Object.keys(THEMES);
     theme = themeNames[(rng() * themeNames.length) | 0];
     levelNight = theme === 'cave' || rng() < cfg.night;
+    // roundtrip levels: the exit door sits right next to the spawn —
+    // behind a locked gate. the key waits at the far end of the LAST
+    // floor, next to a one-way portal home: the whole level is the detour.
+    roundtrip = difficulty >= 2 && rng() < 0.35;
 
     const bands = difficulty;
     const bandH = Math.floor(H / bands);
@@ -631,7 +644,7 @@ function generateLevel(seed) {
         if (fb - fa < 0.05) return;
         let xa = fxk(k, fa + 0.01), xb = fxk(k, fb - 0.01);
         if (xa > xb) [xa, xb] = [xb, xa];
-        if (xb - xa >= 12) zones.push({ k, xa, xb });
+        if (xb - xa >= 14) zones.push({ k, xa, xb });
     };
     const LEDGE_P = [0, 0, 0.35, 0.5, 0.6][difficulty];
 
@@ -639,17 +652,23 @@ function generateLevel(seed) {
         let cand = zones.filter(z => z.k <= kMax);
         if (!cand.length) return null;
         if (opts.firstZone) cand = [cand[0]];
-        else if (rng() < 0.45) {
-            const back = cand.filter(z => z.k < kMax);
-            if (back.length) cand = back;
+        else {
+            // never right at the obstacle's feet: when there's a choice,
+            // skip the zone hugging it so the fetch is a real detour —
+            // often behind other obstacles you must solve first
+            if (cand.length > 1) cand = cand.slice(0, -1);
+            if (rng() < 0.45) {
+                const back = cand.filter(z => z.k < kMax);
+                if (back.length) cand = back;
+            }
         }
         const z = cand[(rng() * cand.length) | 0];
         const x = clampX(z.xa + 4 + ((rng() * Math.max(1, z.xb - z.xa - 8)) | 0));
         let y = G[z.k][x];
-        if (!opts.ground && z.xb - z.xa >= 22 && rng() < LEDGE_P) {
+        if (!opts.ground && z.xb - z.xa >= 26 && rng() < LEDGE_P) {
             // floating rock ledge above the path: rennings pass underneath,
             // fetching the crate takes a sand ramp — the level pays for it
-            const ph = 9 + ((rng() * 5) | 0);
+            const ph = 11 + ((rng() * 6) | 0);
             const ceil = z.k * bandH + (theme === 'cave' ? 8 : 2);
             if (y - ph - 3 > ceil) {
                 for (let dx = -4; dx <= 4; dx++) {
@@ -661,7 +680,7 @@ function generateLevel(seed) {
                     }
                 }
                 y -= ph;
-                sandLeft += ph * 14;   // guaranteed ramp budget
+                sandLeft += ph * 16;   // guaranteed ramp budget
             }
         }
         return { x, y };
@@ -676,7 +695,7 @@ function generateLevel(seed) {
     function obstacleHalf(type, sz, maxHalf) {
         let half = 5;
         if (type === 'pool' || type === 'icepool') half = Math.floor(W * 0.06 * sz);
-        else if (type === 'lavapool') half = Math.min(16, Math.floor(W * 0.05 * sz)); // one renning's planks must span it
+        else if (type === 'lavapool') half = Math.min(26, Math.floor(W * 0.05 * sz)); // one renning's 60 planks must span it
         else if (type === 'forest') half = Math.floor(W * 0.055 * sz);
         // cliffs / drops / keydoors are edges, not areas
         return Math.max(4, Math.min(half, Math.max(5, maxHalf)));
@@ -746,14 +765,38 @@ function generateLevel(seed) {
     }
 
     /* ---- spawn & goal ---- */
-    const sx = fxk(0, 0.05);
-    spawnP = { x: sx, y: G[0][sx] - 4 };
-    const gx = fxk(bands - 1, 0.94);
-    goalP = { x: gx, y: G[bands - 1][gx] - 1 };
+    if (roundtrip) {
+        const sx = fxk(0, 0.105);
+        spawnP = { x: sx, y: G[0][sx] - 4 };
+        const gx = fxk(0, 0.028);
+        goalP = { x: gx, y: G[0][gx] - 1 };
+        // locked gate seals the exit pen right next to the spawn
+        const gpx = fxk(0, 0.065);
+        const gpy = G[0][gpx];
+        const kx = fxk(bands - 1, 0.90);
+        gates.push({
+            x: gpx, yTop: Math.max(2, gpy - 22), yBot: Math.min(H - 2, gpy + 3),
+            open: 0, unlocked: false, keyX: kx, keyY: G[bands - 1][kx] - 4
+        });
+        // grabbing the key drops the expedition back home through a portal
+        const hx = fxk(0, 0.085);
+        const pair = [
+            { x: kx, y: G[bands - 1][kx] - 3 },
+            { x: hx, y: G[0][hx] - 3 }
+        ];
+        pair.oneWay = true;
+        portals.push(pair);
+    } else {
+        const sx = fxk(0, 0.05);
+        spawnP = { x: sx, y: G[0][sx] - 4 };
+        const gx = fxk(bands - 1, 0.94);
+        goalP = { x: gx, y: G[bands - 1][gx] - 1 };
+    }
 
     gameState = 'play';
     document.getElementById('title').textContent =
-        `lvl ${difficulty} · ${theme}${levelNight ? ' · night' : ''}`;
+        `lvl ${difficulty} · ${theme}${levelNight ? ' · night' : ''}${roundtrip ? ' · roundtrip' : ''}`;
+    if (roundtrip) toast('the exit is locked — the key waits at the far end of the world');
     if (typeof brush === 'string' && brush !== 'statue') setBrush('sand');
     updateStats();
     updateBrushLabels();
@@ -762,6 +805,20 @@ function generateLevel(seed) {
 
 function rockBottom(k, bandH, bands) {
     return (k === bands - 1) ? H : Math.min(H, (k + 1) * bandH + 4);
+}
+
+// floating stone basin holding a payload of sand or water — TILT the
+// world (or dig the rim) to spill it. rennings walk underneath.
+function buildBasin(bx, top, mat, ceil) {
+    for (let dx = -6; dx <= 6; dx++) {
+        const px = clampX(bx + dx);
+        for (let yy = top; yy <= top + 8; yy++) {
+            if (yy <= ceil || !inBounds(px, yy)) continue;
+            if (Math.abs(dx) >= 5 || yy >= top + 7) grid[idx(px, yy)] = STONE;
+            else if (yy >= top + 2) grid[idx(px, yy)] = mat;
+            else grid[idx(px, yy)] = EMPTY;   // freeboard: a hard tilt sloshes it out
+        }
+    }
 }
 
 // returns { gear } for obstacles whose gear crate the caller must place,
@@ -776,7 +833,7 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands, half) {
         for (let x = a; x <= b; x++) rim = Math.max(rim, h[x]);
         rim = Math.min(rim, bottom - 9);
         const depth = Math.min(
-            type === 'lavapool' ? 7 + ((rng() * 4) | 0) : 10 + ((rng() * 9) | 0),
+            type === 'lavapool' ? 8 + ((rng() * 5) | 0) : 12 + ((rng() * 11) | 0),
             bottom - rim - 4);
         const fluid = type === 'lavapool' ? LAVA : WATER;
         for (let x = a; x <= b; x++) {
@@ -796,7 +853,16 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands, half) {
             }
         }
         if (type === 'pool') return { gear: rng() < 0.5 ? 'snorkel' : 'boat' };
-        if (type === 'lavapool') return { gear: 'bridge' };
+        if (type === 'lavapool') {
+            // half the time no planks are granted: a water basin floats above
+            // the lava instead — tilt it over (or dig its rim) and the spill
+            // quenches the surface into a walkable stone bridge
+            if (difficulty >= 2 && rim - airTop >= 30 && rng() < 0.5) {
+                buildBasin(cx, rim - 20, WATER, airTop);
+                return null;
+            }
+            return { gear: 'bridge' };
+        }
         return null;   // icepool: walk across the frozen top — but careful with fire
     }
 
@@ -807,14 +873,14 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands, half) {
         for (let i = 0; i < trees; i++) {
             const tx = clampX(cx - half + ((rng() * half * 2) | 0));
             const ground = h[tx];
-            const height = Math.min(maxTree, 8 + ((rng() * 6) | 0));
+            const height = Math.min(maxTree, 9 + ((rng() * 7) | 0));
             for (let dx = 0; dx < 2; dx++) {
                 for (let y = ground - height; y < ground; y++) {
                     if (inBounds(tx + dx, y) && y > airTop) grid[idx(tx + dx, y)] = WOOD;
                 }
             }
             const cy = ground - height;
-            const r = 3 + ((rng() * 2) | 0);
+            const r = 3 + ((rng() * 3) | 0);
             for (let dy = -r; dy <= r; dy++) {
                 for (let dx = -r; dx <= r; dx++) {
                     if (dx * dx + dy * dy <= r * r && inBounds(tx + 1 + dx, cy + dy) && cy + dy > airTop) {
@@ -828,7 +894,7 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands, half) {
 
     if (type === 'cliff') {
         const air = Math.floor(bandH * (bands === 1 ? 0.68 : 0.56));
-        const rise = Math.max(8, Math.min(26, Math.floor(air * (0.32 + rng() * 0.35))));
+        const rise = Math.max(10, Math.min(32, Math.floor(air * (0.32 + rng() * 0.35))));
         const edge = cx;
         for (let x = 2; x < W - 2; x++) {
             const past = dir > 0 ? x >= edge : x <= edge;
@@ -837,6 +903,13 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands, half) {
                 for (let y = newTop; y < h[x]; y++) grid[idx(x, y)] = STONE;
                 h[x] = newTop;
             }
+        }
+        // sometimes a sand silo floats beside the cliff face: tilt it out
+        // and the pile ramps the crowd up — quicker than waiting for hooks
+        if (difficulty >= 2 && rng() < 0.4) {
+            const bx = clampX(edge - dir * 9);
+            const top = Math.max(airTop + 3, h[bx] - rise - 6);
+            if (h[bx] - top > 14) buildBasin(bx, top, SAND, airTop);
         }
         return { gear: 'hook' };
     }
@@ -863,7 +936,7 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands, half) {
         const gx = clampX(cx);
         const gy = h[gx];
         const gate = {
-            x: gx, yTop: Math.max(airTop + 3, gy - 15), yBot: Math.min(H - 2, gy + 3),
+            x: gx, yTop: Math.max(airTop + 3, gy - 18), yBot: Math.min(H - 2, gy + 3),
             open: 0, unlocked: false, keyX: 0, keyY: 0
         };
         // the key no longer sits right in front of the door — the caller
@@ -1045,7 +1118,11 @@ function simPass(first) {
                     break;
                 }
                 if (m === SAND && t === WATER) {
-                    grid[ti] = SAND; grid[i] = WATER;
+                    // sand sinks through water — but displaced water may not
+                    // pop out into open air above the surface ("phantom rain"):
+                    // at the surface the sand soaks it up instead
+                    grid[ti] = SAND;
+                    grid[i] = (y > 0 && grid[i - W] === EMPTY) ? EMPTY : WATER;
                     break;
                 }
                 if (m === SAND && t === LAVA) {
@@ -1064,9 +1141,10 @@ function simPass(first) {
 /* =========================================================
    LEMMINGS
    ========================================================= */
-const WALK_SPEED = 13;       // cells per second
-const FALL_LIMIT = 24;       // cells of free fall before splat — falls kill early without an umbrella
-const G_FALL = 60;
+// motion constants live in cell units — scaled up with the finer raster
+const WALK_SPEED = 16;       // cells per second
+const FALL_LIMIT = 30;       // cells of free fall before splat — falls kill early without an umbrella
+const G_FALL = 75;
 
 function spawnLemming() {
     lemmings.push({
@@ -1123,7 +1201,7 @@ function grantGear(L, type) {
     if (type === 'lighter' && !L.lighter) { L.lighter = true; sparkleBurst(L.x, L.y - 3, '#ff6a00'); }
     if (type === 'umbrella' && !L.umbrella) { L.umbrella = true; sparkleBurst(L.x, L.y - 3, '#ff7ad9'); }
     if (type === 'hook' && !L.hook) { L.hook = true; sparkleBurst(L.x, L.y - 3, '#aab0c0'); }
-    if (type === 'bridge' && L.planks < 40) { L.planks = 40; sparkleBurst(L.x, L.y - 3, '#9b6a43'); }
+    if (type === 'bridge' && L.planks < 60) { L.planks = 60; sparkleBurst(L.x, L.y - 3, '#9b6a43'); }
 }
 
 function updateLemming(L, dt) {
@@ -1193,8 +1271,12 @@ function updateLemming(L, dt) {
     if (L.boat && (waterAt(x, y + 1) || waterAt(x, y - 1))) {
         L.state = 'boat';
         L.fallDist = 0; L.vy = 0; L.drown = 0;
-        if (waterAt(x, y - 1)) { L.y -= dt * 14; return; }   // pop up first
-        L.acc += WALK_SPEED * dt;
+        if (waterAt(x, y - 1)) { L.y -= dt * 17; return; }   // pop up first
+        // tilt is the motor: boats drift with the slosh and barely
+        // crawl on flat water — tip the world to ferry them across
+        const drift = 4 * L.dir + 36 * grav.x;
+        if (Math.abs(drift) > 2) L.dir = drift > 0 ? 1 : -1;
+        L.acc += Math.abs(drift) * dt;
         while (L.acc >= 1) {
             L.acc -= 1;
             x = Math.round(L.x); y = Math.round(L.y);
@@ -1220,7 +1302,7 @@ function updateLemming(L, dt) {
         L.fallDist = 0; L.vy = 0;
         if (L.snorkel) {
             L.state = 'swim';
-            if (waterAt(x, y - 2)) L.y -= dt * 12;
+            if (waterAt(x, y - 2)) L.y -= dt * 15;
             L.acc += WALK_SPEED * 0.8 * dt;
             while (L.acc >= 1) {
                 L.acc -= 1;
@@ -1237,7 +1319,7 @@ function updateLemming(L, dt) {
         } else {
             L.state = 'drowning';
             L.drown += dt;
-            if (!solidAt(x, y + 1)) L.y += dt * 6;
+            if (!solidAt(x, y + 1)) L.y += dt * 8;
             if (L.drown > 3) { killLemming(L, 'drown'); return; }
         }
         return;
@@ -1266,7 +1348,7 @@ function updateLemming(L, dt) {
             L.state = 'fall'; L.dir *= -1; return;
         }
         if (isSolid(cellAt(wx, y))) {
-            L.y -= 11 * dt;
+            L.y -= 14 * dt;
             L.fallDist = 0; L.vy = 0;
             return;
         }
@@ -1281,7 +1363,7 @@ function updateLemming(L, dt) {
     /* ---- falling ---- */
     if (!supported) {
         L.state = 'fall';
-        const vmax = L.umbrella ? 7 : 46;
+        const vmax = L.umbrella ? 9 : 56;
         L.vy = Math.min(vmax, L.vy + G_FALL * dt);
         let dy = L.vy * dt;
         while (dy > 0) {
@@ -1313,6 +1395,26 @@ function updateLemming(L, dt) {
         }
     }
     if (riding) { L.state = 'ride'; L.fallDist = 0; L.vy = 0; return; }
+
+    /* ---- ice: tilt takes over — rennings skate with the gravity ---- */
+    if (cellAt(x, y + 1) === ICE && Math.abs(grav.x) > 0.22) {
+        L.state = 'slide';
+        const sd = grav.x > 0 ? 1 : -1;
+        L.dir = sd;
+        L.acc += WALK_SPEED * (0.5 + 1.6 * Math.abs(grav.x)) * dt;
+        while (L.acc >= 1) {
+            L.acc -= 1;
+            x = Math.round(L.x); y = Math.round(L.y);
+            const nx = x + sd;
+            if (nx < 1 || nx > W - 2 || solidAt(nx, y)) { L.acc = 0; break; }
+            L.x = nx;
+            let drop = 0;
+            while (drop < 3 && !solidAt(nx, y + drop + 1)) drop++;
+            if (drop <= 2) L.y = y + drop;
+            else break;   // slid off the edge — falls next tick
+        }
+        return;
+    }
 
     /* ---- walking ---- */
     L.state = 'walk';
@@ -1395,7 +1497,7 @@ function torchDanger() {
 function updateElevators(dt) {
     for (const el of elevators) {
         if (el.pause > 0) { el.pause -= dt; continue; }
-        el.y += el.dir * 10 * dt;
+        el.y += el.dir * 12 * dt;
         if (el.y <= el.yTop) { el.y = el.yTop; el.dir = 1; el.pause = 2.2; }
         if (el.y >= el.yBot) { el.y = el.yBot; el.dir = -1; el.pause = 2.2; }
     }
@@ -1409,7 +1511,7 @@ function updateStatues(dt) {
         if (isSolid(cellAt(st.x, sy + 1)) || isSolid(cellAt(st.x + 1, sy + 1))) {
             st.settled = true; continue;
         }
-        st.y += 30 * dt;
+        st.y += 38 * dt;
     }
 }
 
@@ -1839,6 +1941,27 @@ function drawEntities(t) {
     ctx.globalAlpha = 1;
 
     if (levelNight) drawNight(fx, fy);
+    drawTiltGauge();
+}
+
+/* ---------- tilt gauge: a spirit level so you can feel the world tip ---------- */
+function drawTiltGauge() {
+    const a = Math.atan2(grav.x, grav.y);
+    const u = Math.min(canvas.width, canvas.height);
+    const cx0 = canvas.width / 2, cy0 = u * 0.012, r = u * 0.055;
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = Math.max(1.5, u * 0.004);
+    ctx.beginPath();
+    ctx.arc(cx0, cy0, r, Math.PI / 2 - MAX_TILT, Math.PI / 2 + MAX_TILT);
+    ctx.stroke();
+    // center notch
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillRect(cx0 - Math.max(1, u * 0.002), cy0 + r - u * 0.011, Math.max(2, u * 0.004), u * 0.016);
+    const bx = cx0 + Math.sin(a) * r, by = cy0 + Math.cos(a) * r;
+    ctx.fillStyle = Math.abs(a) > 0.06 ? '#ff9900' : 'rgba(255,255,255,0.55)';
+    ctx.beginPath();
+    ctx.arc(bx, by, Math.max(2.5, u * 0.009), 0, Math.PI * 2);
+    ctx.fill();
 }
 
 function drawPortalRing(x, y, t, color, fx, fy) {
