@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>About - Max Jänichen</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         a {
             color: #fff;
@@ -15,15 +18,69 @@
             color: #ff9900;
             border-bottom: 2px solid #ff9900;
         }
+
+        /* ---------- Ticker: reines schwarz/weiß ---------- */
+        :root{
+            --ticker-bg: #000000;
+            --ticker-rule: #2a2a2a;
+            --ticker-dim: #7a7a7a;
+            --ticker-faint: #4a4a4a;
+            --ticker-hot: #ffffff;
+            --ticker-mono: 'JetBrains Mono', ui-monospace, monospace;
+        }
+        .ticker{
+            position: relative;
+            width:100%;
+            overflow:hidden;
+            background: var(--ticker-bg);
+            border-top: 1px solid var(--ticker-rule);
+            border-bottom: 1px solid var(--ticker-rule);
+            padding: 14px 0;
+        }
+        .ticker::before, .ticker::after{
+            content:"";
+            position:absolute; top:0; bottom:0; width:80px; z-index:2;
+        }
+        .ticker::before{ left:0;  background:linear-gradient(90deg, var(--ticker-bg), transparent); }
+        .ticker::after { right:0; background:linear-gradient(270deg, var(--ticker-bg), transparent); }
+        .marquee-track{
+            display:flex;
+            width:max-content;
+            animation: scroll-left 600s linear infinite;
+        }
+        .ticker:hover .marquee-track{ animation-play-state: paused; }
+        @keyframes scroll-left{
+            from{ transform: translateX(0); }
+            to{ transform: translateX(-50%); }
+        }
+        .tick{
+            font-family: var(--ticker-mono);
+            font-size: 12.5px;
+            letter-spacing: 0.03em;
+            color: var(--ticker-dim);
+            padding: 0 40px;
+            white-space: nowrap;
+            border-right: 1px solid var(--ticker-rule);
+        }
+        .tick.hot{ color: var(--ticker-hot); }
+        .tick .dot{ color: var(--ticker-faint); margin-right: 10px; }
+        .tick.hot .dot{ color: #999999; }
+        @media (prefers-reduced-motion: reduce){
+            .marquee-track{ animation: none; }
+        }
     </style>
 </head>
 <body>
+    <!-- Ticker -->
+    <div class="ticker" role="marquee" aria-label="Statuszeile">
+      <div class="marquee-track" id="marqueeTrack"></div>
+    </div>
+
     <!-- Cursor edit -->
     <div id="cursor-dot"></div>
     <header>
         <h1>About</h1>
     </header>
-
     <section>
         <h2>Max Jänichen</h2>
             <p>(born 1995 in Freiberg, Saxony, Germany)</p>
@@ -34,25 +91,21 @@
             <p>This pursuit led him toward Houdini’s procedural and simulation-based framework, enabling an approach centered on system-building, emergent detail, generative motion and digital materiality.</p>
             <p>Today, his work merges artistic expression, physical logic and technical innovation to create dynamic visual environments that behave, evolve and resonate like living systems.</p>
     </section>
-
     <section>
         <h2>Portrait</h2>
         <img src="images/IMG_2128.jpg" alt="Portrait of Max Jänichen" width="300">
     </section>
-
     <footer>
         <p><a href="index.html">home</a></p>
     </footer>
 <script>
 const dot = document.getElementById('cursor-dot');
-
 // Maus folgt
 window.addEventListener('mousemove', (e) => {
     dot.style.left = `${e.clientX}px`;
     dot.style.top = `${e.clientY}px`;
     dot.style.opacity = 1; // sobald sich die Maus bewegt, einblenden
 });
-
 // Touch-Support
 window.addEventListener('touchstart', (e) => {
     const touch = e.touches[0];
@@ -60,13 +113,11 @@ window.addEventListener('touchstart', (e) => {
     dot.style.top = `${touch.clientY}px`;
     dot.style.opacity = 1; // sichtbar
 }, { passive: true });
-
 window.addEventListener('touchmove', (e) => {
     const touch = e.touches[0];
     dot.style.left = `${touch.clientX}px`;
     dot.style.top = `${touch.clientY}px`;
 }, { passive: true });
-
 window.addEventListener('touchend', () => {
     // nur auf Touch-Geräten ausblenden
     if (window.matchMedia('(pointer: coarse)').matches) {
@@ -74,6 +125,147 @@ window.addEventListener('touchend', () => {
     }
 }, { passive: true });
 
+// ---------- Ticker: gewichtete Terme, stark auf Houdini/3D fokussiert ----------
+(function(){
+  var terms = [
+    // -- Houdini core / prozedural — sehr hohes Gewicht --
+    { t: "VEX-wrangling", w: 9 },
+    { t: "Attribute-wrangling", w: 9 },
+    { t: "Voronoi-faceting", w: 9 },
+    { t: "Vellum-simulating", w: 9 },
+    { t: "Node-network-tangling", w: 8 },
+    { t: "Procedural-detailing", w: 9 },
+    { t: "Point-cloud-scattering", w: 8 },
+    { t: "Seed-mutating", w: 8 },
+    { t: "HDA-packaging", w: 7 },
+    { t: "PDG-cranking", w: 8 },
+    { t: "TOP-network-scheduling", w: 6 },
+    { t: "For-each-looping", w: 6 },
+    { t: "Group-expression-writing", w: 6 },
+    { t: "VOP-networking", w: 6 },
+    { t: "Copy-to-points-ing", w: 7 },
+    { t: "Fracture-shattering", w: 7 },
+    { t: "RBD-solving", w: 7 },
+    { t: "Pyro-combusting", w: 7 },
+    { t: "FLIP-fluid-solving", w: 7 },
+    { t: "Grain-solving", w: 6 },
+    { t: "Wire-solver-tensioning", w: 6 },
+    { t: "Crowd-simulating", w: 5 },
+    { t: "L-system-growing", w: 6 },
+    { t: "Noise-layering", w: 7 },
+    { t: "Curvature-remapping", w: 6 },
+    { t: "UV-unwrapping", w: 6 },
+    { t: "Topo-building", w: 6 },
+    { t: "Boolean-fusing", w: 6 },
+    { t: "Deformer-rigging", w: 5 },
+    { t: "KineFX-rigging", w: 5 },
+    { t: "Cloth-solver-babysitting", w: 7 },
+    { t: "Plugin-pipeline-escaping", w: 5 },
+
+    // -- Rendering / Look-Dev — hohes Gewicht --
+    { t: "Karma-XPU-rendering", w: 8 },
+    { t: "Redshift-cooking", w: 8 },
+    { t: "Karma-denoising", w: 6 },
+    { t: "Shader-graphing", w: 6 },
+    { t: "Material-network-tweaking", w: 6 },
+    { t: "Light-rig-balancing", w: 5 },
+    { t: "AOV-splitting", w: 5 },
+    { t: "Displacement-mapping", w: 6 },
+    { t: "Subsurface-scattering", w: 5 },
+    { t: "Volume-rendering", w: 6 },
+
+    // -- weitere 3D-Tools / Generalist — mittleres Gewicht --
+    { t: "TouchDesigner-patching", w: 6 },
+    { t: "Cinema4D-remembering", w: 4 },
+    { t: "After-Effects-compositing", w: 4 },
+    { t: "3ds-Max-throwbacking", w: 3 },
+    { t: "Maya-rigging", w: 3 },
+    { t: "Provenance-hashing", w: 5 },
+    { t: "Motion-designing", w: 5 },
+    { t: "Real-time-optimizing", w: 4 },
+    { t: "Digital-materiality-crafting", w: 5 },
+    { t: "Emergent-detail-chasing", w: 6 },
+    { t: "System-behavior-tuning", w: 6 },
+
+    // -- generisches Grundrauschen — sehr niedriges Gewicht --
+    { t: "Chudmaxxing", w: 1 },
+    { t: "Aura-farming", w: 1 },
+    { t: "Redeeming", w: 1 },
+    { t: "Clodding", w: 1 },
+    { t: "Tokenmaxxing", w: 1 },
+    { t: "Slopping", w: 1 },
+    { t: "Clanking", w: 1 },
+    { t: "Ignoring GPL", w: 1 },
+    { t: "Increasing ram prices", w: 1 },
+    { t: "Hallucinating", w: 1 },
+    { t: "Outsourcing to Mossad", w: 1 },
+    { t: "Gemming it up", w: 1 },
+    { t: "Absolute coaling", w: 1 },
+    { t: "Truth-nuking", w: 1 },
+    { t: "Fakecelling", w: 1 },
+    { t: "Truecelling", w: 1 },
+    { t: "Mogging", w: 1 },
+    { t: "Rizzing", w: 1 },
+    { t: "Dumbing it down", w: 1 },
+    { t: "Enshittifying", w: 1 },
+    { t: "Summoning Cheesy Micheal", w: 1 },
+    { t: "Degenerating", w: 1 },
+    { t: "Running \\\"sudo rm -rf --no-preserve-root /\\\"", w: 1 },
+    { t: "Virtual insanitying", w: 1 },
+    { t: "Bomboclating", w: 1 },
+    { t: "Gambling", w: 1 },
+    { t: "Rebooting", w: 1 },
+    { t: "Unicycling", w: 1 },
+    { t: "Horsing around", w: 1 },
+    { t: "Calling Mahoraga", w: 1 },
+    { t: "Calling Kevin", w: 1 },
+    { t: "Calling Saul", w: 1 },
+    { t: "Nuking SF", w: 1 },
+    { t: "Spellcasting", w: 1 },
+    { t: "Hexing", w: 1 },
+    { t: "Prompt-injecting", w: 1 },
+    { t: "Installing Windows", w: 1 },
+    { t: "Ultrathinking", w: 1 },
+    { t: "Nuking prod", w: 1 },
+    { t: "Tokenmining", w: 1 },
+    { t: "Questioning", w: 1 },
+    { t: "Increasing shareholder value", w: 1 },
+    { t: "Winging it", w: 1 },
+    { t: "Cooking", w: 1 }
+  ];
+
+  var HIGH_WEIGHT_THRESHOLD = 6;
+
+  function buildSequence(){
+    var expanded = [];
+    terms.forEach(function(item){
+      for (var i = 0; i < item.w; i++){
+        expanded.push(item);
+      }
+    });
+    for (var i = expanded.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = expanded[i]; expanded[i] = expanded[j]; expanded[j] = tmp;
+    }
+    return expanded;
+  }
+
+  function render(){
+    var track = document.getElementById('marqueeTrack');
+    if (!track) return;
+    var seq = buildSequence();
+    var html = '';
+    for (var pass = 0; pass < 2; pass++){
+      seq.forEach(function(item){
+        var hot = item.w >= HIGH_WEIGHT_THRESHOLD ? ' hot' : '';
+        html += '<span class="tick' + hot + '"><span class="dot">&#9670;</span>' + item.t + '&hellip;</span>';
+      });
+    }
+    track.innerHTML = html;
+  }
+
+  render();
+})();
 </script>
 </body>
 </html>
