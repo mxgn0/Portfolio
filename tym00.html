@@ -13,12 +13,18 @@
             gap: 10px;
             justify-content: center;
         }
-        .gallery img {
+        .gallery img,
+        .gallery video.content-video {
             width: 100%;        /* passt sich dem Container an */
-            max-width: 600px; 
+            max-width: 600px;
             height: auto;
             border: 2px solid #fff;
             border-radius: 5px;
+        }
+        .gallery h3 {
+            flex-basis: 100%;
+            text-align: center;
+            margin: 20px 0 0;
         }
     </style>
     <style>
@@ -39,25 +45,12 @@
     <header>
         <h1>TYM</h1>
     </header>
-<!--
+
     <section>
-        <h2>Explanation</h2>
-        <p>Spacecar 300 hard surface design, rendering</p>
-    </section>
--->
-    <section>
-        <!--
-        <h2>stillframes</h2>
-        <img src="images/BA/Wave_CleanColored_homogen_final.mp4" alt="homogeneous" />
-        <img src="images/BA/Wave_CleanColored_inhomogen_final.mp4" alt="inhomogeneous sliced" /> 
-        -->
-    </section>
-    
-    <section>
-        
         <h2>Stillframes Gallery</h2>
         <p>Spacecar 200 hard surface design, rendering</p>
         <div class="gallery">
+          <h3>Spacecar 200 – hard surface design & rendering</h3>
           <img src="images/TYM/05_carTYM.jpg"/>
           <img src="images/TYM/06_carTYM.jpg"/>
           <img src="images/TYM/07_carTYM.jpg"/>
@@ -68,8 +61,8 @@
           <img src="images/TYM/12_carTYM.jpg"/>
           <img src="images/TYM/13_carTYM.jpg"/>
           <img src="images/TYM/16_carTYM.jpg"/>
-            
-          <p>Spacecar 200 Sandstorm Environment, smoke simulation & desert heightfield</p>
+
+          <h3>Spacecar 200 – sandstorm environment, smoke simulation & desert heightfield</h3>
             <img src="images/TYM/Sandstorm_SpaceCarInDesert04.jpg"/>
             <img src="images/TYM/Sandstorm_SpaceCarInDesert05.jpg"/>
             <img src="images/TYM/Sandstorm_SpaceCarInDesert07.jpg"/>
@@ -93,7 +86,8 @@
             <img src="images/TYM/Sandstorm_SpaceCarInDesert36.jpg"/>
             <img src="images/TYM/Sandstorm_SpaceCarInDesert41_BIG.jpg"/>
             <img src="images/TYM/Sandstorm_Typo_3d_00.png"/>
-            <p>3D TYM, facetracking, accessoires, cloth sim, hair sim, rendering, gameready</p>
+
+          <h3>3D TYM avatar – facetracking, accessories, cloth & hair sim, gameready</h3>
             <img src="images/TYM/05_carTYM.jpg"/>
             <img src="images/TYM/06_carTYM.jpg"/>
             <img src="images/TYM/07_carTYM.jpg"/>
@@ -104,7 +98,8 @@
             <img src="images/TYM/12_carTYM.jpg"/>
             <img src="images/TYM/13_carTYM.jpg"/>
             <img src="images/TYM/16_carTYM.jpg"/>
-            <p>Sandstorm Tour Concept, Poster</p>
+
+          <h3>Sandstorm tour – concept & poster</h3>
             <img src="images/TYM/Test_Sandstorm_34_denoisee.jpg"/>
             <img src="images/TYM/Test_Sandstorm_35_denoisee.jpg"/>
             <img src="images/TYM/Test_Sandstorm_36_denoisee.jpg"/>
@@ -118,7 +113,8 @@
             <img src="images/TYM/Test_Sandstorm_74.jpg"/>
             <img src="images/TYM/Test_Sandstorm_76.jpg"/>
             <img src="images/TYM/Test_Sandstorm_78.jpg"/>
-            <p>TYM Butterfly Tribal Slime, Simulation, Cover, Canvas</p>
+
+          <h3>Butterfly tribal slime – simulation, cover, canvas</h3>
             <video class="content-video" autoplay muted loop playsinline webkit-playsinline>
                 <source src="images/TYM/Canvas_Final_7s.mp4" type="video/mp4">
                 Dein Browser unterstützt dieses Videoformat nicht.
@@ -131,52 +127,11 @@
                 Dein Browser unterstützt dieses Videoformat nicht.
             </video>
         </div>
+    </section>
 
-
-      <!--
-        <h2>Video Examples / Sketches</h2>
-        <figure>
-            <video width="640" height="360" autoplay muted loop>
-                <source src="images/4erHead_Houdini_PoseHead_00.Redshift_ROP1.mp4" type="video/mp4">
-                Dein Browser unterstützt dieses Videoformat nicht.
-            </video>
-            
-            <video width="640" height="360" autoplay muted loop>
-                <source src="images/untitled2.mp4" type="video/mp4">
-                Dein Browser unterstützt dieses Videoformat nicht.
-            </video>
-                        
-            <video width="640" height="360" autoplay muted loop>
-                <source src="images/portraits/untitled1.mp4" type="video/mp4">
-                Dein Browser unterstützt dieses Videoformat nicht.
-            </video>
-
-           <video width="640" height="360" autoplay muted loop>
-                <source src="images/portraits/untitled3.mp4" type="video/mp4">
-                Dein Browser unterstützt dieses Videoformat nicht.
-            </video>
-
-            <video width="640" height="360" autoplay muted loop>
-                <source src="images/portraits/untitled4.mp4" type="video/mp4">
-                Dein Browser unterstützt dieses Videoformat nicht.
-            </video>
-
-            <video width="640" height="360" autoplay muted loop>
-                <source src="images/portraits/loopingcables.mp4" type="video/mp4">
-                Dein Browser unterstützt dieses Videoformat nicht.
-            </video>
-            
-        </figure>
-        
-        <figure style="text-align: center;">
-            <video width="640" height="360" autoplay muted loop>
-                <source src="images/front_wide1.mp4" type="video/mp4">
-                Dein Browser unterstützt dieses Videoformat nicht.
-            </video>
-            <figcaption>TYM Spacecowboy Tour - Stage Visualizer & digital avatar</figcaption>
-        </figure>
-        -->
-      
+    <section class="project-description">
+        <h2>Projektbeschreibung</h2>
+        <p class="description-placeholder">Hier kannst du eine ausführlichere Beschreibung zu diesem Projekt ergänzen – z. B. Aufgabenstellung, eingesetzte Tools und was am Ende dabei herausgekommen ist.</p>
     </section>
 
     <footer>

@@ -230,3 +230,54 @@ body.readable a:hover {
   opacity: 1;
   transform: translateY(-1px);
 }
+
+/* Smart, responsive media grid for project videos & images.
+   Caps item width so media never blows up edge-to-edge on large screens,
+   and wraps into multiple columns instead of one giant stacked column. */
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 520px));
+  justify-content: center;
+  gap: 24px;
+  margin: 20px 0;
+}
+
+.media-grid figure {
+  margin: 0;
+}
+
+.media-grid video.content-video,
+.media-grid img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 6px;
+}
+
+.media-caption,
+.media-grid figcaption {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  opacity: 0.7;
+  text-align: center;
+  margin-top: 8px;
+}
+
+body.readable .media-caption,
+body.readable .media-grid figcaption {
+  color: #111 !important;
+}
+
+/* Project description field: a clearly-marked spot for a write-up per project */
+.project-description {
+  max-width: 800px;
+  margin: 30px auto 0;
+}
+
+.project-description .description-placeholder {
+  opacity: 0.55;
+  font-style: italic;
+}

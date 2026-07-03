@@ -28,22 +28,37 @@
     <section>
         <p>infinite scaffolding structures, adding detail levels, meditative exploration</p>
     </section>
-    
+
     <section>
-        <video class="content-video" autoplay muted loop playsinline webkit-playsinline>
-            <source src="images/ProceduralBoxes006_DetailsLevel01.mp4" type="video/mp4">
-            Dein Browser unterstützt dieses Videoformat nicht.
-        </video>
-        
-        <video class="content-video" autoplay muted loop playsinline webkit-playsinline>
-            <source src="images/ProceduralBoxes005_first2Details.mp4" type="video/mp4">
-            Dein Browser unterstützt dieses Videoformat nicht.
-        </video>
-      
-        <video class="content-video" autoplay muted loop playsinline webkit-playsinline>
-            <source src="images/ProceduralBoxes002.mp4" type="video/mp4">
-            Dein Browser unterstützt dieses Videoformat nicht.
-        </video>
+        <h2>Detail Levels</h2>
+        <div class="media-grid">
+            <figure>
+                <video class="content-video" autoplay muted loop playsinline webkit-playsinline>
+                    <source src="images/ProceduralBoxes006_DetailsLevel01.mp4" type="video/mp4">
+                    Dein Browser unterstützt dieses Videoformat nicht.
+                </video>
+                <figcaption>Detail level 01</figcaption>
+            </figure>
+            <figure>
+                <video class="content-video" autoplay muted loop playsinline webkit-playsinline>
+                    <source src="images/ProceduralBoxes005_first2Details.mp4" type="video/mp4">
+                    Dein Browser unterstützt dieses Videoformat nicht.
+                </video>
+                <figcaption>First two detail passes</figcaption>
+            </figure>
+            <figure>
+                <video class="content-video" autoplay muted loop playsinline webkit-playsinline>
+                    <source src="images/ProceduralBoxes002.mp4" type="video/mp4">
+                    Dein Browser unterstützt dieses Videoformat nicht.
+                </video>
+                <figcaption>Base structure</figcaption>
+            </figure>
+        </div>
+    </section>
+
+    <section class="project-description">
+        <h2>Projektbeschreibung</h2>
+        <p class="description-placeholder">Hier kannst du eine ausführlichere Beschreibung zu diesem Projekt ergänzen – z. B. Aufgabenstellung, eingesetzte Tools und was am Ende dabei herausgekommen ist.</p>
     </section>
 
     <footer>
@@ -51,14 +66,14 @@
     </footer>
     <script>
         const dot = document.getElementById('cursor-dot');
-        
+
         // Maus folgt
         window.addEventListener('mousemove', (e) => {
             dot.style.left = `${e.clientX}px`;
             dot.style.top = `${e.clientY}px`;
             dot.style.opacity = 1; // sobald sich die Maus bewegt, einblenden
         });
-        
+
         // Touch-Support
         window.addEventListener('touchstart', (e) => {
             const touch = e.touches[0];
@@ -66,20 +81,20 @@
             dot.style.top = `${touch.clientY}px`;
             dot.style.opacity = 1; // sichtbar
         }, { passive: true });
-        
+
         window.addEventListener('touchmove', (e) => {
             const touch = e.touches[0];
             dot.style.left = `${touch.clientX}px`;
             dot.style.top = `${touch.clientY}px`;
         }, { passive: true });
-        
+
         window.addEventListener('touchend', () => {
             // nur auf Touch-Geräten ausblenden
             if (window.matchMedia('(pointer: coarse)').matches) {
                 dot.style.opacity = 0;
             }
         }, { passive: true });
-        
+
     </script>
 </body>
 </html>
