@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MXGN — lab</title>
+    <meta name="description" content="MXGN lab – interactive visual code experiments: particles, sparks, parallax & simulations">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            margin: 0;
+            padding-top: 60px;
+            background-color: #000;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        /* subtle animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background:
+                radial-gradient(circle at 15% 85%, rgba(255, 153, 0, 0.05), transparent 40%),
+                radial-gradient(circle at 85% 15%, rgba(58, 160, 255, 0.05), transparent 45%),
+                radial-gradient(circle at 55% 55%, rgba(181, 124, 255, 0.04), transparent 40%),
+                #000;
+            animation: drift 18s ease-in-out infinite alternate;
+        }
+
+        @keyframes drift {
+            0%   { background-position: 0% 0%, 0% 0%, 0% 0%; }
+            100% { background-position: 6% -4%, -5% 6%, 4% 4%; }
+        }
+
+        header {
+            text-align: center;
+            padding: 10px;
+        }
+
+        header h1 {
+            font-size: clamp(1.8rem, 5vw, 3rem);
+            margin: 0;
+        }
+
+        header h1 a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        header p {
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        a {
+            color: #fff;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        a:hover {
+            color: #ff9900;
+        }
+
+        .lab {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .tiles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 22px;
+            margin-top: 24px;
+        }
+
+        @media (min-width: 700px) {
+            .tiles {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .tile {
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            overflow: hidden;
+            transition: border-color 0.25s ease;
+        }
+
+        .tile:hover {
+            border-color: #ff9900;
+        }
+
+        .tile canvas {
+            display: block;
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            background: #000;
+            touch-action: pan-y; /* vertical scroll still works on phones */
+        }
+
+        .tile figcaption {
+            font-size: 0.82rem;
+            font-weight: 500;
+            line-height: 1.45;
+            opacity: 0.7;
+            padding: 10px 14px 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .tile figcaption strong {
+            display: block;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.78rem;
+            opacity: 0.95;
+            margin-bottom: 2px;
+        }
+
+        .hint {
+            margin-top: 28px;
+            font-size: 0.85rem;
+            opacity: 0.6;
+            text-align: center;
+        }
+
+        .tilt-btn {
+            position: fixed;
+            bottom: 18px;
+            right: 18px;
+            z-index: 1002;
+            display: none;
+            padding: 8px 14px;
+            font-family: inherit;
+            font-size: 0.75rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #fff;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+        }
+
+        nav {
+            text-align: center;
+            margin: 40px 0 20px;
+        }
+
+        footer {
+            text-align: center;
+            padding-bottom: 24px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="cursor-dot"></div>
+
+    <header>
+        <h1><a href="index.html">MXGN</a></h1>
+        <p>lab — visual code experiments</p>
+    </header>
+
+    <main class="lab">
+        <section>
+            <h2>Fields</h2>
+            <div class="tiles">
+
+                <figure class="tile">
+                    <canvas data-sim="sparks"></canvas>
+                    <figcaption><strong>spark surge</strong>
+                        a cpu-load visualisation. hover or touch near the core to push the load up —
+                        at full load the sparks run red-hot, fast, and split into little offshoot sparks.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="flow"></canvas>
+                    <figcaption><strong>flow field</strong>
+                        a few hundred particles riding an invisible, slowly turning wind field.
+                        drag through it with cursor or finger to blow them off course.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="lattice"></canvas>
+                    <figcaption><strong>dot lattice</strong>
+                        a grid of points held in place by springs. the cursor bends the field,
+                        tilting your phone shifts the whole lattice.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="parallax"></canvas>
+                    <figcaption><strong>parallax ridge</strong>
+                        layered depth — stars, moon and ridgelines move at different speeds.
+                        move the cursor across it or tilt your phone.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="ripple"></canvas>
+                    <figcaption><strong>ripple pool</strong>
+                        a small wave-equation simulation. touch the surface to drop waves in —
+                        and every now and then it rains on its own.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="boids"></canvas>
+                    <figcaption><strong>boids</strong>
+                        a tiny flock following three rules: separate, align, cohere.
+                        your cursor is the predator — they scatter orange when fleeing.
+                    </figcaption>
+                </figure>
+
+            </div>
+
+            <p class="hint">everything above is live code — no video files. hover, touch or tilt.</p>
+        </section>
+    </main>
+
+    <button class="tilt-btn" id="tilt-btn">enable tilt</button>
+
+    <nav>
+        <a href="index.html">home</a>
+        <a href="play.html">game dev demos</a>
+        <a href="about.html">about</a>
+        <a href="Impressum.html">impressum</a>
+    </nav>
+
+    <footer>
+        <p>&copy; 2026 Max Jänichen. All rights reserved.</p>
+    </footer>
+
+    <script>
+    (function () {
+        'use strict';
+
+        const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+        /* ---------- global gyro input ---------- */
+        const tilt = { x: 0, y: 0, active: false };
+
+        function onOrientation(e) {
+            if (e.gamma === null || e.gamma === undefined) return;
+            // gamma: left/right, beta: front/back (holding ~45° is "neutral")
+            tilt.x = clamp(e.gamma / 30, -1, 1);
+            tilt.y = clamp((e.beta - 45) / 30, -1, 1);
+            tilt.active = true;
+        }
+
+        const tiltBtn = document.getElementById('tilt-btn');
+        if (typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+            // iOS needs an explicit user gesture
+            tiltBtn.style.display = 'block';
+            tiltBtn.addEventListener('click', () => {
+                DeviceOrientationEvent.requestPermission().then(state => {
+                    if (state === 'granted') {
+                        window.addEventListener('deviceorientation', onOrientation);
+                        tiltBtn.style.display = 'none';
+                    }
+                }).catch(() => {});
+            });
+        } else {
+            window.addEventListener('deviceorientation', onOrientation);
+        }
+
+        /* ---------- tile framework ---------- */
+        const tiles = [];
+
+        function makeTile(canvas, factory) {
+            const ctx = canvas.getContext('2d');
+            const input = { x: -1e4, y: -1e4, active: false, down: false };
+
+            function setPointer(e) {
+                const r = canvas.getBoundingClientRect();
+                input.x = e.clientX - r.left;
+                input.y = e.clientY - r.top;
+                input.active = true;
+            }
+            canvas.addEventListener('pointermove', setPointer);
+            canvas.addEventListener('pointerdown', (e) => { setPointer(e); input.down = true; });
+            window.addEventListener('pointerup', () => { input.down = false; });
+            canvas.addEventListener('pointerleave', () => { input.active = false; input.down = false; });
+            canvas.addEventListener('pointercancel', () => { input.active = false; input.down = false; });
+
+            const tile = { canvas, ctx, input, sim: null, w: 0, h: 0, visible: false };
+
+            function resize() {
+                const r = canvas.getBoundingClientRect();
+                if (r.width < 4 || r.height < 4) return;
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                tile.w = r.width;
+                tile.h = r.height;
+                canvas.width = Math.round(r.width * dpr);
+                canvas.height = Math.round(r.height * dpr);
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, tile.w, tile.h);
+                tile.sim = factory(tile.w, tile.h, ctx);
+            }
+
+            if (typeof ResizeObserver !== 'undefined') {
+                let firstRO = true;
+                new ResizeObserver(() => {
+                    if (firstRO) { firstRO = false; resize(); return; }
+                    // debounce re-inits while dragging the window
+                    clearTimeout(tile._rt);
+                    tile._rt = setTimeout(resize, 150);
+                }).observe(canvas);
+            } else {
+                resize();
+                window.addEventListener('resize', () => { clearTimeout(tile._rt); tile._rt = setTimeout(resize, 150); });
+            }
+
+            tiles.push(tile);
+            return tile;
+        }
+
+        /* only animate tiles that are on screen */
+        const io = new IntersectionObserver((entries) => {
+            for (const en of entries) {
+                const t = tiles.find(t => t.canvas === en.target);
+                if (t) t.visible = en.isIntersecting;
+            }
+        }, { rootMargin: '100px' });
+
+        /* =====================================================
+           1) SPARK SURGE — cpu load visualisation
+           ===================================================== */
+        function sparkSurge(w, h, ctx) {
+            const cx = w / 2, cy = h * 0.55;
+            const sparks = [];
+            let load = 0.2, t = 0;
+
+            function emit(x, y, sp, depth, L) {
+                const a = Math.random() * Math.PI * 2;
+                sparks.push({
+                    x, y,
+                    vx: Math.cos(a) * sp,
+                    vy: Math.sin(a) * sp - sp * 0.25,
+                    age: 0,
+                    life: 0.4 + Math.random() * 0.8,
+                    depth,
+                    hue: 45 - 42 * L + (Math.random() * 12 - 6)
+                });
+            }
+
+            return {
+                step(dt, input) {
+                    t += dt;
+
+                    /* target load: idle hum + pointer proximity + tilt */
+                    let target = 0.16 + 0.08 * Math.sin(t * 0.6) + 0.05 * Math.sin(t * 1.7);
+                    if (input.active) {
+                        const d = Math.hypot(input.x - cx, input.y - cy);
+                        target = Math.max(target, 1 - clamp(d / (Math.min(w, h) * 0.55), 0, 1));
+                    }
+                    if (tilt.active) {
+                        target = clamp(target + Math.min(0.5, Math.hypot(tilt.x, tilt.y) * 0.55), 0, 1);
+                    }
+                    load += (target - load) * Math.min(1, dt * 2.5);
+                    const L = clamp(load, 0, 1);
+
+                    /* emission: more + faster with load */
+                    let n = (14 + 340 * L * L) * dt;
+                    while (n > 0 && sparks.length < 900) {
+                        if (Math.random() < n) {
+                            emit(cx, cy, (30 + 300 * L) * (0.4 + Math.random() * 0.9), 0, L);
+                        }
+                        n -= 1;
+                    }
+
+                    /* integrate + offshoots */
+                    for (let i = sparks.length - 1; i >= 0; i--) {
+                        const s = sparks[i];
+                        s.age += dt;
+                        if (s.age >= s.life) { sparks.splice(i, 1); continue; }
+                        s.vy += 130 * dt;                 // gravity
+                        s.vx += tilt.x * 90 * dt;         // tilt blows sparks sideways
+                        s.vx *= (1 - 0.6 * dt);
+                        s.vy *= (1 - 0.3 * dt);
+                        s.x += s.vx * dt;
+                        s.y += s.vy * dt;
+                        /* at high load sparks split into offshoots */
+                        if (s.depth < 2 && sparks.length < 880 && Math.random() < L * L * dt * 7) {
+                            emit(s.x, s.y, Math.hypot(s.vx, s.vy) * 0.6, s.depth + 1, L);
+                        }
+                    }
+
+                    /* render */
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.fillStyle = `rgba(0,0,0,${0.34 - 0.14 * L})`;
+                    ctx.fillRect(0, 0, w, h);
+
+                    ctx.globalCompositeOperation = 'lighter';
+                    ctx.lineWidth = 1.2;
+                    for (const s of sparks) {
+                        const k = 1 - s.age / s.life;
+                        ctx.strokeStyle = `hsla(${s.hue},100%,${55 + 15 * k}%,${0.75 * k})`;
+                        ctx.beginPath();
+                        ctx.moveTo(s.x - s.vx * 0.03, s.y - s.vy * 0.03);
+                        ctx.lineTo(s.x, s.y);
+                        ctx.stroke();
+                    }
+
+                    /* core */
+                    const R = 5 + 11 * L + Math.sin(t * (4 + 14 * L)) * 1.5;
+                    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 3);
+                    g.addColorStop(0, `hsla(${45 - 42 * L},100%,${65 + 15 * L}%,0.9)`);
+                    g.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = g;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, R * 3, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+                    ctx.font = '11px monospace';
+                    ctx.fillText('cpu ' + String(Math.round(L * 100)).padStart(3, ' ') + '%', 10, h - 10);
+                    /* tiny load bar */
+                    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+                    ctx.fillRect(72, h - 18, 60, 4);
+                    ctx.fillStyle = `hsl(${45 - 42 * L},100%,55%)`;
+                    ctx.fillRect(72, h - 18, 60 * L, 4);
+                }
+            };
+        }
+
+        /* =====================================================
+           2) FLOW FIELD — particles in a turning wind field
+           ===================================================== */
+        function flowField(w, h, ctx) {
+            const N = Math.min(650, Math.round(w * h / 900));
+            const pts = [];
+            for (let i = 0; i < N; i++) {
+                pts.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    sp: 40 + Math.random() * 70,
+                    hue: 185 + Math.random() * 70
+                });
+            }
+            let t = 0;
+            const angle = (x, y) =>
+                (Math.sin(x * 0.008 + t * 0.4) +
+                 Math.cos(y * 0.010 - t * 0.3) +
+                 Math.sin((x + y) * 0.004 + t * 0.15)) * 1.7;
+
+            return {
+                step(dt, input) {
+                    t += dt;
+                    ctx.fillStyle = 'rgba(0,0,0,0.06)';
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.lineWidth = 1.2;
+
+                    const R = Math.min(w, h) * 0.35;
+                    for (const p of pts) {
+                        const a = angle(p.x, p.y);
+                        let vx = Math.cos(a) * p.sp + tilt.x * 50;
+                        let vy = Math.sin(a) * p.sp + tilt.y * 50;
+                        if (input.active) {
+                            const dx = p.x - input.x, dy = p.y - input.y;
+                            const d = Math.hypot(dx, dy);
+                            if (d < R && d > 0.5) {
+                                const f = (1 - d / R) * 210;
+                                vx += (dx / d) * f;
+                                vy += (dy / d) * f;
+                            }
+                        }
+                        const nx = p.x + vx * dt, ny = p.y + vy * dt;
+                        ctx.strokeStyle = `hsla(${p.hue},85%,72%,0.7)`;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(nx, ny);
+                        ctx.stroke();
+                        p.x = nx; p.y = ny;
+                        if (p.x < -5) p.x = w + 4; else if (p.x > w + 5) p.x = -4;
+                        if (p.y < -5) p.y = h + 4; else if (p.y > h + 5) p.y = -4;
+                        if (Math.random() < dt * 0.03) { p.x = Math.random() * w; p.y = Math.random() * h; }
+                    }
+                }
+            };
+        }
+
+        /* =====================================================
+           3) DOT LATTICE — springs bent by the cursor
+           ===================================================== */
+        function dotLattice(w, h, ctx) {
+            const s = 26;
+            const dots = [];
+            for (let y = s; y < h - s / 2; y += s) {
+                for (let x = s; x < w - s / 2; x += s) {
+                    dots.push({ hx: x, hy: y, x, y, vx: 0, vy: 0 });
+                }
+            }
+            return {
+                step(dt, input) {
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(0, 0, w, h);
+                    const R = 95;
+                    const ox = tilt.x * 22, oy = tilt.y * 22;
+                    for (const d of dots) {
+                        /* spring back home (home shifted by tilt) */
+                        d.vx += ((d.hx + ox) - d.x) * 34 * dt;
+                        d.vy += ((d.hy + oy) - d.y) * 34 * dt;
+                        /* cursor repels */
+                        if (input.active) {
+                            const dx = d.x - input.x, dy = d.y - input.y;
+                            const dist = Math.hypot(dx, dy);
+                            if (dist < R && dist > 0.5) {
+                                const f = (1 - dist / R) * 2400 * dt;
+                                d.vx += (dx / dist) * f;
+                                d.vy += (dy / dist) * f;
+                            }
+                        }
+                        const damp = Math.exp(-4.5 * dt);
+                        d.vx *= damp; d.vy *= damp;
+                        d.x += d.vx * dt; d.y += d.vy * dt;
+
+                        const disp = Math.hypot(d.x - d.hx - ox, d.y - d.hy - oy);
+                        const k = clamp(disp / 34, 0, 1);
+                        ctx.fillStyle = `hsla(${38}, ${Math.round(k * 100)}%, ${Math.round(62 + k * 8)}%, ${0.35 + k * 0.6})`;
+                        ctx.beginPath();
+                        ctx.arc(d.x, d.y, 1.6 + k * 1.3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            };
+        }
+
+        /* =====================================================
+           4) PARALLAX RIDGE — layered depth
+           ===================================================== */
+        function parallaxRidge(w, h, ctx) {
+            const stars = [];
+            for (let i = 0; i < 130; i++) {
+                const z = 0.15 + Math.random() * 0.85;
+                stars.push({ x: Math.random() * (w + 240) - 120, y: Math.random() * h * 0.75, z });
+            }
+            /* pre-computed ridgelines, wider than the canvas so shifting never shows edges */
+            const layers = [
+                { z: 0.35, base: 0.62, amp: 26, col: '#0c1322', seed: 1.7 },
+                { z: 0.65, base: 0.74, amp: 34, col: '#131d33', seed: 4.2 },
+                { z: 1.00, base: 0.86, amp: 40, col: '#1c2a47', seed: 8.9 }
+            ];
+            for (const L of layers) {
+                L.pts = [];
+                for (let x = -140; x <= w + 140; x += 7) {
+                    const y = h * L.base
+                        + Math.sin(x * 0.010 + L.seed) * L.amp
+                        + Math.sin(x * 0.027 + L.seed * 2.3) * L.amp * 0.4
+                        + Math.sin(x * 0.061 + L.seed * 5.1) * L.amp * 0.15;
+                    L.pts.push([x, y]);
+                }
+            }
+            const par = { x: 0, y: 0 };
+            let t = 0;
+
+            return {
+                step(dt, input) {
+                    t += dt;
+                    /* parallax target: pointer > tilt > slow auto-drift */
+                    let tx = Math.sin(t * 0.25) * 0.4, ty = Math.cos(t * 0.18) * 0.2;
+                    if (tilt.active) { tx = tilt.x; ty = tilt.y * 0.6; }
+                    if (input.active) {
+                        tx = (input.x / w - 0.5) * 2;
+                        ty = (input.y / h - 0.5) * 2;
+                    }
+                    par.x += (tx - par.x) * Math.min(1, dt * 3.5);
+                    par.y += (ty - par.y) * Math.min(1, dt * 3.5);
+
+                    ctx.fillStyle = '#02040a';
+                    ctx.fillRect(0, 0, w, h);
+
+                    /* moon — deepest layer, barely moves */
+                    const mx = w * 0.72 - par.x * 8, my = h * 0.22 - par.y * 5;
+                    const mg = ctx.createRadialGradient(mx, my, 2, mx, my, 46);
+                    mg.addColorStop(0, 'rgba(255,244,214,0.95)');
+                    mg.addColorStop(0.35, 'rgba(255,244,214,0.25)');
+                    mg.addColorStop(1, 'rgba(255,244,214,0)');
+                    ctx.fillStyle = mg;
+                    ctx.beginPath();
+                    ctx.arc(mx, my, 46, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    /* stars, drifting slowly, parallax by depth */
+                    for (const s of stars) {
+                        s.x += 2.5 * s.z * dt;
+                        if (s.x > w + 120) s.x = -120;
+                        const px = s.x - par.x * 42 * s.z;
+                        const py = s.y - par.y * 20 * s.z;
+                        ctx.fillStyle = `rgba(255,255,255,${0.25 + s.z * 0.6})`;
+                        ctx.fillRect(px, py, s.z > 0.7 ? 2 : 1, s.z > 0.7 ? 2 : 1);
+                    }
+
+                    /* ridgelines, nearest moves the most */
+                    for (const L of layers) {
+                        const sx = -par.x * 60 * L.z;
+                        const sy = -par.y * 16 * L.z;
+                        ctx.fillStyle = L.col;
+                        ctx.beginPath();
+                        ctx.moveTo(L.pts[0][0] + sx, L.pts[0][1] + sy);
+                        for (const p of L.pts) ctx.lineTo(p[0] + sx, p[1] + sy);
+                        ctx.lineTo(w + 150, h + 10);
+                        ctx.lineTo(-150, h + 10);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                }
+            };
+        }
+
+        /* =====================================================
+           5) RIPPLE POOL — wave-equation water
+           ===================================================== */
+        function ripplePool(w, h, ctx) {
+            const cell = 3;
+            const cols = Math.max(8, Math.ceil(w / cell));
+            const rows = Math.max(8, Math.ceil(h / cell));
+            let curr = new Float32Array(cols * rows);
+            let prev = new Float32Array(cols * rows);
+            const off = document.createElement('canvas');
+            off.width = cols; off.height = rows;
+            const octx = off.getContext('2d');
+            const img = octx.createImageData(cols, rows);
+            let rain = 0;
+            let lastDrop = { x: -1, y: -1 };
+
+            function drop(cxx, cyy, strength) {
+                const gx = clamp(Math.round(cxx / cell), 2, cols - 3);
+                const gy = clamp(Math.round(cyy / cell), 2, rows - 3);
+                for (let dy = -1; dy <= 1; dy++)
+                    for (let dx = -1; dx <= 1; dx++)
+                        curr[(gy + dy) * cols + (gx + dx)] += strength;
+            }
+
+            return {
+                step(dt, input) {
+                    /* pointer drops */
+                    if (input.active && (input.x !== lastDrop.x || input.y !== lastDrop.y)) {
+                        drop(input.x, input.y, input.down ? 2.4 : 1.1);
+                        lastDrop.x = input.x; lastDrop.y = input.y;
+                    }
+                    /* occasional rain */
+                    rain -= dt;
+                    if (rain <= 0) {
+                        drop(Math.random() * w, Math.random() * h, 1.6);
+                        rain = 0.5 + Math.random() * 1.4;
+                    }
+
+                    /* wave equation, two half-steps per frame for snappier waves */
+                    for (let it = 0; it < 2; it++) {
+                        for (let y = 1; y < rows - 1; y++) {
+                            const row = y * cols;
+                            for (let x = 1; x < cols - 1; x++) {
+                                const i = row + x;
+                                let v = (curr[i - 1] + curr[i + 1] + curr[i - cols] + curr[i + cols]) / 2 - prev[i];
+                                prev[i] = v * 0.986;
+                            }
+                        }
+                        const tmp = curr; curr = prev; prev = tmp;
+                    }
+
+                    /* render: crests bright cyan, troughs deep blue */
+                    const d = img.data;
+                    for (let i = 0; i < cols * rows; i++) {
+                        const v = curr[i];
+                        const up = v > 0 ? v : 0;
+                        const dn = v < 0 ? -v : 0;
+                        const light = Math.min(255, up * 300 + dn * 40);
+                        d[i * 4]     = light * 0.45;
+                        d[i * 4 + 1] = light * 0.8;
+                        d[i * 4 + 2] = Math.min(255, light + dn * 90 + 14);
+                        d[i * 4 + 3] = 255;
+                    }
+                    octx.putImageData(img, 0, 0);
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.drawImage(off, 0, 0, w, h);
+                }
+            };
+        }
+
+        /* =====================================================
+           6) BOIDS — flock vs. cursor
+           ===================================================== */
+        function boids(w, h, ctx) {
+            const N = 64;
+            const bs = [];
+            for (let i = 0; i < N; i++) {
+                const a = Math.random() * Math.PI * 2;
+                bs.push({
+                    x: Math.random() * w, y: Math.random() * h,
+                    vx: Math.cos(a) * 70, vy: Math.sin(a) * 70,
+                    flee: 0
+                });
+            }
+            return {
+                step(dt, input) {
+                    ctx.fillStyle = 'rgba(0,0,0,0.32)';
+                    ctx.fillRect(0, 0, w, h);
+                    const R = 46, R2 = R * R, P = 115;
+
+                    for (const b of bs) {
+                        let ax = 0, ay = 0;
+                        let cx = 0, cy = 0, avx = 0, avy = 0, cnt = 0;
+                        for (const o of bs) {
+                            if (o === b) continue;
+                            const dx = o.x - b.x, dy = o.y - b.y;
+                            const d2 = dx * dx + dy * dy;
+                            if (d2 > R2) continue;
+                            const d = Math.sqrt(d2) || 0.01;
+                            cnt++;
+                            cx += o.x; cy += o.y;
+                            avx += o.vx; avy += o.vy;
+                            /* separation */
+                            const f = (1 - d / R) * 620 / d;
+                            ax -= dx * f * 0.016;
+                            ay -= dy * f * 0.016;
+                        }
+                        if (cnt) {
+                            /* cohesion + alignment */
+                            ax += ((cx / cnt) - b.x) * 1.3;
+                            ay += ((cy / cnt) - b.y) * 1.3;
+                            ax += ((avx / cnt) - b.vx) * 2.0;
+                            ay += ((avy / cnt) - b.vy) * 2.0;
+                        }
+                        /* predator cursor */
+                        b.flee = Math.max(0, b.flee - dt * 2.5);
+                        if (input.active) {
+                            const dx = b.x - input.x, dy = b.y - input.y;
+                            const d = Math.hypot(dx, dy);
+                            if (d < P && d > 0.5) {
+                                const f = (1 - d / P) * 2100;
+                                ax += (dx / d) * f;
+                                ay += (dy / d) * f;
+                                b.flee = 1;
+                            }
+                        }
+                        /* tilt = wind */
+                        ax += tilt.x * 170;
+                        ay += tilt.y * 170;
+
+                        b.vx += ax * dt; b.vy += ay * dt;
+                        const sp = Math.hypot(b.vx, b.vy) || 0.01;
+                        const target = clamp(sp, 55, b.flee > 0 ? 230 : 130);
+                        b.vx = b.vx / sp * target;
+                        b.vy = b.vy / sp * target;
+                        b.x += b.vx * dt; b.y += b.vy * dt;
+                        if (b.x < -8) b.x = w + 7; else if (b.x > w + 8) b.x = -7;
+                        if (b.y < -8) b.y = h + 7; else if (b.y > h + 8) b.y = -7;
+
+                        /* draw as a little dart along velocity */
+                        const nx = b.vx / target, ny = b.vy / target;
+                        ctx.strokeStyle = b.flee > 0.15 ? '#ff9900' : 'rgba(255,255,255,0.85)';
+                        ctx.lineWidth = 1.4;
+                        ctx.beginPath();
+                        ctx.moveTo(b.x - nx * 5 - ny * 2.4, b.y - ny * 5 + nx * 2.4);
+                        ctx.lineTo(b.x + nx * 5, b.y + ny * 5);
+                        ctx.lineTo(b.x - nx * 5 + ny * 2.4, b.y - ny * 5 - nx * 2.4);
+                        ctx.stroke();
+                    }
+                }
+            };
+        }
+
+        /* ---------- boot ---------- */
+        const factories = {
+            sparks: sparkSurge,
+            flow: flowField,
+            lattice: dotLattice,
+            parallax: parallaxRidge,
+            ripple: ripplePool,
+            boids: boids
+        };
+
+        document.querySelectorAll('canvas[data-sim]').forEach(cv => {
+            const f = factories[cv.dataset.sim];
+            if (!f) return;
+            makeTile(cv, f);
+            io.observe(cv);
+        });
+
+        let last = performance.now();
+        function loop(now) {
+            const dt = Math.min(0.05, (now - last) / 1000);
+            last = now;
+            for (const t of tiles) {
+                if (t.visible && t.sim) t.sim.step(dt, t.input);
+            }
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+    })();
+    </script>
+
+    <script>
+        /* site cursor dot */
+        const dot = document.getElementById('cursor-dot');
+        window.addEventListener('mousemove', (e) => {
+            dot.style.left = `${e.clientX}px`;
+            dot.style.top = `${e.clientY}px`;
+            dot.style.opacity = 1;
+        });
+        document.querySelectorAll('a, button').forEach(el => {
+            el.addEventListener('mouseenter', () => dot.classList.add('rotate'));
+            el.addEventListener('mouseleave', () => dot.classList.remove('rotate'));
+        });
+    </script>
+</body>
+</html>
