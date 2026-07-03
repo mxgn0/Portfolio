@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>MXGN — rennings</title>
-<meta name="description" content="rennings – falling sand browser game with gyro controls, procedural multi-floor levels, lava, night worlds, local leaderboard. © MXGN">
+<meta name="description" content="rennings – falling sand browser game with gyro controls, procedural multi-floor levels, hidden supply crates, lava, night worlds, local leaderboard. © MXGN">
 <meta name="copyright" content="© 2026 MXGN. All rights reserved.">
 <!-- rennings — concept, code & pixels © 2026 Max Jänichen -->
 <style>
@@ -213,12 +213,17 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
         (desktop: <b>arrow keys</b>). Your sand &amp; water supply is <b>limited</b> —
         tilting the world is free. Water quenches lava into stone and puts out fires;
         sand poured into lava becomes a stone bridge. Dig tunnels with your finger.
-        On their own the rennings won't make it — every obstacle drops its matching
-        gear into your toolbar: snorkel, boat, axe, lighter, umbrella, climbing hook,
-        bridge planks. <b>Place the gear</b> where the crowd needs it; every renning
-        that walks past picks it up. Falls kill quickly without an umbrella.
-        From lvl 2 on levels mix three obstacle types, lvl 3+ even more.
-        Find keys to open gates. Meadow, jungle,
+        On their own the rennings won't make it — every obstacle hides its matching
+        gear in a <b>supply crate</b> somewhere earlier on the path: snorkel, boat, axe,
+        lighter, umbrella, climbing hook, bridge planks. Some crates sit on rock
+        ledges or a floor above — build a sand ramp and march a renning past to
+        claim them; sometimes the boat waits up on the mountain. Then <b>place the
+        gear</b> where the crowd needs it; every renning that walks past picks it up.
+        Bonus crates pay out extra sand, water or statues.
+        Falls kill quickly without an umbrella.
+        From lvl 2 on levels mix three obstacle types, lvl 3+ even more —
+        and the dice decide how big a forest, lake or lava pool gets.
+        Find hidden keys to open gates. Meadow, jungle,
         mountain and cave worlds — some levels are pitch black night. Place a few
         <b>turn-around statues</b> to steer the crowd — and don't let anyone run head-on
         into a torch carrier. Higher floors must be <b>unlocked</b> by clearing the ones
@@ -300,7 +305,7 @@ const DIFFS = {
     3: { need: 9, total: 14, night: 0.35 },
     4: { need: 10, total: 14, night: 0.5 }
 };
-const PAR_TIME = { 1: 90, 2: 150, 3: 210, 4: 270 };   // seconds for the time bonus
+const PAR_TIME = { 1: 110, 2: 170, 3: 240, 4: 300 };   // seconds for the time bonus — fetching crates takes a while
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -433,6 +438,7 @@ let goalP = { x: 0, y: 0 };
 let sparkles = [];
 let glowPts = [];         // sampled lava/fire cells for night lighting
 
+let caches = [];          // supply crates in the world: {x, y, type, amt, taken, wob}
 let sandLeft = 0, waterLeft = 0;   // limited supplies: tilting is free, drawing is not
 let statues = [];                  // {x, y, settled} — turn-around statues, 2 wide 5 tall
 let statuesLeft = 0;
@@ -512,6 +518,7 @@ function generateLevel(seed) {
     for (let i = 0; i < shade.length; i++) shade[i] = (rng() * 40) | 0;
 
     lemmings = []; stations = []; portals = []; elevators = []; gates = []; sparkles = [];
+    caches = [];
     spawned = 0; saved = 0; dead = 0; spawnTimer = 0; levelTime = 0;
     sandLeft = 300 + difficulty * 50;
     waterLeft = 150 + difficulty * 25;
@@ -574,9 +581,11 @@ function generateLevel(seed) {
     }
 
     /* ---- obstacles per floor ----
-       every obstacle drops its matching gear into the player's supply —
-       the rennings can never clear a level on their own, the player has
-       to place the gear. category count grows with the level:
+       every blocking obstacle hides its matching gear in a supply CRATE
+       somewhere earlier on the path — on open ground, on a rock ledge
+       that takes a sand ramp, or a floor above. rennings collect crates
+       they walk past; the gear lands in the player's toolbar and still
+       has to be placed. category count grows with the level:
        lvl 1: 2 categories · lvl 2: 3 · lvl 3: 4 (and 3 per floor) · lvl 4: 5 */
     const pools = {
         meadow:   ['pool', 'forest', 'cliff', 'drop', 'keydoor'],
@@ -612,21 +621,128 @@ function generateLevel(seed) {
 
     const fxk = (k, f) => clampX(Math.floor((dirs[k] > 0 ? f : 1 - f) * W));
 
-    const slots = bands === 1 ? [0.26, 0.48, 0.70]
-                : difficulty >= 3 ? [0.26, 0.50, 0.74]
-                : [0.32, 0.62];
+    /* ---- walkable zones, kept in path order ----
+       a crate only ever spawns in a zone that comes BEFORE the obstacle
+       needing its gear, so the level is always beatable — but "before"
+       can mean the top of a cliff you already climbed, or the floor
+       above: sometimes the boat sits up on the mountain. */
+    const zones = [];
+    const pushZone = (k, fa, fb) => {
+        if (fb - fa < 0.05) return;
+        let xa = fxk(k, fa + 0.01), xb = fxk(k, fb - 0.01);
+        if (xa > xb) [xa, xb] = [xb, xa];
+        if (xb - xa >= 12) zones.push({ k, xa, xb });
+    };
+    const LEDGE_P = [0, 0, 0.35, 0.5, 0.6][difficulty];
+
+    function pickSpot(kMax, opts = {}) {
+        let cand = zones.filter(z => z.k <= kMax);
+        if (!cand.length) return null;
+        if (opts.firstZone) cand = [cand[0]];
+        else if (rng() < 0.45) {
+            const back = cand.filter(z => z.k < kMax);
+            if (back.length) cand = back;
+        }
+        const z = cand[(rng() * cand.length) | 0];
+        const x = clampX(z.xa + 4 + ((rng() * Math.max(1, z.xb - z.xa - 8)) | 0));
+        let y = G[z.k][x];
+        if (!opts.ground && z.xb - z.xa >= 22 && rng() < LEDGE_P) {
+            // floating rock ledge above the path: rennings pass underneath,
+            // fetching the crate takes a sand ramp — the level pays for it
+            const ph = 9 + ((rng() * 5) | 0);
+            const ceil = z.k * bandH + (theme === 'cave' ? 8 : 2);
+            if (y - ph - 3 > ceil) {
+                for (let dx = -4; dx <= 4; dx++) {
+                    const px = clampX(x + dx);
+                    const ly = G[z.k][px] - ph;
+                    const th = Math.abs(dx) === 4 ? 1 : 2;
+                    for (let t = 0; t < th; t++) {
+                        if (ly + t > ceil) grid[idx(px, ly + t)] = STONE;
+                    }
+                }
+                y -= ph;
+                sandLeft += ph * 14;   // guaranteed ramp budget
+            }
+        }
+        return { x, y };
+    }
+
+    function placeCache(type, kMax, opts = {}, amt = 0) {
+        const s = pickSpot(kMax, opts);
+        if (!s) { addSupply(type); return; }   // safety net, should not happen
+        caches.push({ x: s.x, y: s.y - 2, type, amt, taken: false, wob: rng() * 6.28 });
+    }
+
+    function obstacleHalf(type, sz, maxHalf) {
+        let half = 5;
+        if (type === 'pool' || type === 'icepool') half = Math.floor(W * 0.06 * sz);
+        else if (type === 'lavapool') half = Math.min(16, Math.floor(W * 0.05 * sz)); // one renning's planks must span it
+        else if (type === 'forest') half = Math.floor(W * 0.055 * sz);
+        // cliffs / drops / keydoors are edges, not areas
+        return Math.max(4, Math.min(half, Math.max(5, maxHalf)));
+    }
+
+    // some levels roll a GIANT obstacle type — huge forest, wide lake …
+    const giantType = rng() < 0.4 ? chosen[(rng() * chosen.length) | 0] : null;
+
     let slotNo = 0;
+    let gearPlaced = 0;
     for (let k = 0; k < bands; k++) {
-        slots.forEach((f) => {
+        // obstacle count per floor varies with the dice
+        let n = bands === 1 ? 3 : difficulty >= 3 ? 3 : 2;
+        if (rng() < 0.35) n += rng() < 0.5 ? -1 : 1;
+        n = Math.max(1, Math.min(3, n));
+        const fr = [];
+        if (n === 1) fr.push(0.3 + rng() * 0.34);
+        else for (let i = 0; i < n; i++) {
+            fr.push(0.24 + 0.5 * (i / (n - 1)) + (rng() - 0.5) * 0.07);
+        }
+        let leftF = 0.07;
+        for (let i = 0; i < n; i++) {
             const type = chosen[slotNo++ % chosen.length];
-            const cx = fxk(k, f + (rng() - 0.5) * 0.04);
-            buildObstacle(type, cx, dirs[k], G[k], k, bandH, bands);
-        });
+            const f = fr[i];
+            const rightF = i < n - 1 ? fr[i + 1] : 0.86;
+            let sz = 0.75 + rng() * 0.6;
+            if (type === giantType) sz = 1.9 + rng() * 1.1;
+            else if (rng() < 0.15) sz *= 1.6;
+            // reserve room on the left so the zone before this obstacle
+            // survives — crates need somewhere to spawn
+            const maxHalf = Math.floor(Math.min(f - leftF - 0.085, (rightF - f) * 0.45) * W);
+            const half = obstacleHalf(type, sz, maxHalf);
+            pushZone(k, leftF, f - half / W - 0.015);
+            const res = buildObstacle(type, fxk(k, f), dirs[k], G[k], k, bandH, bands, half);
+            leftF = f + half / W + 0.02;
+            // the very first fetch of the level always sits on open ground
+            // in the spawn zone — after that the crates wander off the path
+            const firstOpts = { ground: true, firstZone: true };
+            if (res && res.gear) {
+                placeCache(res.gear, k, gearPlaced++ === 0 ? firstOpts : {});
+            }
+            if (res && res.gate) {
+                const s = pickSpot(k, gearPlaced++ === 0 ? firstOpts : {})
+                    || { x: clampX(fxk(k, f) - dirs[k] * 11), y: G[k][clampX(fxk(k, f) - dirs[k] * 11)] };
+                res.gate.keyX = s.x;
+                res.gate.keyY = s.y - 4;
+            }
+        }
+        pushZone(k, leftF, 0.80);
     }
 
     /* ---- connections between floors ---- */
     for (let k = 0; k < bands - 1; k++) {
-        buildConnection(k, fxk(k, 0.88), G, bandH, bands, dirs[k]);
+        const need = buildConnection(k, fxk(k, 0.88), G, bandH, bands, dirs[k]);
+        // descent gear lands on the walking path of its own floor —
+        // rennings sweep it up before they reach the shaft
+        if (need) placeCache(need, k, { ground: true });
+    }
+
+    /* ---- bonus crates: optional detours that pay out resources ---- */
+    const bonusN = difficulty === 1 ? (rng() < 0.5 ? 1 : 0) : 1 + (rng() < 0.4 ? 1 : 0);
+    for (let i = 0; i < bonusN; i++) {
+        const r = rng();
+        if (r < 0.45) placeCache('sand', bands - 1, {}, 90 + ((rng() * 80) | 0));
+        else if (r < 0.8) placeCache('water', bands - 1, {}, 60 + ((rng() * 60) | 0));
+        else placeCache('statue', bands - 1, {}, 1);
     }
 
     /* ---- spawn & goal ---- */
@@ -648,17 +764,20 @@ function rockBottom(k, bandH, bands) {
     return (k === bands - 1) ? H : Math.min(H, (k + 1) * bandH + 4);
 }
 
-function buildObstacle(type, cx, dir, h, k, bandH, bands) {
+// returns { gear } for obstacles whose gear crate the caller must place,
+// { gate } for keydoors (caller picks the key spot), or null
+function buildObstacle(type, cx, dir, h, k, bandH, bands, half) {
     const bottom = rockBottom(k, bandH, bands);
     const airTop = k * bandH + (k === 0 && theme !== 'cave' ? 0 : 5);
 
     if (type === 'pool' || type === 'icepool' || type === 'lavapool') {
-        const half = Math.floor(W * (type === 'lavapool' ? 0.055 : 0.07));
         const a = clampX(cx - half), b = clampX(cx + half);
         let rim = 0;
         for (let x = a; x <= b; x++) rim = Math.max(rim, h[x]);
         rim = Math.min(rim, bottom - 9);
-        const depth = Math.min(type === 'lavapool' ? 8 : 12 + ((rng() * 5) | 0), bottom - rim - 4);
+        const depth = Math.min(
+            type === 'lavapool' ? 7 + ((rng() * 4) | 0) : 10 + ((rng() * 9) | 0),
+            bottom - rim - 4);
         const fluid = type === 'lavapool' ? LAVA : WATER;
         for (let x = a; x <= b; x++) {
             for (let y = airTop; y < rim + depth && y < H; y++) grid[idx(x, y)] = EMPTY;
@@ -676,19 +795,19 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands) {
                 if (!isSolid(grid[idx(x, y)])) grid[idx(x, y)] = STONE;
             }
         }
-        if (type === 'pool') addSupply(rng() < 0.5 ? 'snorkel' : 'boat');
-        if (type === 'lavapool') addSupply('bridge');
-        // icepool: walk across the frozen top — but careful with fire
+        if (type === 'pool') return { gear: rng() < 0.5 ? 'snorkel' : 'boat' };
+        if (type === 'lavapool') return { gear: 'bridge' };
+        return null;   // icepool: walk across the frozen top — but careful with fire
     }
 
     if (type === 'forest') {
-        const half = Math.floor(W * 0.06);
-        const trees = 3 + ((rng() * 2) | 0);
+        // tree count scales with the rolled width — big woods are real woods
+        const trees = Math.max(3, Math.min(12, Math.round(half / Math.max(4, W * 0.02))));
         const maxTree = Math.max(7, Math.floor(bandH * (bands === 1 ? 0.68 : 0.56)) - 9);
         for (let i = 0; i < trees; i++) {
             const tx = clampX(cx - half + ((rng() * half * 2) | 0));
             const ground = h[tx];
-            const height = Math.min(maxTree, 9 + ((rng() * 5) | 0));
+            const height = Math.min(maxTree, 8 + ((rng() * 6) | 0));
             for (let dx = 0; dx < 2; dx++) {
                 for (let y = ground - height; y < ground; y++) {
                     if (inBounds(tx + dx, y) && y > airTop) grid[idx(tx + dx, y)] = WOOD;
@@ -704,12 +823,12 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands) {
                 }
             }
         }
-        addSupply(rng() < 0.5 ? 'axe' : 'lighter');
+        return { gear: rng() < 0.5 ? 'axe' : 'lighter' };
     }
 
     if (type === 'cliff') {
         const air = Math.floor(bandH * (bands === 1 ? 0.68 : 0.56));
-        const rise = Math.max(8, Math.min(24, Math.floor(air * 0.45)));
+        const rise = Math.max(8, Math.min(26, Math.floor(air * (0.32 + rng() * 0.35))));
         const edge = cx;
         for (let x = 2; x < W - 2; x++) {
             const past = dir > 0 ? x >= edge : x <= edge;
@@ -719,11 +838,12 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands) {
                 h[x] = newTop;
             }
         }
-        addSupply('hook');
+        return { gear: 'hook' };
     }
 
-    if (type === 'drop') {    // deadly step down → the level supplies an umbrella
-        const fall = Math.max(FALL_LIMIT + 4, Math.floor(bandH * (bands === 1 ? 0.3 : 0.38)));
+    if (type === 'drop') {    // deadly step down → an umbrella crate waits somewhere before it
+        const fall = Math.max(FALL_LIMIT + 4,
+            Math.floor(bandH * (bands === 1 ? 0.3 : 0.38) * (0.8 + rng() * 0.55)));
         const edge = cx;
         for (let x = 2; x < W - 2; x++) {
             const past = dir > 0 ? x >= edge : x <= edge;
@@ -736,7 +856,7 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands) {
                 }
             }
         }
-        addSupply('umbrella');
+        return { gear: 'umbrella' };
     }
 
     if (type === 'keydoor') {
@@ -746,19 +866,12 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands) {
             x: gx, yTop: Math.max(airTop + 3, gy - 15), yBot: Math.min(H - 2, gy + 3),
             open: 0, unlocked: false, keyX: 0, keyY: 0
         };
-        // key sits on a small stepped pillar before the gate
-        const kx = clampX(gx - dir * 11);
-        const steps = [[-3, 2], [-2, 2], [-1, 4], [0, 5], [1, 4], [2, 2], [3, 2]];
-        for (const [dx, sh] of steps) {
-            const px = clampX(kx + dx);
-            for (let y = h[px] - sh; y < h[px]; y++) {
-                if (inBounds(px, y) && y > airTop) grid[idx(px, y)] = STONE;
-            }
-        }
-        gate.keyX = kx;
-        gate.keyY = h[kx] - 7;
+        // the key no longer sits right in front of the door — the caller
+        // hides it somewhere earlier on the path
         gates.push(gate);
+        return { gate };
     }
+    return null;
 }
 
 const GEAR_TYPES = ['snorkel', 'boat', 'axe', 'lighter', 'umbrella', 'hook', 'bridge'];
@@ -773,6 +886,24 @@ function addSupply(type, n = 1) {
     supplies[type] = (supplies[type] || 0) + n;
 }
 
+const CACHE_COLORS = {
+    snorkel: '#3ae0ff', boat: '#c9a24b', axe: '#c96f3b', lighter: '#ff6a00',
+    umbrella: '#ff7ad9', hook: '#aab0c0', bridge: '#9b6a43',
+    sand: '#e0c060', water: '#3aa0ff', statue: '#d5d9e2'
+};
+
+// a renning walked past a supply crate: its content goes to the player
+function collectCache(c) {
+    sparkleBurst(c.x, c.y, CACHE_COLORS[c.type] || '#fff');
+    if (c.type === 'sand') { sandLeft += c.amt; toast(`+${c.amt} sand`); updateBrushLabels(); return; }
+    if (c.type === 'water') { waterLeft += c.amt; toast(`+${c.amt} water`); updateBrushLabels(); return; }
+    if (c.type === 'statue') { statuesLeft += c.amt; toast('+1 statue'); updateBrushLabels(); return; }
+    addSupply(c.type);
+    toast(`${GEAR_LABELS[c.type]} recovered — place it!`);
+    rebuildItemButtons();
+}
+
+// returns the gear type the caller must hide in a crate, or null
 function buildConnection(k, sx, G, bandH, bands, dir) {
     const kinds = ['umbrella', 'elevator', 'portal'];
     const kind = kinds[(rng() * kinds.length) | 0];
@@ -788,7 +919,7 @@ function buildConnection(k, sx, G, bandH, bands, dir) {
         ];
         pair.oneWay = true;
         portals.push(pair);
-        return;
+        return null;
     }
 
     // carve a vertical shaft through this floor's rock
@@ -799,7 +930,7 @@ function buildConnection(k, sx, G, bandH, bands, dir) {
     }
 
     if (kind === 'umbrella') {
-        addSupply('umbrella');
+        return 'umbrella';
     } else {
         const bx = clampX(sx);
         elevators.push({
@@ -1045,6 +1176,14 @@ function updateLemming(L, dt) {
             g.unlocked = true;
             sparkleBurst(g.keyX, g.keyY, '#ffd34d');
             toast('gate unlocked!');
+        }
+    }
+
+    // supply crates: walk past to claim their gear
+    for (const c of caches) {
+        if (!c.taken && Math.abs(L.x - c.x) < 2.6 && Math.abs(L.y - c.y) < 5) {
+            c.taken = true;
+            collectCache(c);
         }
     }
 
@@ -1610,6 +1749,20 @@ function drawEntities(t) {
         }
     }
 
+    // supply crates
+    for (const c of caches) {
+        if (c.taken) continue;
+        const px = c.x * fx, py = c.y * fy;
+        ctx.fillStyle = '#7a5a36';
+        ctx.fillRect(px - 1.6 * fx, py - 1.2 * fy, 3.2 * fx, 2.6 * fy);
+        ctx.fillStyle = '#9b7648';
+        ctx.fillRect(px - 1.6 * fx, py - 1.2 * fy, 3.2 * fx, 0.5 * fy);
+        ctx.fillRect(px - 0.25 * fx, py - 1.2 * fy, 0.5 * fx, 2.6 * fy);
+        const bob = Math.sin(t * 2.5 + c.wob) * 0.6;
+        ctx.fillStyle = CACHE_COLORS[c.type] || '#fff';
+        ctx.fillRect(px - 0.7 * fx, (c.y - 3.4 + bob) * fy, 1.4 * fx, 1.4 * fy);
+    }
+
     // lemmings
     for (const L of lemmings) {
         if (L.fade <= 0) continue;
@@ -1727,6 +1880,7 @@ function drawNight(fx, fy) {
         hole(pair[1].x * fx, pair[1].y * fy, 12 * fx, 0.8);
     }
     for (const s of stations) hole(s.x * fx, s.y * fy, 12 * fx, 0.8);
+    for (const c of caches) if (!c.taken) hole(c.x * fx, c.y * fy, 11 * fx, 0.8);
     for (const g of gates) {
         hole((g.x + 1) * fx, (g.yTop + 6) * fy, 11 * fx, 0.7);
         if (!g.unlocked) hole(g.keyX * fx, g.keyY * fy, 11 * fx, 0.85);
