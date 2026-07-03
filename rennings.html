@@ -28,10 +28,13 @@ html, body {
 }
 
 #game {
+    /* the playfield sits BETWEEN the HUD bars — on phones the bottom
+       floor of the world must never hide behind the buttons */
     position: fixed;
-    inset: 0;
+    left: 0;
+    top: var(--hud-top-h, 0px);
     width: 100%;
-    height: 100%;
+    height: calc(100% - var(--hud-top-h, 0px) - var(--hud-dock-h, 0px));
     display: block;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
@@ -45,7 +48,8 @@ html, body {
     right: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
+    flex-wrap: wrap;
+    gap: 6px 8px;
     padding: 10px 12px;
     z-index: 10;
     pointer-events: none;
@@ -56,43 +60,66 @@ html, body {
     pointer-events: auto;
 }
 
-.hud-bottom {
+/* everything at the bottom lives in ONE dock that stacks its rows —
+   the gear bar always sits directly above the brush bar, no matter
+   how many rows either of them wraps into */
+.hud-dock {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px 12px calc(10px + env(safe-area-inset-bottom));
     z-index: 10;
     pointer-events: none;
     text-transform: uppercase;
+}
+
+.hud-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px 8px;
     font-size: 0.8rem;
     letter-spacing: 0.08em;
 }
 
 .hud-bottom .stats { opacity: 0.9; text-shadow: 0 1px 3px #000; }
-.hud-bottom .brushes { display: flex; gap: 6px; pointer-events: auto; }
+.hud-bottom .brushes { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; pointer-events: auto; }
 
 /* placeable gear granted by the level's obstacles */
 .hud-items {
-    position: fixed;
-    bottom: calc(52px + env(safe-area-inset-bottom));
-    left: 0;
-    right: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 6px;
     flex-wrap: wrap;
-    padding: 0 10px;
-    z-index: 10;
-    pointer-events: none;
-    text-transform: uppercase;
 }
+.hud-items:empty { display: none; }
 .hud-items button { pointer-events: auto; }
+
+/* phones: compact buttons, brushes centered, stats on their own line */
+@media (max-width: 700px) {
+    .hud-top { padding: 8px; }
+    .hud-top .ui, .hud-dock .ui {
+        font-size: 0.66rem;
+        letter-spacing: 0.06em;
+        padding: 6px 8px;
+    }
+    #title { font-size: 0.68rem; }
+    .hud-bottom { justify-content: center; }
+    .hud-bottom .brushes { width: 100%; justify-content: center; order: 1; }
+    .hud-bottom .stats {
+        width: 100%;
+        text-align: center;
+        order: 2;
+        font-size: 0.62rem;
+        opacity: 0.75;
+    }
+}
 
 button.ui, a.ui {
     font-family: 'Chillax', sans-serif;
@@ -154,7 +181,7 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
 
 #toast {
     position: fixed;
-    top: 56px;
+    top: calc(var(--hud-top-h, 48px) + 8px);
     left: 50%;
     transform: translateX(-50%);
     z-index: 15;
@@ -187,18 +214,19 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
     <button class="ui" id="btn-new" title="generate a new level">new</button>
 </div>
 
-<div class="hud-bottom">
-    <span class="stats" id="stats">–</span>
-    <span class="brushes">
-        <button class="ui active" id="brush-sand">sand</button>
-        <button class="ui" id="brush-water">water</button>
-        <button class="ui" id="brush-statue">statue</button>
-        <button class="ui" id="brush-dig">dig</button>
-        <button class="ui" id="btn-speed" title="fast forward — no waiting once the path is ready">1×</button>
-    </span>
+<div class="hud-dock">
+    <div class="hud-items" id="item-brushes"></div>
+    <div class="hud-bottom">
+        <span class="stats" id="stats">–</span>
+        <span class="brushes">
+            <button class="ui active" id="brush-sand">sand</button>
+            <button class="ui" id="brush-water">water</button>
+            <button class="ui" id="brush-statue">statue</button>
+            <button class="ui" id="brush-dig">dig</button>
+            <button class="ui" id="btn-speed" title="fast forward — no waiting once the path is ready">1×</button>
+        </span>
+    </div>
 </div>
-
-<div class="hud-items" id="item-brushes"></div>
 
 <div id="toast"></div>
 
@@ -490,10 +518,29 @@ function gateSolidAt(x, y) {
 /* =========================================================
    LEVEL GENERATION — serpentine multi-floor worlds
    ========================================================= */
+// measure the HUD bars and keep the playfield between them. the gear
+// bar appears mid-level when crates are collected, so an empty bar
+// still reserves one row — the world must not jump when it shows up
+function updateHudInsets() {
+    const topEl = document.querySelector('.hud-top');
+    const dockEl = document.querySelector('.hud-dock');
+    const itemsEl = document.getElementById('item-brushes');
+    let dockH = dockEl.offsetHeight;
+    if (!itemsEl.childElementCount) dockH += 36;
+    const rs = document.documentElement.style;
+    rs.setProperty('--hud-top-h', topEl.offsetHeight + 'px');
+    rs.setProperty('--hud-dock-h', dockH + 'px');
+}
+
+let lastCssW = 0, lastCssH = 0;
+
 function resize() {
+    updateHudInsets();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.floor(window.innerWidth * dpr);
-    canvas.height = Math.floor(window.innerHeight * dpr);
+    lastCssW = canvas.clientWidth || window.innerWidth;
+    lastCssH = canvas.clientHeight || window.innerHeight;
+    canvas.width = Math.floor(lastCssW * dpr);
+    canvas.height = Math.floor(lastCssH * dpr);
     // finer raster: ~96k cells for more intricate levels, still ok on phones
     const cell = Math.max(2, Math.ceil(Math.sqrt((canvas.width * canvas.height) / 96000)));
     W = Math.floor(canvas.width / cell);
@@ -2334,6 +2381,14 @@ function loop(now) {
 }
 
 window.addEventListener('resize', () => {
+    // phones fire resize when the browser chrome slides in and out —
+    // a small height-only change just stretches the canvas a touch
+    // instead of resetting the level mid-run
+    updateHudInsets();
+    const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+    if (gameState === 'play'
+        && Math.abs(cssW - lastCssW) < 4
+        && Math.abs(cssH - lastCssH) < 120) return;
     const seed = rngSeed;
     resize();
     if (gameState !== 'intro') generateLevel(seed);
