@@ -194,6 +194,7 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
         <button class="ui" id="brush-water">water</button>
         <button class="ui" id="brush-statue">statue</button>
         <button class="ui" id="brush-dig">dig</button>
+        <button class="ui" id="btn-speed" title="fast forward — no waiting once the path is ready">1×</button>
     </span>
 </div>
 
@@ -218,6 +219,7 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
         only really move when you tilt — ferry them across. Sand and snow
         <b>heap up into steep little piles</b> as you tip the world; water sloshes
         into crests and settles flat again when you hold still.
+        Path ready? Hit <b>2×</b> to fast-forward the march.
         On their own the rennings won't make it — every obstacle hides its matching
         gear in a <b>supply crate</b> somewhere earlier on the path: snorkel, boat, axe,
         lighter, umbrella, climbing hook, bridge planks. Some crates sit on rock
@@ -264,6 +266,7 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
         <button class="ui" id="btn-again">retry level</button>
         <button class="ui" id="btn-next">next level</button>
         <button class="ui" id="btn-board2">leaderboard</button>
+        <a class="ui" href="play.html">arcade</a>
     </div>
     <p class="copy">&copy; 2026 MXGN</p>
 </div>
@@ -310,9 +313,9 @@ const THEMES = {
 
 const DIFFS = {
     1: { need: 7, total: 12, night: 0 },
-    2: { need: 8, total: 13, night: 0.2 },
-    3: { need: 9, total: 14, night: 0.35 },
-    4: { need: 10, total: 14, night: 0.5 }
+    2: { need: 8, total: 13, night: 0.12 },
+    3: { need: 9, total: 14, night: 0.2 },
+    4: { need: 10, total: 14, night: 0.3 }
 };
 const PAR_TIME = { 1: 110, 2: 170, 3: 240, 4: 300 };   // seconds for the time bonus — fetching crates takes a while
 
@@ -370,6 +373,7 @@ window.addEventListener('keydown', (e) => {
     }
     if (e.key === 'r') restartLevel();
     if (e.key === 'n') newLevel();
+    if (e.key === 'f') toggleSpeed();
 });
 window.addEventListener('keyup', (e) => {
     if (['ArrowLeft', 'ArrowRight', 'a', 'd'].includes(e.key)) {
@@ -542,7 +546,9 @@ function generateLevel(seed) {
 
     const themeNames = Object.keys(THEMES);
     theme = themeNames[(rng() * themeNames.length) | 0];
-    levelNight = theme === 'cave' || rng() < cfg.night;
+    // caves are dark half the time, everything else rarely — night should
+    // stay a treat, not the default
+    levelNight = theme === 'cave' ? rng() < 0.5 : rng() < cfg.night;
     // roundtrip levels: the exit door sits right next to the spawn —
     // behind a locked gate. the key waits at the far end of the LAST
     // floor, next to a one-way portal home: the whole level is the detour.
@@ -1416,6 +1422,15 @@ function updateLemming(L, dt) {
     for (const el of elevators) {
         const py = Math.round(el.y);
         if (x >= el.x && x < el.x + el.w && Math.abs((y + 1) - py) <= 1) {
+            // sand or snow piled onto the route: climb on top of the pile
+            // and step off alive instead of being dragged under and buried
+            if (isSolid(cellAt(x, py - 1)) || isSolid(cellAt(x, py - 2))) {
+                let ty = py - 1;
+                while (ty > 2 && isSolid(cellAt(x, ty))) ty--;
+                L.y = ty;
+                L.fallDist = 0; L.vy = 0;
+                continue;
+            }
             L.y = py - 1;
             if (el.pause <= 0) riding = true;
         }
@@ -1591,6 +1606,16 @@ function setBrush(name) {
     for (const k in brushBtns) brushBtns[k].classList.toggle('active', k === name);
     rebuildItemButtons();
 }
+/* ---------- fast forward: 1× / 2× ---------- */
+let timeScale = 1;
+const btnSpeed = document.getElementById('btn-speed');
+function toggleSpeed() {
+    timeScale = timeScale === 1 ? 2 : 1;
+    btnSpeed.textContent = timeScale + '×';
+    btnSpeed.classList.toggle('active', timeScale === 2);
+}
+btnSpeed.addEventListener('click', toggleSpeed);
+
 brushBtns.sand.addEventListener('click', () => setBrush('sand'));
 brushBtns.water.addEventListener('click', () => setBrush('water'));
 brushBtns.statue.addEventListener('click', () => setBrush('statue'));
@@ -2275,9 +2300,13 @@ let lastShownSec = -1;
 function loop(now) {
     const dt = Math.min(0.05, (now - lastT) / 1000);
     lastT = now;
-    frame++;
 
-    if (gameState === 'play') {
+    // fast-forward runs whole extra simulation steps, so sand, rennings
+    // and elevators all speed up in lockstep
+    const steps = gameState === 'play' ? timeScale : 1;
+    for (let s = 0; s < steps; s++) {
+        frame++;
+        if (gameState !== 'play') continue;
         levelTime += dt;
         applyBrush();
         simPass(true);
