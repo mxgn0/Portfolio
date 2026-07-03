@@ -76,6 +76,24 @@ html, body {
 .hud-bottom .stats { opacity: 0.9; text-shadow: 0 1px 3px #000; }
 .hud-bottom .brushes { display: flex; gap: 6px; pointer-events: auto; }
 
+/* placeable gear granted by the level's obstacles */
+.hud-items {
+    position: fixed;
+    bottom: calc(52px + env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 0 10px;
+    z-index: 10;
+    pointer-events: none;
+    text-transform: uppercase;
+}
+.hud-items button { pointer-events: auto; }
+
 button.ui, a.ui {
     font-family: 'Chillax', sans-serif;
     font-size: 0.75rem;
@@ -179,6 +197,8 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
     </span>
 </div>
 
+<div class="hud-items" id="item-brushes"></div>
+
 <div id="toast"></div>
 
 <div class="overlay" id="intro">
@@ -193,8 +213,12 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
         (desktop: <b>arrow keys</b>). Your sand &amp; water supply is <b>limited</b> —
         tilting the world is free. Water quenches lava into stone and puts out fires;
         sand poured into lava becomes a stone bridge. Dig tunnels with your finger.
-        Gear stations upgrade every renning that walks past: snorkel, boat, axe, lighter,
-        umbrella, climbing hook, bridge planks. Find keys to open gates. Meadow, jungle,
+        On their own the rennings won't make it — every obstacle drops its matching
+        gear into your toolbar: snorkel, boat, axe, lighter, umbrella, climbing hook,
+        bridge planks. <b>Place the gear</b> where the crowd needs it; every renning
+        that walks past picks it up. Falls kill quickly without an umbrella.
+        From lvl 2 on levels mix three obstacle types, lvl 3+ even more.
+        Find keys to open gates. Meadow, jungle,
         mountain and cave worlds — some levels are pitch black night. Place a few
         <b>turn-around statues</b> to steer the crowd — and don't let anyone run head-on
         into a torch carrier. Higher floors must be <b>unlocked</b> by clearing the ones
@@ -412,6 +436,7 @@ let glowPts = [];         // sampled lava/fire cells for night lighting
 let sandLeft = 0, waterLeft = 0;   // limited supplies: tilting is free, drawing is not
 let statues = [];                  // {x, y, settled} — turn-around statues, 2 wide 5 tall
 let statuesLeft = 0;
+let supplies = {};                 // placeable gear stations granted per obstacle
 let totalLems = 12, needLems = 6;
 let spawned = 0, saved = 0, dead = 0;
 let spawnTimer = 0;
@@ -492,6 +517,7 @@ function generateLevel(seed) {
     waterLeft = 150 + difficulty * 25;
     statues = [];
     statuesLeft = [0, 3, 2, 2, 1][difficulty];
+    supplies = {};
 
     const cfg = DIFFS[difficulty];
     totalLems = cfg.total;
@@ -547,29 +573,52 @@ function generateLevel(seed) {
         }
     }
 
-    /* ---- obstacles per floor ---- */
+    /* ---- obstacles per floor ----
+       every obstacle drops its matching gear into the player's supply —
+       the rennings can never clear a level on their own, the player has
+       to place the gear. category count grows with the level:
+       lvl 1: 2 categories · lvl 2: 3 · lvl 3: 4 (and 3 per floor) · lvl 4: 5 */
     const pools = {
-        meadow:   ['pool', 'forest', 'cliff', 'keydoor'],
-        jungle:   ['pool', 'forest', 'forest', 'pool', 'keydoor'],
-        mountain: ['icepool', 'cliff', 'lavapool', 'forest'],
-        cave:     ['pool', 'lavapool', 'cliff', 'forest', 'keydoor']
+        meadow:   ['pool', 'forest', 'cliff', 'drop', 'keydoor'],
+        jungle:   ['pool', 'forest', 'cliff', 'drop', 'keydoor'],
+        mountain: ['icepool', 'cliff', 'lavapool', 'forest', 'drop'],
+        cave:     ['pool', 'lavapool', 'cliff', 'forest', 'drop', 'keydoor']
     };
-    let basePool = pools[theme].slice();
-    if (difficulty < 2) basePool = basePool.filter(t => t !== 'lavapool' && t !== 'keydoor');
-    if (basePool.length < 2) basePool.push('pool', 'forest');
+    // these need player-placed gear; icepool/keydoor are self-solving flavor
+    const BLOCKING = ['pool', 'lavapool', 'forest', 'cliff', 'drop'];
+    let cats = pools[theme].slice();
+    if (difficulty < 2) cats = cats.filter(t => t !== 'lavapool' && t !== 'keydoor');
+    // drops need enough room under the ground line to actually be deadly
+    const dropRoom = (bands === 1 ? Math.floor(H * 0.2) : Math.floor(bandH * 0.35)) - 6;
+    if (dropRoom < FALL_LIMIT + 4) cats = cats.filter(t => t !== 'drop');
+    for (let i = cats.length - 1; i > 0; i--) {
+        const j = (rng() * (i + 1)) | 0;
+        [cats[i], cats[j]] = [cats[j], cats[i]];
+    }
+    const catCount = Math.max(2, Math.min(cats.length, [0, 2, 3, 4, 5][difficulty]));
+    let chosen = cats.slice(0, catCount);
+    if (!chosen.some(t => BLOCKING.includes(t))) {
+        chosen[0] = cats.find(t => BLOCKING.includes(t)) || 'pool';
+    }
+    // interleave blocking / self-solving so every floor gets at least one
+    // obstacle that needs player-placed gear
+    const blk = chosen.filter(t => BLOCKING.includes(t));
+    const nbl = chosen.filter(t => !BLOCKING.includes(t));
+    chosen = [];
+    while (blk.length || nbl.length) {
+        if (blk.length) chosen.push(blk.shift());
+        if (nbl.length) chosen.push(nbl.shift());
+    }
 
     const fxk = (k, f) => clampX(Math.floor((dirs[k] > 0 ? f : 1 - f) * W));
 
+    const slots = bands === 1 ? [0.26, 0.48, 0.70]
+                : difficulty >= 3 ? [0.26, 0.50, 0.74]
+                : [0.32, 0.62];
+    let slotNo = 0;
     for (let k = 0; k < bands; k++) {
-        const slots = bands === 1 ? [0.26, 0.48, 0.70] : [0.32, 0.62];
-        let pick = basePool.slice();
-        if (bands === 1) pick = pick.concat(['chasm', 'drop']);   // single floor: classic hazards
-        for (let i = pick.length - 1; i > 0; i--) {
-            const j = (rng() * (i + 1)) | 0;
-            [pick[i], pick[j]] = [pick[j], pick[i]];
-        }
-        slots.forEach((f, i) => {
-            const type = pick[i % pick.length];
+        slots.forEach((f) => {
+            const type = chosen[slotNo++ % chosen.length];
             const cx = fxk(k, f + (rng() - 0.5) * 0.04);
             buildObstacle(type, cx, dirs[k], G[k], k, bandH, bands);
         });
@@ -589,8 +638,10 @@ function generateLevel(seed) {
     gameState = 'play';
     document.getElementById('title').textContent =
         `lvl ${difficulty} · ${theme}${levelNight ? ' · night' : ''}`;
+    if (typeof brush === 'string' && brush !== 'statue') setBrush('sand');
     updateStats();
     updateBrushLabels();
+    rebuildItemButtons();
 }
 
 function rockBottom(k, bandH, bands) {
@@ -598,13 +649,10 @@ function rockBottom(k, bandH, bands) {
 }
 
 function buildObstacle(type, cx, dir, h, k, bandH, bands) {
-    const stX = clampX(cx - dir * Math.floor(W * 0.07));
     const bottom = rockBottom(k, bandH, bands);
     const airTop = k * bandH + (k === 0 && theme !== 'cave' ? 0 : 5);
 
     if (type === 'pool' || type === 'icepool' || type === 'lavapool') {
-        // station must sit clearly BEFORE the basin, never on its rim
-        const poolStX = clampX(cx - dir * Math.floor(W * 0.1));
         const half = Math.floor(W * (type === 'lavapool' ? 0.055 : 0.07));
         const a = clampX(cx - half), b = clampX(cx + half);
         let rim = 0;
@@ -628,8 +676,8 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands) {
                 if (!isSolid(grid[idx(x, y)])) grid[idx(x, y)] = STONE;
             }
         }
-        if (type === 'pool') addStation(rng() < 0.5 ? 'snorkel' : 'boat', poolStX, k, bandH);
-        if (type === 'lavapool') addStation('bridge', poolStX, k, bandH);
+        if (type === 'pool') addSupply(rng() < 0.5 ? 'snorkel' : 'boat');
+        if (type === 'lavapool') addSupply('bridge');
         // icepool: walk across the frozen top — but careful with fire
     }
 
@@ -656,7 +704,7 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands) {
                 }
             }
         }
-        addStation(rng() < 0.5 ? 'axe' : 'lighter', stX, k, bandH);
+        addSupply(rng() < 0.5 ? 'axe' : 'lighter');
     }
 
     if (type === 'cliff') {
@@ -671,51 +719,24 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands) {
                 h[x] = newTop;
             }
         }
-        const lowX = clampX(edge - dir * 4), highX = clampX(edge + dir * 4);
-        if (difficulty >= 2 && rng() < 0.5) {
-            addStation('hook', clampX(edge - dir * Math.floor(W * 0.06)), k, bandH);
-        } else {
-            const ew = 7;
-            const ex = dir > 0 ? clampX(edge - ew) : clampX(edge);
-            elevators.push({
-                x: ex, w: ew,
-                yTop: Math.max(airTop + 2, h[highX] - 1),
-                yBot: Math.min(H - 3, h[lowX] - 1),
-                y: Math.max(airTop + 2, h[highX] - 1),
-                dir: 1, pause: 2
-            });
-        }
+        addSupply('hook');
     }
 
-    if (type === 'chasm') {   // single-floor only: bottomless, crossed by portals
-        const half = Math.floor(W * 0.05);
-        const a = clampX(cx - half), b = clampX(cx + half);
-        for (let x = a; x <= b; x++) {
-            for (let y = 0; y < H; y++) grid[idx(x, y)] = EMPTY;
-        }
-        for (const x of [a - 1, b + 1]) {
-            if (x < 2 || x > W - 3) continue;
-            for (let y = h[x]; y < Math.min(h[x] + 6, H); y++) grid[idx(x, y)] = STONE;
-        }
-        const pa = clampX(a - 3), pb = clampX(b + 3);
-        const pair = [{ x: pa, y: h[pa] - 3 }, { x: pb, y: h[pb] - 3 }];
-        pair.oneWay = false;
-        portals.push(pair);
-    }
-
-    if (type === 'drop') {    // single-floor only: deadly step down → umbrella
-        const fall = Math.floor(H * 0.3);
+    if (type === 'drop') {    // deadly step down → the level supplies an umbrella
+        const fall = Math.max(FALL_LIMIT + 4, Math.floor(bandH * (bands === 1 ? 0.3 : 0.38)));
         const edge = cx;
         for (let x = 2; x < W - 2; x++) {
             const past = dir > 0 ? x >= edge : x <= edge;
             if (past) {
-                const newTop = Math.min(H - 6, h[x] + fall);
-                for (let y = h[x]; y < newTop; y++) grid[idx(x, y)] = EMPTY;
-                for (let y = newTop; y < Math.min(newTop + 3, H); y++) grid[idx(x, y)] = SAND;
-                h[x] = newTop;
+                const newTop = Math.min(bottom - 6, h[x] + fall);
+                if (newTop > h[x]) {
+                    for (let y = h[x]; y < newTop; y++) grid[idx(x, y)] = EMPTY;
+                    for (let y = newTop; y < Math.min(newTop + 3, H); y++) grid[idx(x, y)] = STONE;
+                    h[x] = newTop;
+                }
             }
         }
-        addStation('umbrella', stX, k, bandH);
+        addSupply('umbrella');
     }
 
     if (type === 'keydoor') {
@@ -740,25 +761,16 @@ function buildObstacle(type, cx, dir, h, k, bandH, bands) {
     }
 }
 
-function addStation(type, x, k, bandH, yOverride) {
-    // y fixed at generation time (multi-floor worlds need per-floor y)
-    const gx = clampX(x);
-    let y = yOverride;
-    if (y === undefined) {
-        const from = Math.max(1, k * bandH + 2);
-        y = -1;
-        // prefer real air above ground (never the bottom of a pool)
-        for (let yy = from; yy < H - 1; yy++) {
-            if (cellAt(gx, yy) === EMPTY && isSolid(cellAt(gx, yy + 1))) { y = yy; break; }
-        }
-        if (y < 0) {
-            for (let yy = from; yy < H - 1; yy++) {
-                if (!isSolid(cellAt(gx, yy)) && isSolid(cellAt(gx, yy + 1))) { y = yy; break; }
-            }
-        }
-        if (y < 0) y = H - 2;
-    }
-    stations.push({ x: gx, y, type });
+const GEAR_TYPES = ['snorkel', 'boat', 'axe', 'lighter', 'umbrella', 'hook', 'bridge'];
+const GEAR_LABELS = {
+    snorkel: 'snorkel', boat: 'boat', axe: 'axe', lighter: 'torch',
+    umbrella: 'umbrella', hook: 'hook', bridge: 'planks'
+};
+
+// obstacles don't place stations themselves anymore — they grant the matching
+// gear to the player, who has to place it as a station
+function addSupply(type, n = 1) {
+    supplies[type] = (supplies[type] || 0) + n;
 }
 
 function buildConnection(k, sx, G, bandH, bands, dir) {
@@ -787,7 +799,7 @@ function buildConnection(k, sx, G, bandH, bands, dir) {
     }
 
     if (kind === 'umbrella') {
-        addStation('umbrella', clampX(sx - dir * Math.floor(W * 0.06)), k, bandH);
+        addSupply('umbrella');
     } else {
         const bx = clampX(sx);
         elevators.push({
@@ -922,7 +934,7 @@ function simPass(first) {
    LEMMINGS
    ========================================================= */
 const WALK_SPEED = 13;       // cells per second
-const FALL_LIMIT = 36;       // cells of free fall before splat
+const FALL_LIMIT = 24;       // cells of free fall before splat — falls kill early without an umbrella
 const G_FALL = 60;
 
 function spawnLemming() {
@@ -1305,8 +1317,12 @@ const brushBtns = {
     dig: document.getElementById('brush-dig')
 };
 function setBrush(name) {
-    brush = name === 'sand' ? SAND : name === 'water' ? WATER : name === 'statue' ? 'statue' : EMPTY;
+    if (name === 'sand') brush = SAND;
+    else if (name === 'water') brush = WATER;
+    else if (name === 'dig') brush = EMPTY;
+    else brush = name;   // 'statue' or a gear type
     for (const k in brushBtns) brushBtns[k].classList.toggle('active', k === name);
+    rebuildItemButtons();
 }
 brushBtns.sand.addEventListener('click', () => setBrush('sand'));
 brushBtns.water.addEventListener('click', () => setBrush('water'));
@@ -1325,6 +1341,10 @@ canvas.addEventListener('pointerdown', (e) => {
     pointer = pointerToCell(e);
     if (brush === 'statue') {
         placeStatue(pointer.x, pointer.y);
+        return;
+    }
+    if (typeof brush === 'string') {
+        placeGear(brush, pointer.x, pointer.y);
         return;
     }
     pointerDown = true;
@@ -1349,6 +1369,53 @@ function placeStatue(x, y) {
     statuesLeft--;
     updateBrushLabels();
 }
+function placeGear(type, x, y) {
+    if (gameState !== 'play') return;
+    // tapping a placed station picks it back up
+    for (let i = 0; i < stations.length; i++) {
+        const s = stations[i];
+        if (Math.abs(x - s.x) < 4 && y > s.y - 7 && y < s.y + 3) {
+            supplies[s.type] = (supplies[s.type] || 0) + 1;
+            stations.splice(i, 1);
+            rebuildItemButtons();
+            return;
+        }
+    }
+    if ((supplies[type] || 0) <= 0) { toast(`no ${GEAR_LABELS[type]} left`); return; }
+    const gx = clampX(x);
+    // snap the station onto the ground under (or above) the tap
+    let gy = -1;
+    for (let yy = Math.max(2, y); yy < H - 1; yy++) {
+        if (!isSolid(cellAt(gx, yy)) && isSolid(cellAt(gx, yy + 1))) { gy = yy; break; }
+    }
+    if (gy < 0) {
+        for (let yy = Math.min(H - 2, y); yy > 2; yy--) {
+            if (!isSolid(cellAt(gx, yy)) && isSolid(cellAt(gx, yy + 1))) { gy = yy; break; }
+        }
+    }
+    if (gy < 0) { toast('no ground here'); return; }
+    stations.push({ x: gx, y: gy, type });
+    supplies[type]--;
+    rebuildItemButtons();
+}
+
+const itemBar = document.getElementById('item-brushes');
+function rebuildItemButtons() {
+    itemBar.innerHTML = '';
+    for (const t of GEAR_TYPES) {
+        const n = supplies[t] || 0;
+        // keep the button visible while a station of this type is placed,
+        // so it stays selectable for picking the station back up
+        if (n <= 0 && !stations.some(s => s.type === t)) continue;
+        const b = document.createElement('button');
+        b.className = 'ui' + (brush === t ? ' active' : '');
+        b.textContent = `${GEAR_LABELS[t]} ${n}`;
+        if (n <= 0) b.style.opacity = '0.5';
+        b.addEventListener('click', () => setBrush(t));
+        itemBar.appendChild(b);
+    }
+}
+
 canvas.addEventListener('pointermove', (e) => {
     if (pointerDown) pointer = pointerToCell(e);
 });
@@ -1356,7 +1423,7 @@ window.addEventListener('pointerup', () => { pointerDown = false; });
 window.addEventListener('pointercancel', () => { pointerDown = false; });
 
 function applyBrush() {
-    if (!pointerDown || gameState !== 'play' || brush === 'statue') return;
+    if (!pointerDown || gameState !== 'play' || typeof brush === 'string') return;
     const R = brush === EMPTY ? 5 : 4;
     let used = false;
     for (let dy = -R; dy <= R; dy++) {
