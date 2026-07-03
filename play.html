@@ -180,6 +180,13 @@
                     <span class="tag">&#9654; play now</span>
                 </a>
 
+                <a class="card playable" href="murmel.html">
+                    <canvas class="preview" id="marble-preview" width="120" height="36"></canvas>
+                    <h3>Murmel</h3>
+                    <p>A marble in a procedural labyrinth — gravity is your only controller. Tilt your phone to roll it past holes, sand, ice and lava, grab coins, hit checkpoints, reach the goal ring. Three marbles, four maze sizes, stars &amp; leaderboard. &copy; MXGN</p>
+                    <span class="tag">&#9654; play now</span>
+                </a>
+
                 <div class="card soon">
                     <canvas class="preview"></canvas>
                     <h3>Digital Fluid</h3>
@@ -189,15 +196,8 @@
 
                 <div class="card soon">
                     <canvas class="preview"></canvas>
-                    <h3>Slot 03 — ???</h3>
-                    <p>Procedural playground. Something with 3D, rotation of the whole world, skins &amp; unlockables. Ideas brewing.</p>
-                    <span class="tag">coming soon</span>
-                </div>
-
-                <div class="card soon">
-                    <canvas class="preview"></canvas>
                     <h3>Slot 04 — ???</h3>
-                    <p>Reserved for the next experiment.</p>
+                    <p>Procedural playground. Something with 3D, rotation of the whole world, skins &amp; unlockables. Ideas brewing.</p>
                     <span class="tag">coming soon</span>
                 </div>
 
@@ -262,6 +262,48 @@
     </script>
 
     <script>
+        // mini marble-maze preview in the Murmel card
+        (function () {
+            const cv = document.getElementById('marble-preview');
+            if (!cv) return;
+            const ctx = cv.getContext('2d');
+            const W = cv.width, H = cv.height;
+            // a few fixed wall segments
+            const walls = [
+                [0, 0, W, 2], [0, H - 2, W, 2], [0, 0, 2, H], [W - 2, 0, 2, H],
+                [24, 0, 2, 22], [48, 14, 2, 22], [72, 0, 2, 22], [96, 14, 2, 22]
+            ];
+            const b = { x: 10, y: 18, vx: 28, vy: 12, r: 4 };
+            let last = performance.now();
+            function step(now) {
+                const dt = Math.min(0.05, (now - last) / 1000);
+                last = now;
+                b.vy += Math.sin(now * 0.0011) * 26 * dt;
+                b.vx += Math.cos(now * 0.0007) * 30 * dt + 6 * dt;
+                b.x += b.vx * dt; b.y += b.vy * dt;
+                for (const w of walls) {
+                    const nx = Math.max(w[0], Math.min(b.x, w[0] + w[2]));
+                    const ny = Math.max(w[1], Math.min(b.y, w[1] + w[3]));
+                    const dx = b.x - nx, dy = b.y - ny;
+                    const d = Math.hypot(dx, dy);
+                    if (d < b.r && d > 0.001) {
+                        b.x += (dx / d) * (b.r - d); b.y += (dy / d) * (b.r - d);
+                        const vn = b.vx * (dx / d) + b.vy * (dy / d);
+                        if (vn < 0) { b.vx -= 1.5 * vn * (dx / d); b.vy -= 1.5 * vn * (dy / d); }
+                    }
+                }
+                ctx.clearRect(0, 0, W, H);
+                ctx.fillStyle = 'rgba(255,255,255,0.16)';
+                for (const w of walls) ctx.fillRect(w[0], w[1], w[2], w[3]);
+                ctx.fillStyle = '#ff9900';
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                ctx.fill();
+                requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        })();
+
         const dot = document.getElementById('cursor-dot');
         window.addEventListener('mousemove', (e) => {
             dot.style.left = `${e.clientX}px`;
