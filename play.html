@@ -187,12 +187,12 @@
                     <span class="tag">&#9654; play now</span>
                 </a>
 
-                <div class="card soon">
-                    <canvas class="preview"></canvas>
-                    <h3>Slot 03 — ???</h3>
-                    <p>Procedural playground. Something with 3D, rotation of the whole world, skins &amp; unlockables. Ideas brewing.</p>
-                    <span class="tag">coming soon</span>
-                </div>
+                <a class="card playable" href="fauna.html">
+                    <canvas class="preview" id="fauna-preview" width="120" height="36"></canvas>
+                    <h3>F A U N A</h3>
+                    <p>An endless procedural wilderness — valleys, caves, forests, mountains, tunnels &amp; ruins. Explore it as monkey, dog, spider, bobcat or stork: climb, dig, wall-crawl, pounce and fly. Collect the golden orbs. Keyboard or touch. &copy; MXGN</p>
+                    <span class="tag">&#9654; play now</span>
+                </a>
 
                 <div class="card soon">
                     <canvas class="preview"></canvas>
@@ -303,6 +303,49 @@
                 requestAnimationFrame(step);
             }
             requestAnimationFrame(step);
+        })();
+
+        // mini wilderness preview in the Fauna card
+        (function () {
+            const cv = document.getElementById('fauna-preview');
+            if (!cv) return;
+            const ctx = cv.getContext('2d');
+            const W = cv.width, H = cv.height;
+            const cols = ['#c98d4b', '#d9c9a8', '#3a3a44', '#d4b478', '#e9e9ee'];
+            let t = 0, animal = 0;
+            const hh = (x) => {
+                const n = Math.sin(x * 0.09) * 6 + Math.sin(x * 0.023) * 9 + Math.sin(x * 0.41) * 1.5;
+                return H - 10 + n * 0.6;
+            };
+            function step() {
+                t += 0.6;
+                ctx.clearRect(0, 0, W, H);
+                /* terrain silhouette */
+                ctx.fillStyle = 'rgba(93,138,60,0.55)';
+                ctx.beginPath();
+                ctx.moveTo(0, H);
+                for (let x = 0; x <= W; x += 2) ctx.lineTo(x, hh(x + t));
+                ctx.lineTo(W, H);
+                ctx.closePath();
+                ctx.fill();
+                /* a cave hole */
+                ctx.fillStyle = 'rgba(0,0,0,0.8)';
+                const cx2 = (200 - (t * 0.9) % 260) + 60;
+                ctx.fillRect(cx2, hh(cx2 + t) + 4, 10, 6);
+                /* the animal, hopping along */
+                if (Math.floor(t / 90) % 5 !== animal) animal = Math.floor(t / 90) % 5;
+                const ax = 30;
+                const ay = hh(ax + t) - 4 - Math.abs(Math.sin(t * 0.12)) * 5;
+                ctx.fillStyle = cols[animal];
+                ctx.fillRect(ax, ay, 5, 3);
+                ctx.fillRect(ax + 4, ay - 2, 2, 2);
+                /* an orb ahead */
+                ctx.fillStyle = '#ffd21f';
+                const ox = 90 - (t * 0.9) % 260 + 130;
+                ctx.fillRect(ox, hh(ox + t) - 6, 2, 2);
+                requestAnimationFrame(step);
+            }
+            step();
         })();
 
         const dot = document.getElementById('cursor-dot');
