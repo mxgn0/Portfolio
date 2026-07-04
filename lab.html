@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>MXGN — lab</title>
-    <meta name="description" content="MXGN lab – interactive visual code experiments: particles, sparks, parallax & simulations">
+    <meta name="description" content="MXGN lab – interactive visual code experiments: simulations, dynamics, softbodies, cloth, pyro, sand & procedural growth">
     <link rel="stylesheet" href="style.css">
     <style>
         body {
@@ -23,9 +23,9 @@
             inset: 0;
             z-index: -1;
             background:
-                radial-gradient(circle at 15% 85%, rgba(255, 153, 0, 0.05), transparent 40%),
-                radial-gradient(circle at 85% 15%, rgba(58, 160, 255, 0.05), transparent 45%),
-                radial-gradient(circle at 55% 55%, rgba(181, 124, 255, 0.04), transparent 40%),
+                radial-gradient(circle at 15% 85%, rgba(255, 122, 24, 0.04), transparent 40%),
+                radial-gradient(circle at 85% 15%, rgba(47, 107, 255, 0.04), transparent 45%),
+                radial-gradient(circle at 55% 55%, rgba(139, 92, 246, 0.03), transparent 40%),
                 #000;
             animation: drift 18s ease-in-out infinite alternate;
         }
@@ -73,15 +73,45 @@
 
         .tiles {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 22px;
-            margin-top: 24px;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 14px;
+            margin-top: 14px;
         }
 
         @media (min-width: 700px) {
             .tiles {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(3, 1fr);
             }
+        }
+
+        @media (min-width: 1000px) {
+            .tiles {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .lab h2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 46px 0 0;
+            font-size: 0.82rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.26em;
+            opacity: 0.85;
+        }
+
+        .lab section:first-of-type h2 {
+            margin-top: 10px;
+        }
+
+        .lab h2::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            flex: 0 0 auto;
+            background: var(--acc, #ff9900);
         }
 
         .tile {
@@ -112,13 +142,13 @@
         /* fullscreen toggle per tile */
         .fs-btn {
             position: absolute;
-            top: 8px;
-            right: 8px;
+            top: 6px;
+            right: 6px;
             z-index: 5;
-            width: 36px;
-            height: 36px;
+            width: 30px;
+            height: 30px;
             padding: 0;
-            font-size: 17px;
+            font-size: 15px;
             line-height: 1;
             color: #fff;
             background: rgba(0, 0, 0, 0.45);
@@ -162,11 +192,11 @@
         }
 
         .tile figcaption {
-            font-size: 0.82rem;
+            font-size: 0.7rem;
             font-weight: 500;
             line-height: 1.45;
             opacity: 0.7;
-            padding: 10px 14px 12px;
+            padding: 8px 10px 10px;
             border-top: 1px solid rgba(255, 255, 255, 0.12);
         }
 
@@ -175,7 +205,7 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            font-size: 0.78rem;
+            font-size: 0.66rem;
             opacity: 0.95;
             margin-bottom: 2px;
         }
@@ -224,8 +254,8 @@
     </header>
 
     <main class="lab">
-        <section>
-            <h2>Fields</h2>
+        <section style="--acc:#2f6bff">
+            <h2>fields</h2>
             <div class="tiles">
 
                 <figure class="tile">
@@ -287,9 +317,126 @@
                 </figure>
 
             </div>
-
-            <p class="hint">everything above is live code — no video files. hover, touch or tilt — ⛶ goes fullscreen.</p>
         </section>
+
+        <section style="--acc:#b6ff2e">
+            <h2>dynamics</h2>
+            <div class="tiles">
+
+                <figure class="tile">
+                    <canvas data-sim="pendulum"></canvas>
+                    <figcaption><strong>double pendulum</strong>
+                        two joints, pure chaos. the outer bob traces its path in green —
+                        grab it, drag it around and let go.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="ik"></canvas>
+                    <figcaption><strong>kinefx ik</strong>
+                        a 12-joint chain solved with fabrik inverse kinematics every frame.
+                        the rig chases your cursor — or its own idle target when you're away.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="rbd"></canvas>
+                    <figcaption><strong>rbd wall</strong>
+                        a brick wall waiting for demolition. click or tap to set off a charge —
+                        the pieces take the impulse, tumble, settle, and the wall re-stacks itself.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="softbody"></canvas>
+                    <figcaption><strong>softbody</strong>
+                        a pressure softbody: a ring of verlet points, springs and internal gas
+                        pressure. poke it, shove it across the floor, tilt your phone.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="cloth"></canvas>
+                    <figcaption><strong>vellum cloth</strong>
+                        cloth pinned along the top edge — verlet constraints and a bit of wind.
+                        drag hard enough and the stitches tear; it re-sews itself when shredded.
+                    </figcaption>
+                </figure>
+
+            </div>
+        </section>
+
+        <section style="--acc:#ff7a18">
+            <h2>matter</h2>
+            <div class="tiles">
+
+                <figure class="tile">
+                    <canvas data-sim="lava"></canvas>
+                    <figcaption><strong>lava</strong>
+                        metaball lava — heat rises, cool blobs sink back into the melt pool.
+                        hold your cursor on a blob to heat it up.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="wax"></canvas>
+                    <figcaption><strong>wax</strong>
+                        a flame wandering over a wax surface. wherever it lingers the wax melts,
+                        levels out and glows — steer the flame with your cursor.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="snow"></canvas>
+                    <figcaption><strong>snow</strong>
+                        snowfall with accumulation: flakes settle into drifts that slump and
+                        smooth over time. push the wind around with your cursor.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="sand"></canvas>
+                    <figcaption><strong>sand</strong>
+                        a falling-sand cellular automaton. pour with your finger, let it pile up
+                        on the ledges — when it gets too full, the floor drains.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="pyro"></canvas>
+                    <figcaption><strong>pyro burst</strong>
+                        shockwave, fireball, debris, smoke. tap anywhere to detonate —
+                        or just wait, it likes to go off on its own.
+                    </figcaption>
+                </figure>
+
+            </div>
+        </section>
+
+        <section style="--acc:#8b5cf6">
+            <h2>procedural</h2>
+            <div class="tiles">
+
+                <figure class="tile">
+                    <canvas data-sim="hardsurface"></canvas>
+                    <figcaption><strong>hard surface</strong>
+                        procedurally panelled hull plating, greeble style. a scanline sweeps
+                        the surface and rebuilds panels as it passes — hover to inspect one.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="growth"></canvas>
+                    <figcaption><strong>abstract growth</strong>
+                        space-colonization growth: branches reach for invisible attractor points,
+                        tips glow while they grow. hover to feed it — it regrows when done.
+                    </figcaption>
+                </figure>
+
+            </div>
+        </section>
+
+        <p class="hint">everything on this page is live code — no video files. hover, touch, drag or tilt — ⛶ goes fullscreen.</p>
     </main>
 
     <button class="tilt-btn" id="tilt-btn">enable tilt</button>
@@ -310,6 +457,16 @@
         'use strict';
 
         const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+        /* accent palette — mostly monochrome sims with loud accents */
+        const ACC = {
+            lime:   '#b6ff2e',
+            orange: '#ff7a18',
+            violet: '#8b5cf6',
+            red:    '#e0243a',
+            blue:   '#2f6bff',
+            yellow: '#ffd21f'
+        };
 
         /* ---------- global gyro input ---------- */
         const tilt = { x: 0, y: 0, active: false };
@@ -523,7 +680,9 @@
                     x: Math.random() * w,
                     y: Math.random() * h,
                     sp: 40 + Math.random() * 70,
-                    hue: 185 + Math.random() * 70
+                    col: Math.random() < 0.1
+                        ? 'rgba(182,255,46,0.85)'
+                        : `rgba(210,214,220,${(0.25 + Math.random() * 0.4).toFixed(2)})`
                 });
             }
             let t = 0;
@@ -554,7 +713,7 @@
                             }
                         }
                         const nx = p.x + vx * dt, ny = p.y + vy * dt;
-                        ctx.strokeStyle = `hsla(${p.hue},85%,72%,0.7)`;
+                        ctx.strokeStyle = p.col;
                         ctx.beginPath();
                         ctx.moveTo(p.x, p.y);
                         ctx.lineTo(nx, ny);
@@ -1005,6 +1164,1251 @@
             };
         }
 
+        /* =====================================================
+           8) DOUBLE PENDULUM — two joints, pure chaos
+           ===================================================== */
+        function doublePendulum(w, h, ctx) {
+            const px0 = w / 2, py0 = h * 0.3;
+            const S = Math.min(w, h);
+            const L1 = S * 0.21, L2 = S * 0.21;
+            const g = S * 3.4;
+            let a1 = Math.PI * 0.7 + Math.random() * 0.6;
+            let a2 = Math.PI * 0.9 + Math.random() * 0.9;
+            let w1 = 0, w2 = 0;
+            const trail = [];
+
+            function tip() {
+                const x1 = px0 + Math.sin(a1) * L1, y1 = py0 + Math.cos(a1) * L1;
+                return [x1, y1, x1 + Math.sin(a2) * L2, y1 + Math.cos(a2) * L2];
+            }
+
+            return {
+                step(dt, input) {
+                    const sub = 6, sdt = Math.min(dt, 0.033) / sub;
+                    for (let s = 0; s < sub; s++) {
+                        const d = a1 - a2;
+                        const den = 3 - Math.cos(2 * d);
+                        const acc1 = (-3 * g * Math.sin(a1) - g * Math.sin(a1 - 2 * a2)
+                            - 2 * Math.sin(d) * (w2 * w2 * L2 + w1 * w1 * L1 * Math.cos(d))) / (L1 * den);
+                        const acc2 = (2 * Math.sin(d) * (2 * w1 * w1 * L1 + 2 * g * Math.cos(a1)
+                            + w2 * w2 * L2 * Math.cos(d))) / (L2 * den);
+                        w1 += acc1 * sdt;
+                        w2 += acc2 * sdt;
+                        /* drag: pull the outer bob toward the pointer */
+                        if (input.down && input.active) {
+                            const tp = tip();
+                            const fx = input.x - tp[2], fy = input.y - tp[3];
+                            w1 += (fx * Math.cos(a1) - fy * Math.sin(a1)) / L1 * 14 * sdt;
+                            w2 += (fx * Math.cos(a2) - fy * Math.sin(a2)) / L2 * 14 * sdt;
+                            w1 *= 1 - 3 * sdt;
+                            w2 *= 1 - 3 * sdt;
+                        }
+                        w1 *= 1 - 0.06 * sdt;
+                        w2 *= 1 - 0.06 * sdt;
+                        a1 += w1 * sdt;
+                        a2 += w2 * sdt;
+                    }
+                    /* keep it alive: tiny kick once it has almost settled */
+                    if (Math.abs(w1) + Math.abs(w2) < 0.4 && !input.down && Math.random() < dt * 2) {
+                        w2 += (Math.random() - 0.5) * 3;
+                        w1 += (Math.random() - 0.5) * 1.5;
+                    }
+
+                    const tp = tip();
+                    trail.push([tp[2], tp[3]]);
+                    if (trail.length > 240) trail.shift();
+
+                    ctx.fillStyle = '#050505';
+                    ctx.fillRect(0, 0, w, h);
+
+                    for (let i = 1; i < trail.length; i++) {
+                        const k = i / trail.length;
+                        ctx.strokeStyle = `rgba(182,255,46,${(k * k * 0.65).toFixed(3)})`;
+                        ctx.lineWidth = 0.8 + k;
+                        ctx.beginPath();
+                        ctx.moveTo(trail[i - 1][0], trail[i - 1][1]);
+                        ctx.lineTo(trail[i][0], trail[i][1]);
+                        ctx.stroke();
+                    }
+
+                    ctx.strokeStyle = 'rgba(235,235,235,0.85)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(px0, py0);
+                    ctx.lineTo(tp[0], tp[1]);
+                    ctx.lineTo(tp[2], tp[3]);
+                    ctx.stroke();
+
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.beginPath(); ctx.arc(px0, py0, 2.5, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#ddd';
+                    ctx.beginPath(); ctx.arc(tp[0], tp[1], 3.5, 0, Math.PI * 2); ctx.fill();
+                    const gl = ctx.createRadialGradient(tp[2], tp[3], 0, tp[2], tp[3], 14);
+                    gl.addColorStop(0, 'rgba(182,255,46,0.8)');
+                    gl.addColorStop(1, 'rgba(182,255,46,0)');
+                    ctx.fillStyle = gl;
+                    ctx.beginPath(); ctx.arc(tp[2], tp[3], 14, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = ACC.lime;
+                    ctx.beginPath(); ctx.arc(tp[2], tp[3], 4.2, 0, Math.PI * 2); ctx.fill();
+                }
+            };
+        }
+
+        /* =====================================================
+           9) KINEFX IK — fabrik chain chasing a target
+           ===================================================== */
+        function ikChain(w, h, ctx) {
+            const n = 12;
+            const S = Math.min(w, h);
+            const seg = S * 0.085;
+            const root = { x: w / 2, y: h * 0.94 };
+            const pts = [];
+            for (let i = 0; i < n; i++) pts.push({ x: root.x, y: root.y - i * seg });
+            const tgt = { x: w / 2, y: h / 2 };
+            let t = 0;
+
+            return {
+                step(dt, input) {
+                    t += dt;
+                    let tx, ty;
+                    if (input.active) { tx = input.x; ty = input.y; }
+                    else {
+                        tx = w / 2 + Math.sin(t * 0.6) * w * 0.32 + Math.sin(t * 1.7) * w * 0.06;
+                        ty = h * 0.42 + Math.sin(t * 0.83 + 1.4) * h * 0.26;
+                    }
+                    tgt.x += (tx - tgt.x) * Math.min(1, dt * 6);
+                    tgt.y += (ty - tgt.y) * Math.min(1, dt * 6);
+
+                    /* FABRIK: backward from target, forward from root */
+                    for (let it = 0; it < 8; it++) {
+                        pts[n - 1].x = tgt.x; pts[n - 1].y = tgt.y;
+                        for (let i = n - 2; i >= 0; i--) {
+                            const dx = pts[i].x - pts[i + 1].x, dy = pts[i].y - pts[i + 1].y;
+                            const d = Math.hypot(dx, dy) || 1;
+                            pts[i].x = pts[i + 1].x + dx / d * seg;
+                            pts[i].y = pts[i + 1].y + dy / d * seg;
+                        }
+                        pts[0].x = root.x; pts[0].y = root.y;
+                        for (let i = 1; i < n; i++) {
+                            const dx = pts[i].x - pts[i - 1].x, dy = pts[i].y - pts[i - 1].y;
+                            const d = Math.hypot(dx, dy) || 1;
+                            pts[i].x = pts[i - 1].x + dx / d * seg;
+                            pts[i].y = pts[i - 1].y + dy / d * seg;
+                        }
+                    }
+
+                    ctx.fillStyle = '#050505';
+                    ctx.fillRect(0, 0, w, h);
+
+                    /* base plate */
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(root.x - 26, root.y + 6);
+                    ctx.lineTo(root.x + 26, root.y + 6);
+                    ctx.stroke();
+
+                    /* bones */
+                    for (let i = 1; i < n; i++) {
+                        const k = i / (n - 1);
+                        ctx.strokeStyle = `rgba(225,225,225,${(0.75 - k * 0.25).toFixed(3)})`;
+                        ctx.lineWidth = 4.5 - k * 3.2;
+                        ctx.beginPath();
+                        ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
+                        ctx.lineTo(pts[i].x, pts[i].y);
+                        ctx.stroke();
+                    }
+                    /* joints */
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i < n - 1; i++) {
+                        ctx.fillStyle = '#0a0a0a';
+                        ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+                        ctx.beginPath();
+                        ctx.arc(pts[i].x, pts[i].y, 3.4 - (i / n) * 2, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                    /* effector */
+                    const e = pts[n - 1];
+                    const gl = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, 13);
+                    gl.addColorStop(0, 'rgba(255,122,24,0.7)');
+                    gl.addColorStop(1, 'rgba(255,122,24,0)');
+                    ctx.fillStyle = gl;
+                    ctx.beginPath(); ctx.arc(e.x, e.y, 13, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = ACC.orange;
+                    ctx.beginPath(); ctx.arc(e.x, e.y, 3.6, 0, Math.PI * 2); ctx.fill();
+                    /* target crosshair */
+                    ctx.strokeStyle = 'rgba(255,122,24,0.4)';
+                    ctx.beginPath(); ctx.arc(tgt.x, tgt.y, 9, 0, Math.PI * 2); ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(tgt.x - 13, tgt.y); ctx.lineTo(tgt.x - 5, tgt.y);
+                    ctx.moveTo(tgt.x + 5, tgt.y);  ctx.lineTo(tgt.x + 13, tgt.y);
+                    ctx.moveTo(tgt.x, tgt.y - 13); ctx.lineTo(tgt.x, tgt.y - 5);
+                    ctx.moveTo(tgt.x, tgt.y + 5);  ctx.lineTo(tgt.x, tgt.y + 13);
+                    ctx.stroke();
+                }
+            };
+        }
+
+        /* =====================================================
+           10) RBD WALL — blast a brick wall apart
+           ===================================================== */
+        function rbdWall(w, h, ctx) {
+            const S = Math.min(w, h);
+            const floorY = h - 6;
+            const bw = S * 0.115, bh = bw * 0.48;
+            let bricks = [];
+            let rebuildT = 0, autoT = 2.5, flash = null, wasDown = false;
+
+            function build() {
+                bricks = [];
+                const rowsN = Math.min(9, Math.floor(h * 0.52 / bh));
+                const colsN = 5;
+                const x0 = w / 2 - colsN * bw / 2;
+                for (let r = 0; r < rowsN; r++) {
+                    const off = (r % 2) * bw * 0.5 - bw * 0.25;
+                    for (let c = 0; c < colsN; c++) {
+                        bricks.push({
+                            x: x0 + off + c * bw + bw / 2,
+                            y: floorY - r * bh - bh / 2,
+                            a: 0, vx: 0, vy: 0, va: 0,
+                            dyn: false
+                        });
+                    }
+                }
+            }
+            build();
+
+            function blast(bx, by) {
+                flash = { x: bx, y: by, r: 2, a: 1 };
+                const R = S * 0.5;
+                for (const b of bricks) {
+                    const dx = b.x - bx, dy = b.y - by;
+                    const d = Math.hypot(dx, dy) || 1;
+                    if (d < R) {
+                        const f = 1 - d / R;
+                        b.dyn = true;
+                        b.vx += dx / d * f * S * 2.4 + (Math.random() - 0.5) * S * 0.3;
+                        b.vy += dy / d * f * S * 2.4 - f * S * 0.6;
+                        b.va += (Math.random() - 0.5) * 16 * f;
+                    }
+                }
+                rebuildT = 0;
+            }
+
+            return {
+                step(dt, input) {
+                    if (input.down && !wasDown && input.active) { blast(input.x, input.y); autoT = 8; }
+                    wasDown = input.down;
+                    autoT -= dt;
+                    if (autoT <= 0) {
+                        if (!bricks.some(b => b.dyn)) {
+                            blast(w * (0.35 + Math.random() * 0.3), h * (0.35 + Math.random() * 0.3));
+                        }
+                        autoT = 6 + Math.random() * 4;
+                    }
+
+                    let moving = false, anyDyn = false;
+                    for (const b of bricks) {
+                        if (!b.dyn) continue;
+                        anyDyn = true;
+                        b.vy += S * 3 * dt;
+                        b.vx += tilt.x * S * 0.5 * dt;
+                        b.vx *= 1 - 0.15 * dt;
+                        b.x += b.vx * dt;
+                        b.y += b.vy * dt;
+                        b.a += b.va * dt;
+                        const ext = bh * 0.5 + Math.abs(Math.sin(b.a * 2)) * (bw - bh) * 0.25;
+                        if (b.y + ext > floorY) {
+                            b.y = floorY - ext;
+                            b.vy *= -0.28;
+                            if (Math.abs(b.vy) < S * 0.06) b.vy = 0;
+                            b.vx *= 0.8;
+                            b.va *= 0.75;
+                        }
+                        if (b.x < bw * 0.5) { b.x = bw * 0.5; b.vx = Math.abs(b.vx) * 0.4; }
+                        if (b.x > w - bw * 0.5) { b.x = w - bw * 0.5; b.vx = -Math.abs(b.vx) * 0.4; }
+                        if (Math.abs(b.vx) + Math.abs(b.vy) + Math.abs(b.va) * 30 > S * 0.05) moving = true;
+                    }
+                    /* crude pairwise separation so the rubble piles up */
+                    const rr = bw * 0.55;
+                    for (let i = 0; i < bricks.length; i++) {
+                        const a = bricks[i];
+                        if (!a.dyn) continue;
+                        for (let j = 0; j < bricks.length; j++) {
+                            if (i === j) continue;
+                            const c = bricks[j];
+                            const dx = c.x - a.x, dy = c.y - a.y;
+                            const d2 = dx * dx + dy * dy;
+                            if (d2 > rr * rr || d2 < 0.01) continue;
+                            const d = Math.sqrt(d2);
+                            const push = (rr - d) * (c.dyn ? 0.25 : 0.5);
+                            a.x -= dx / d * push;
+                            a.y -= dy / d * push;
+                        }
+                    }
+                    if (anyDyn && !moving) {
+                        rebuildT += dt;
+                        if (rebuildT > 2.4) build();
+                    } else {
+                        rebuildT = 0;
+                    }
+
+                    ctx.fillStyle = '#050505';
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(0, floorY + 1);
+                    ctx.lineTo(w, floorY + 1);
+                    ctx.stroke();
+
+                    for (const b of bricks) {
+                        const busy = b.dyn && (Math.abs(b.vx) + Math.abs(b.vy)) > S * 0.12;
+                        ctx.save();
+                        ctx.translate(b.x, b.y);
+                        ctx.rotate(b.a);
+                        ctx.fillStyle = b.dyn ? '#232326' : '#1b1b1e';
+                        ctx.strokeStyle = busy ? ACC.red : 'rgba(255,255,255,0.20)';
+                        ctx.beginPath();
+                        ctx.rect(-bw / 2 + 0.5, -bh / 2 + 0.5, bw - 1, bh - 1);
+                        ctx.fill();
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+
+                    if (flash) {
+                        flash.r += S * 3 * dt;
+                        flash.a -= 3 * dt;
+                        if (flash.a <= 0) flash = null;
+                        else {
+                            ctx.strokeStyle = `rgba(255,122,24,${flash.a.toFixed(3)})`;
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            ctx.arc(flash.x, flash.y, flash.r, 0, Math.PI * 2);
+                            ctx.stroke();
+                        }
+                    }
+                }
+            };
+        }
+
+        /* =====================================================
+           11) SOFTBODY — pressure blob on a floor
+           ===================================================== */
+        function softBody(w, h, ctx) {
+            const N = 26;
+            const S = Math.min(w, h);
+            const r0 = S * 0.2;
+            const cx0 = w / 2, cy0 = h * 0.35;
+            const pts = [];
+            for (let i = 0; i < N; i++) {
+                const a = i / N * Math.PI * 2;
+                const x = cx0 + Math.cos(a) * r0, y = cy0 + Math.sin(a) * r0;
+                pts.push({ x, y, px: x, py: y });
+            }
+            const rest1 = 2 * r0 * Math.sin(Math.PI / N);
+            const rest2 = 2 * r0 * Math.sin(2 * Math.PI / N);
+            const A0 = Math.PI * r0 * r0;
+
+            function area() {
+                let a = 0;
+                for (let i = 0; i < N; i++) {
+                    const p = pts[i], q = pts[(i + 1) % N];
+                    a += p.x * q.y - q.x * p.y;
+                }
+                return Math.abs(a / 2);
+            }
+
+            function link(i, j, rest) {
+                const A = pts[i], B = pts[j];
+                const dx = B.x - A.x, dy = B.y - A.y;
+                const d = Math.hypot(dx, dy) || 1e-4;
+                const diff = (d - rest) / d * 0.5;
+                A.x += dx * diff; A.y += dy * diff;
+                B.x -= dx * diff; B.y -= dy * diff;
+            }
+
+            function collide(p) {
+                const m = 5;
+                if (p.y > h - m) { p.y = h - m; p.px += (p.x - p.px) * 0.2; }
+                if (p.y < m) p.y = m;
+                if (p.x > w - m) p.x = w - m;
+                if (p.x < m) p.x = m;
+            }
+
+            return {
+                step(dt, input) {
+                    const sub = 3, sdt = Math.min(dt, 0.033) / sub;
+                    for (let s = 0; s < sub; s++) {
+                        let mx = 0, my = 0;
+                        for (const p of pts) { mx += p.x; my += p.y; }
+                        mx /= N; my /= N;
+                        const press = clamp((A0 - area()) / A0, -0.5, 0.8) * 3800;
+
+                        for (const p of pts) {
+                            let ax = tilt.x * 260;
+                            let ay = S * 1.4 + tilt.y * 260;
+                            const dx = p.x - mx, dy = p.y - my;
+                            const d = Math.hypot(dx, dy) || 1;
+                            ax += dx / d * press;
+                            ay += dy / d * press;
+                            if (input.active) {
+                                const qx = p.x - input.x, qy = p.y - input.y;
+                                const qd = Math.hypot(qx, qy);
+                                const R = S * 0.22;
+                                if (qd < R && qd > 0.5) {
+                                    const f = (1 - qd / R) * 5200;
+                                    ax += qx / qd * f;
+                                    ay += qy / qd * f;
+                                }
+                            }
+                            const nx = p.x + (p.x - p.px) * 0.985 + ax * sdt * sdt;
+                            const ny = p.y + (p.y - p.py) * 0.985 + ay * sdt * sdt;
+                            p.px = p.x; p.py = p.y;
+                            p.x = nx; p.y = ny;
+                        }
+                        for (let it = 0; it < 3; it++) {
+                            for (let i = 0; i < N; i++) {
+                                link(i, (i + 1) % N, rest1);
+                                link(i, (i + 2) % N, rest2);
+                            }
+                            for (const p of pts) collide(p);
+                        }
+                    }
+
+                    ctx.fillStyle = '#050505';
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(0, h - 4.5);
+                    ctx.lineTo(w, h - 4.5);
+                    ctx.stroke();
+
+                    /* smooth outline through the midpoints */
+                    ctx.beginPath();
+                    let a0 = pts[N - 1], b0 = pts[0];
+                    ctx.moveTo((a0.x + b0.x) / 2, (a0.y + b0.y) / 2);
+                    for (let i = 0; i < N; i++) {
+                        const a = pts[i], b = pts[(i + 1) % N];
+                        ctx.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2, (a.y + b.y) / 2);
+                    }
+                    ctx.closePath();
+                    ctx.fillStyle = 'rgba(139,92,246,0.10)';
+                    ctx.fill();
+                    ctx.strokeStyle = ACC.violet;
+                    ctx.lineWidth = 1.8;
+                    ctx.stroke();
+
+                    /* nucleus */
+                    let mx = 0, my = 0;
+                    for (const p of pts) { mx += p.x; my += p.y; }
+                    mx /= N; my /= N;
+                    ctx.fillStyle = 'rgba(139,92,246,0.55)';
+                    ctx.beginPath();
+                    ctx.arc(mx, my, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            };
+        }
+
+        /* =====================================================
+           12) VELLUM CLOTH — tearable pinned cloth
+           ===================================================== */
+        function vellumCloth(w, h, ctx) {
+            const cols = 24, rows = 15;
+            const sx = w * 0.86 / (cols - 1);
+            const sy = h * 0.62 / (rows - 1);
+            const x0 = w * 0.07, y0 = h * 0.08;
+            let pts, cons, rebuildT = 0, t = 0;
+
+            function build() {
+                pts = [];
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const x = x0 + c * sx, y = y0 + r * sy;
+                        pts.push({ x, y, px: x, py: y, pin: r === 0 && c % 2 === 0 });
+                    }
+                }
+                cons = [];
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const i = r * cols + c;
+                        if (c < cols - 1) cons.push({ a: i, b: i + 1, rest: sx, on: true, str: 1 });
+                        if (r < rows - 1) cons.push({ a: i, b: i + cols, rest: sy, on: true, str: 1 });
+                    }
+                }
+            }
+            build();
+
+            return {
+                step(dt, input) {
+                    t += dt;
+                    const sdt = Math.min(dt, 0.03);
+                    const wind = Math.sin(t * 0.7) * 30 + Math.sin(t * 2.3) * 18 + tilt.x * 90;
+                    for (const p of pts) {
+                        if (p.pin) continue;
+                        const ax = wind + Math.sin(t * 1.3 + p.y * 0.02) * 22;
+                        const ay = 620 + tilt.y * 120;
+                        const nx = p.x + (p.x - p.px) * 0.988 + ax * sdt * sdt;
+                        const ny = p.y + (p.y - p.py) * 0.988 + ay * sdt * sdt;
+                        p.px = p.x; p.py = p.y;
+                        p.x = nx; p.y = ny;
+                    }
+                    /* drag pulls nearby points along */
+                    if (input.active && input.down) {
+                        for (const p of pts) {
+                            if (p.pin) continue;
+                            const dx = input.x - p.x, dy = input.y - p.y;
+                            if (Math.hypot(dx, dy) < 46) {
+                                p.x += dx * 0.28;
+                                p.y += dy * 0.28;
+                            }
+                        }
+                    }
+                    let torn = 0;
+                    for (let it = 0; it < 3; it++) {
+                        for (const c of cons) {
+                            if (!c.on) continue;
+                            const A = pts[c.a], B = pts[c.b];
+                            const dx = B.x - A.x, dy = B.y - A.y;
+                            const d = Math.hypot(dx, dy) || 1e-4;
+                            c.str = d / c.rest;
+                            if (c.str > 2.4) { c.on = false; continue; }
+                            const diff = (d - c.rest) / d * 0.5;
+                            if (A.pin && B.pin) continue;
+                            if (A.pin) { B.x -= dx * diff * 2; B.y -= dy * diff * 2; }
+                            else if (B.pin) { A.x += dx * diff * 2; A.y += dy * diff * 2; }
+                            else {
+                                A.x += dx * diff; A.y += dy * diff;
+                                B.x -= dx * diff; B.y -= dy * diff;
+                            }
+                        }
+                    }
+                    for (const c of cons) { if (!c.on) torn++; }
+                    if (torn / cons.length > 0.32) {
+                        rebuildT += dt;
+                        if (rebuildT > 2.5) { build(); rebuildT = 0; }
+                    }
+
+                    ctx.fillStyle = '#050505';
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.lineWidth = 1;
+                    for (const c of cons) {
+                        if (!c.on) continue;
+                        const A = pts[c.a], B = pts[c.b];
+                        const s = clamp((c.str - 1.15), 0, 1);
+                        ctx.strokeStyle = s > 0.02
+                            ? `rgba(255,210,31,${(0.25 + s * 0.75).toFixed(3)})`
+                            : 'rgba(230,230,230,0.30)';
+                        ctx.beginPath();
+                        ctx.moveTo(A.x, A.y);
+                        ctx.lineTo(B.x, B.y);
+                        ctx.stroke();
+                    }
+                    /* pins */
+                    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                    for (const p of pts) {
+                        if (p.pin) ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+                    }
+                }
+            };
+        }
+
+        /* =====================================================
+           13) LAVA — metaball melt pool
+           ===================================================== */
+        function lavaLamp(w, h, ctx) {
+            const cw = 96;
+            const ch2 = Math.max(48, Math.round(cw * h / Math.max(1, w)));
+            const off = document.createElement('canvas');
+            off.width = cw; off.height = ch2;
+            const octx = off.getContext('2d');
+            const img = octx.createImageData(cw, ch2);
+            const blobs = [];
+            for (let i = 0; i < 7; i++) {
+                blobs.push({
+                    x: cw * (0.12 + Math.random() * 0.76),
+                    y: ch2 * (0.55 + Math.random() * 0.4),
+                    r: cw * (0.06 + Math.random() * 0.05),
+                    vx: 0, vy: 0,
+                    heat: Math.random() * 0.5
+                });
+            }
+            let t = 0;
+
+            return {
+                step(dt, input) {
+                    t += dt;
+                    for (const b of blobs) {
+                        /* hot near the bottom pool, cooling on the way up */
+                        b.heat = clamp(b.heat + (b.y / ch2 - 0.55) * 0.5 * dt, 0, 1);
+                        b.vy += (0.55 - b.heat) * cw * 0.5 * dt;
+                        b.vx += (Math.sin(t * 0.4 + b.r * 31) * 0.03 + tilt.x * 0.15) * cw * dt;
+                        if (input.active) {
+                            const pxc = input.x / w * cw, pyc = input.y / h * ch2;
+                            const dx = b.x - pxc, dy = b.y - pyc;
+                            const d = Math.hypot(dx, dy);
+                            if (d < cw * 0.35) {
+                                b.heat = clamp(b.heat + (1 - d / (cw * 0.35)) * dt * 1.6, 0, 1);
+                                if (d > 0.5) {
+                                    const f = (1 - d / (cw * 0.35)) * cw * 0.5 * dt;
+                                    b.vx += dx / d * f;
+                                    b.vy += dy / d * f;
+                                }
+                            }
+                        }
+                        b.vx *= 1 - 1.0 * dt;
+                        b.vy *= 1 - 1.0 * dt;
+                        b.x += b.vx * dt;
+                        b.y += b.vy * dt;
+                        if (b.x < b.r * 0.6) { b.x = b.r * 0.6; b.vx = Math.abs(b.vx) * 0.5; }
+                        if (b.x > cw - b.r * 0.6) { b.x = cw - b.r * 0.6; b.vx = -Math.abs(b.vx) * 0.5; }
+                        if (b.y < b.r * 0.7) { b.y = b.r * 0.7; b.vy = Math.abs(b.vy) * 0.3; }
+                        if (b.y > ch2 - b.r * 0.3) { b.y = ch2 - b.r * 0.3; b.vy = -Math.abs(b.vy) * 0.3; }
+                    }
+
+                    const data = img.data;
+                    let i4 = 0;
+                    for (let y = 0; y < ch2; y++) {
+                        const pool = Math.exp((y - ch2) / 5) * 2.4;
+                        for (let x = 0; x < cw; x++, i4 += 4) {
+                            let v = pool, heat = pool * 0.85;
+                            for (const b of blobs) {
+                                const dx = x - b.x, dy = y - b.y;
+                                const q = b.r * b.r / (dx * dx + dy * dy + 1);
+                                v += q;
+                                heat += q * b.heat;
+                            }
+                            let r, gg, bb;
+                            if (v > 0.8) {
+                                const hn = clamp(heat / v, 0, 1);
+                                const m = clamp(hn * 0.62 + clamp((v - 0.8) * 0.22, 0, 0.18), 0, 1);
+                                if (m < 0.62) {
+                                    const u = m / 0.62;
+                                    r = 96 + u * 140; gg = 12 + u * 66; bb = 28 - u * 8;
+                                } else {
+                                    const u = (m - 0.62) / 0.38;
+                                    r = 236 + u * 19; gg = 78 + u * 90; bb = 20 + u * 8;
+                                }
+                            } else {
+                                const u = v / 0.8;
+                                r = 6 + u * 60; gg = 4 + u * 6; bb = 5 + u * 8;
+                            }
+                            data[i4] = r; data[i4 + 1] = gg; data[i4 + 2] = bb; data[i4 + 3] = 255;
+                        }
+                    }
+                    octx.putImageData(img, 0, 0);
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.drawImage(off, 0, 0, w, h);
+                }
+            };
+        }
+
+        /* =====================================================
+           14) WAX — a flame melting a wax surface
+           ===================================================== */
+        function meltingWax(w, h, ctx) {
+            const n = Math.max(48, Math.floor(w / 3));
+            const cwx = w / (n - 1);
+            const hgt = new Float32Array(n);
+            const heat = new Float32Array(n);
+            for (let i = 0; i < n; i++) {
+                hgt[i] = h * (0.40 + 0.05 * Math.sin(i * 0.09) + 0.02 * Math.sin(i * 0.31 + 2));
+            }
+            let t = 0, fx = w / 2;
+
+            return {
+                step(dt, input) {
+                    t += dt;
+                    const targetX = input.active
+                        ? input.x
+                        : w / 2 + Math.sin(t * 0.33) * w * 0.36 + Math.sin(t * 1.02) * w * 0.07;
+                    fx += (targetX - fx) * Math.min(1, dt * 3);
+                    const fi = clamp(Math.round(fx / cwx), 0, n - 1);
+
+                    for (let i = 0; i < n; i++) {
+                        const dd = (i - fi) * cwx / (w * 0.06);
+                        heat[i] = clamp(heat[i] + Math.exp(-dd * dd) * 1.8 * dt - heat[i] * 0.5 * dt, 0, 1);
+                    }
+                    for (let i = 1; i < n - 1; i++) {
+                        heat[i] += (heat[i - 1] + heat[i + 1] - 2 * heat[i]) * 3 * dt;
+                    }
+                    /* molten wax levels out, cool wax barely flows */
+                    for (let pass = 0; pass < 2; pass++) {
+                        for (let i = 0; i < n - 1; i++) {
+                            const m = (heat[i] + heat[i + 1]) * 0.5;
+                            const k = clamp(m * m * 8 * dt, 0, 0.24);
+                            const dh = (hgt[i] - hgt[i + 1]) * k;
+                            hgt[i] -= dh;
+                            hgt[i + 1] += dh;
+                        }
+                    }
+                    /* hot wax burns off, cool wax slowly re-pours */
+                    for (let i = 0; i < n; i++) {
+                        hgt[i] += (-heat[i] * heat[i] * h * 0.045 + (1 - heat[i]) * h * 0.006) * dt;
+                        hgt[i] = clamp(hgt[i], h * 0.06, h * 0.8);
+                    }
+
+                    ctx.fillStyle = '#050505';
+                    ctx.fillRect(0, 0, w, h);
+                    /* wax body */
+                    ctx.beginPath();
+                    ctx.moveTo(0, h);
+                    for (let i = 0; i < n; i++) ctx.lineTo(i * cwx, h - hgt[i]);
+                    ctx.lineTo(w, h);
+                    ctx.closePath();
+                    ctx.fillStyle = '#211f1b';
+                    ctx.fill();
+                    /* surface line */
+                    ctx.beginPath();
+                    for (let i = 0; i < n; i++) {
+                        const x = i * cwx, y = h - hgt[i];
+                        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    }
+                    ctx.strokeStyle = 'rgba(235,228,214,0.45)';
+                    ctx.lineWidth = 1.2;
+                    ctx.stroke();
+                    /* molten glow along the surface */
+                    ctx.globalCompositeOperation = 'lighter';
+                    for (let i = 0; i < n; i += 3) {
+                        const hh = heat[i];
+                        if (hh < 0.1) continue;
+                        const x = i * cwx, y = h - hgt[i];
+                        const rad = 4 + hh * 16;
+                        const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+                        g.addColorStop(0, `rgba(${(180 + hh * 75) | 0},${(60 + hh * 130) | 0},${(10 + hh * 20) | 0},${(0.5 * hh).toFixed(3)})`);
+                        g.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.fillStyle = g;
+                        ctx.beginPath();
+                        ctx.arc(x, y, rad, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    /* flame */
+                    const fy = h - hgt[fi] - 14;
+                    const flick = Math.sin(t * 17) * 1.5 + Math.sin(t * 29 + 1);
+                    const fg = ctx.createRadialGradient(fx, fy, 0, fx, fy, 16 + flick);
+                    fg.addColorStop(0, 'rgba(255,220,120,0.95)');
+                    fg.addColorStop(0.4, 'rgba(255,122,24,0.55)');
+                    fg.addColorStop(1, 'rgba(255,60,0,0)');
+                    ctx.fillStyle = fg;
+                    ctx.beginPath();
+                    ctx.arc(fx, fy, 16 + flick, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalCompositeOperation = 'source-over';
+                }
+            };
+        }
+
+        /* =====================================================
+           15) SNOW — snowfall with drifts
+           ===================================================== */
+        function snowDrift(w, h, ctx) {
+            const N = Math.min(220, Math.round(w * h / 350));
+            const flakes = [];
+            for (let i = 0; i < N; i++) {
+                const r = 0.8 + Math.random() * 1.8;
+                flakes.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    r,
+                    ph: Math.random() * Math.PI * 2,
+                    sp: 18 + r * 14
+                });
+            }
+            const gn = Math.ceil(w / 4);
+            const g = new Float32Array(gn);
+            const bg = ctx.createLinearGradient(0, 0, 0, h);
+            bg.addColorStop(0, '#04040a');
+            bg.addColorStop(1, '#070a14');
+
+            return {
+                step(dt, input) {
+                    ctx.fillStyle = bg;
+                    ctx.fillRect(0, 0, w, h);
+
+                    for (const f of flakes) {
+                        f.ph += dt * (0.6 + f.r * 0.3);
+                        let vx = Math.sin(f.ph) * 14 + tilt.x * 60;
+                        let vy = f.sp + tilt.y * 30;
+                        if (input.active) {
+                            const dx = f.x - input.x, dy = f.y - input.y;
+                            const d = Math.hypot(dx, dy);
+                            const R = Math.min(w, h) * 0.3;
+                            if (d < R && d > 0.5) {
+                                const push = (1 - d / R) * 160;
+                                vx += dx / d * push;
+                                vy += dy / d * push * 0.6;
+                            }
+                        }
+                        f.x += vx * dt;
+                        f.y += vy * dt;
+                        if (f.x < -4) f.x = w + 3;
+                        if (f.x > w + 4) f.x = -3;
+                        const gi = clamp(Math.floor(f.x / 4), 0, gn - 1);
+                        if (f.y >= h - 2 - g[gi]) {
+                            g[gi] = Math.min(g[gi] + f.r * 0.9, h * 0.45);
+                            f.y = -4;
+                            f.x = Math.random() * w;
+                        }
+                        const sz = f.r < 1.3 ? 1 : 2;
+                        ctx.fillStyle = `rgba(240,244,255,${(0.3 + f.r * 0.22).toFixed(2)})`;
+                        ctx.fillRect(f.x, f.y, sz, sz);
+                    }
+
+                    /* drifts slump smooth, and slowly melt so it never fills up */
+                    for (let i = 1; i < gn - 1; i++) {
+                        g[i] += ((g[i - 1] + g[i + 1]) / 2 - g[i]) * Math.min(1, dt * 1.5);
+                    }
+                    const cap = h * 0.32;
+                    for (let i = 0; i < gn; i++) {
+                        g[i] *= 1 - dt * (0.008 + (g[i] > cap ? 0.06 : 0));
+                    }
+                    ctx.beginPath();
+                    ctx.moveTo(0, h);
+                    ctx.lineTo(0, h - g[0]);
+                    for (let i = 1; i < gn; i++) ctx.lineTo(i * 4 + 2, h - g[i]);
+                    ctx.lineTo(w, h - g[gn - 1]);
+                    ctx.lineTo(w, h);
+                    ctx.closePath();
+                    ctx.fillStyle = 'rgba(222,230,244,0.9)';
+                    ctx.fill();
+                }
+            };
+        }
+
+        /* =====================================================
+           16) SAND — falling-sand cellular automaton
+           ===================================================== */
+        function fallingSand(w, h, ctx) {
+            const cell = 3;
+            const cols = Math.max(24, Math.floor(w / cell));
+            const rows = Math.max(24, Math.floor(h / cell));
+            const grid = new Uint8Array(cols * rows);
+            const WALL = 255;
+
+            function ledge(fx0, fx1, fy) {
+                const y = Math.round(rows * fy);
+                for (let x = Math.round(cols * fx0); x <= Math.round(cols * fx1); x++) {
+                    grid[y * cols + x] = WALL;
+                }
+            }
+            ledge(0.08, 0.45, 0.35);
+            ledge(0.55, 0.92, 0.6);
+
+            const off = document.createElement('canvas');
+            off.width = cols; off.height = rows;
+            const octx = off.getContext('2d');
+            const img = octx.createImageData(cols, rows);
+            const pal = [
+                [0, 0, 0],
+                [122, 114, 100], [141, 132, 116], [100, 94, 84],
+                [255, 210, 31], [255, 122, 24]
+            ];
+            const wallCol = [52, 54, 58];
+            let t = 0, frame = 0, count = 0, drain = 0;
+
+            function addGrain(cx2, cy2) {
+                const x = clamp(Math.round(cx2 + (Math.random() - 0.5) * 4), 1, cols - 2);
+                const y = clamp(Math.round(cy2 + (Math.random() - 0.5) * 3), 1, rows - 2);
+                const i = y * cols + x;
+                if (grid[i] === 0) {
+                    const r = Math.random();
+                    grid[i] = r < 0.008 ? 4 : r < 0.013 ? 5 : 1 + ((Math.random() * 3) | 0);
+                    count++;
+                }
+            }
+
+            return {
+                step(dt, input) {
+                    t += dt;
+                    frame++;
+                    if (input.active) {
+                        for (let k = 0; k < 5; k++) addGrain(input.x / cell, input.y / cell);
+                    } else {
+                        const sx = cols * (0.5 + Math.sin(t * 0.37) * 0.33 + Math.sin(t * 1.4) * 0.06);
+                        for (let k = 0; k < 2; k++) addGrain(sx, 2);
+                    }
+                    if (drain <= 0 && count > cols * rows * 0.42) drain = 4;
+                    if (drain > 0) drain -= dt;
+
+                    for (let pass = 0; pass < 2; pass++) {
+                        if (drain > 0) {
+                            const base = (rows - 1) * cols;
+                            for (let x = 0; x < cols; x++) {
+                                if (grid[base + x] !== 0 && grid[base + x] !== WALL) {
+                                    grid[base + x] = 0;
+                                    count--;
+                                }
+                            }
+                        }
+                        for (let y = rows - 2; y >= 0; y--) {
+                            const ltr = (y + frame + pass) % 2 === 0;
+                            const row = y * cols;
+                            for (let k = 0; k < cols; k++) {
+                                const x = ltr ? k : cols - 1 - k;
+                                const i = row + x;
+                                const v = grid[i];
+                                if (v === 0 || v === WALL) continue;
+                                const below = i + cols;
+                                if (grid[below] === 0) { grid[below] = v; grid[i] = 0; continue; }
+                                const dr = Math.random() < 0.5 ? 1 : -1;
+                                if (x + dr > 0 && x + dr < cols - 1 && grid[below + dr] === 0) {
+                                    grid[below + dr] = v; grid[i] = 0; continue;
+                                }
+                                if (x - dr > 0 && x - dr < cols - 1 && grid[below - dr] === 0) {
+                                    grid[below - dr] = v; grid[i] = 0;
+                                }
+                            }
+                        }
+                    }
+
+                    const d = img.data;
+                    for (let i = 0; i < cols * rows; i++) {
+                        const v = grid[i];
+                        const c = v === WALL ? wallCol : pal[v];
+                        d[i * 4] = c[0]; d[i * 4 + 1] = c[1]; d[i * 4 + 2] = c[2]; d[i * 4 + 3] = 255;
+                    }
+                    octx.putImageData(img, 0, 0);
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.drawImage(off, 0, 0, w, h);
+                }
+            };
+        }
+
+        /* =====================================================
+           17) PYRO BURST — shockwave, fireball, debris, smoke
+           ===================================================== */
+        function pyroBurst(w, h, ctx) {
+            const S = Math.min(w, h);
+            const parts = [], rings = [], debris = [];
+            let auto = 1.5, wasDown = false, shake = 0;
+
+            function boom(x, y) {
+                shake = 1;
+                rings.push({ x, y, r: 3, a: 0.9 });
+                for (let i = 0; i < 60; i++) {
+                    const a = Math.random() * Math.PI * 2;
+                    const sp = S * (0.2 + Math.random() * 1.1) * (0.3 + Math.random() * 0.7);
+                    parts.push({
+                        x: x + (Math.random() - 0.5) * 6,
+                        y: y + (Math.random() - 0.5) * 6,
+                        vx: Math.cos(a) * sp,
+                        vy: Math.sin(a) * sp * 0.85,
+                        age: Math.random() * 0.08,
+                        life: 0.6 + Math.random() * 1.2,
+                        r: 2.5 + Math.random() * 5
+                    });
+                }
+                for (let i = 0; i < 14; i++) {
+                    const a = Math.random() * Math.PI * 2;
+                    const sp = S * (1.0 + Math.random() * 1.4);
+                    debris.push({
+                        x, y,
+                        vx: Math.cos(a) * sp,
+                        vy: Math.sin(a) * sp - sp * 0.15,
+                        age: 0,
+                        life: 0.5 + Math.random() * 0.7
+                    });
+                }
+            }
+
+            return {
+                step(dt, input) {
+                    if (input.down && !wasDown && input.active) { boom(input.x, input.y); auto = 5 + Math.random() * 3; }
+                    wasDown = input.down;
+                    auto -= dt;
+                    if (auto <= 0) {
+                        boom(w * (0.25 + Math.random() * 0.5), h * (0.2 + Math.random() * 0.5));
+                        auto = 3.5 + Math.random() * 3.5;
+                    }
+
+                    shake = Math.max(0, shake - dt * 2.6);
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                    ctx.fillRect(0, 0, w, h);
+
+                    ctx.save();
+                    if (shake > 0.01) {
+                        ctx.translate((Math.random() - 0.5) * 7 * shake, (Math.random() - 0.5) * 7 * shake);
+                    }
+
+                    for (let i = parts.length - 1; i >= 0; i--) {
+                        const p = parts[i];
+                        p.age += dt;
+                        if (p.age >= p.life) { parts.splice(i, 1); continue; }
+                        const k = p.age / p.life;
+                        p.vx *= 1 - 2.4 * dt;
+                        p.vy *= 1 - 2.4 * dt;
+                        p.vy -= S * 0.5 * dt * k;
+                        p.x += p.vx * dt;
+                        p.y += p.vy * dt;
+                    }
+                    /* smoke pass */
+                    for (const p of parts) {
+                        const k = p.age / p.life;
+                        if (k <= 0.45) continue;
+                        const u = (k - 0.45) / 0.55;
+                        ctx.fillStyle = `rgba(64,60,57,${(0.18 * (1 - u)).toFixed(3)})`;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.r * (1 + u * 2.4), 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    /* fire pass */
+                    ctx.globalCompositeOperation = 'lighter';
+                    for (const p of parts) {
+                        const k = p.age / p.life;
+                        if (k > 0.6) continue;
+                        const u = k / 0.6;
+                        let r, gc, bc;
+                        if (u < 0.25) { r = 255; gc = 235; bc = 160; }
+                        else if (u < 0.55) { r = 255; gc = 150; bc = 40; }
+                        else { r = 216; gc = 48; bc = 38; }
+                        ctx.fillStyle = `rgba(${r},${gc},${bc},${(0.5 * (1 - u) + 0.2).toFixed(3)})`;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.r * (1 - u * 0.4), 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    /* debris streaks */
+                    ctx.lineWidth = 1.2;
+                    for (let i = debris.length - 1; i >= 0; i--) {
+                        const db = debris[i];
+                        db.age += dt;
+                        if (db.age >= db.life) { debris.splice(i, 1); continue; }
+                        db.vy += S * 2.4 * dt;
+                        db.x += db.vx * dt;
+                        db.y += db.vy * dt;
+                        const k = 1 - db.age / db.life;
+                        ctx.strokeStyle = `rgba(255,170,60,${(0.7 * k).toFixed(3)})`;
+                        ctx.beginPath();
+                        ctx.moveTo(db.x - db.vx * 0.02, db.y - db.vy * 0.02);
+                        ctx.lineTo(db.x, db.y);
+                        ctx.stroke();
+                    }
+                    /* shockwave rings */
+                    ctx.lineWidth = 2;
+                    for (let i = rings.length - 1; i >= 0; i--) {
+                        const rg = rings[i];
+                        rg.r += S * 2.6 * dt;
+                        rg.a -= 2.4 * dt;
+                        if (rg.a <= 0) { rings.splice(i, 1); continue; }
+                        ctx.strokeStyle = `rgba(255,190,90,${rg.a.toFixed(3)})`;
+                        ctx.beginPath();
+                        ctx.arc(rg.x, rg.y, rg.r, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                    ctx.globalCompositeOperation = 'source-over';
+                }
+            };
+        }
+
+        /* =====================================================
+           18) HARD SURFACE — greebled hull plating
+           ===================================================== */
+        function hardSurface(w, h, ctx) {
+            const panels = [];
+            const types = ['plain', 'plain', 'plain', 'vent', 'dots', 'bar', 'light'];
+            function newPanel(x, y, pw, ph) {
+                panels.push({
+                    x, y, w: pw, h: ph,
+                    tone: 0.05 + Math.random() * 0.07,
+                    type: types[(Math.random() * types.length) | 0],
+                    ph: Math.random() * Math.PI * 2,
+                    acc: Math.random() < 0.1
+                });
+            }
+            function subdivide(x, y, pw, ph, depth) {
+                const minS = Math.min(w, h) * 0.16;
+                if (depth > 0 && (pw > minS * 1.8 || ph > minS * 1.8 ||
+                    (pw > minS && ph > minS && Math.random() < 0.45))) {
+                    const k = 0.32 + Math.random() * 0.36;
+                    if (pw > ph) {
+                        subdivide(x, y, pw * k, ph, depth - 1);
+                        subdivide(x + pw * k, y, pw * (1 - k), ph, depth - 1);
+                    } else {
+                        subdivide(x, y, pw, ph * k, depth - 1);
+                        subdivide(x, y + ph * k, pw, ph * (1 - k), depth - 1);
+                    }
+                } else {
+                    newPanel(x, y, pw, ph);
+                }
+            }
+            subdivide(0, 0, w, h, 5);
+            let t = 0, scanX = -60;
+
+            return {
+                step(dt, input) {
+                    t += dt;
+                    scanX += dt * w * 0.14;
+                    if (scanX > w + 80) scanX = -80;
+                    ctx.fillStyle = '#030303';
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.lineWidth = 1;
+
+                    for (const p of panels) {
+                        const scanK = Math.max(0, 1 - Math.abs((p.x + p.w / 2) - scanX) / 80);
+                        /* the scanline occasionally rebuilds the panel it passes */
+                        if (scanK > 0.92 && Math.random() < dt * 3) {
+                            p.tone = 0.05 + Math.random() * 0.07;
+                            p.type = types[(Math.random() * types.length) | 0];
+                            p.acc = Math.random() < 0.1;
+                            p.ph = Math.random() * Math.PI * 2;
+                        }
+                        const hover = input.active &&
+                            input.x >= p.x && input.x < p.x + p.w &&
+                            input.y >= p.y && input.y < p.y + p.h;
+                        const gc = Math.round((p.tone + scanK * 0.05 + (hover ? 0.05 : 0)) * 255);
+                        ctx.fillStyle = `rgb(${gc},${gc},${gc + 3})`;
+                        ctx.fillRect(p.x + 1, p.y + 1, p.w - 2, p.h - 2);
+                        ctx.strokeStyle = hover ? ACC.orange : `rgba(255,255,255,${(0.05 + scanK * 0.12).toFixed(3)})`;
+                        ctx.strokeRect(p.x + 1.5, p.y + 1.5, p.w - 3, p.h - 3);
+
+                        const seed = p.ph;
+                        if (p.type === 'vent' && p.w > 22 && p.h > 16) {
+                            const nv = 2 + ((seed * 5) | 0) % 3;
+                            ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+                            for (let i = 1; i <= nv; i++) {
+                                const yy = p.y + p.h * i / (nv + 1);
+                                ctx.beginPath();
+                                ctx.moveTo(p.x + 6, yy);
+                                ctx.lineTo(p.x + p.w - 6, yy);
+                                ctx.stroke();
+                            }
+                        } else if (p.type === 'dots' && p.w > 18 && p.h > 14) {
+                            const nd = 2 + ((seed * 7) | 0) % 3;
+                            ctx.fillStyle = 'rgba(255,255,255,0.18)';
+                            for (let i = 0; i < nd; i++) {
+                                ctx.beginPath();
+                                ctx.arc(p.x + 7 + i * 7, p.y + p.h - 7, 1.6, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                        } else if (p.type === 'bar' && p.w > 20) {
+                            ctx.fillStyle = 'rgba(255,255,255,0.10)';
+                            ctx.fillRect(p.x + 4, p.y + 4, p.w - 8, 3);
+                        } else if (p.type === 'light') {
+                            const blink = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * 1.7 + seed * 5));
+                            ctx.fillStyle = p.acc
+                                ? `rgba(182,255,46,${blink.toFixed(3)})`
+                                : `rgba(255,122,24,${blink.toFixed(3)})`;
+                            ctx.fillRect(p.x + p.w - 10, p.y + 5, 5, 3);
+                        }
+                    }
+                    /* scanline */
+                    const grad = ctx.createLinearGradient(scanX - 40, 0, scanX + 40, 0);
+                    grad.addColorStop(0, 'rgba(255,122,24,0)');
+                    grad.addColorStop(0.5, 'rgba(255,122,24,0.10)');
+                    grad.addColorStop(1, 'rgba(255,122,24,0)');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(scanX - 40, 0, 80, h);
+                    ctx.fillStyle = 'rgba(255,160,70,0.35)';
+                    ctx.fillRect(scanX, 0, 1, h);
+                }
+            };
+        }
+
+        /* =====================================================
+           19) ABSTRACT GROWTH — space colonization
+           ===================================================== */
+        function growthColonize(w, h, ctx) {
+            const S = Math.min(w, h);
+            const INF2 = Math.pow(S * 0.42, 2), KILL2 = 81;
+            const STEP = Math.max(4, S * 0.02);
+            let atts, nodes, doneAt, fade, stuck, t = 0, acc = 0;
+
+            function reset() {
+                atts = [];
+                for (let i = 0; i < 130; i++) {
+                    atts.push({ x: w * (0.06 + Math.random() * 0.88), y: h * (0.04 + Math.random() * 0.74) });
+                }
+                nodes = [{ x: w / 2, y: h - 5, px: -1, py: -1, born: t }];
+                doneAt = 0; fade = 1; stuck = 0;
+            }
+            reset();
+
+            return {
+                step(dt, input) {
+                    t += dt;
+                    /* hovering sows extra attractors — it grows toward you */
+                    if (input.active && !doneAt && atts.length < 260 && Math.random() < dt * 20) {
+                        atts.push({
+                            x: clamp(input.x + (Math.random() - 0.5) * 60, 4, w - 4),
+                            y: clamp(input.y + (Math.random() - 0.5) * 60, 4, h - 4)
+                        });
+                    }
+                    acc += dt;
+                    if (acc > 0.035 && !doneAt) {
+                        acc = 0;
+                        const pull = new Map();
+                        for (let ai = atts.length - 1; ai >= 0; ai--) {
+                            const a = atts[ai];
+                            let best = -1, bd2 = INF2;
+                            for (let ni = 0; ni < nodes.length; ni++) {
+                                const dx = a.x - nodes[ni].x, dy = a.y - nodes[ni].y;
+                                const d2 = dx * dx + dy * dy;
+                                if (d2 < bd2) { bd2 = d2; best = ni; }
+                            }
+                            if (best < 0) continue;
+                            if (bd2 < KILL2) { atts.splice(ai, 1); continue; }
+                            const nd = nodes[best];
+                            const dd = Math.sqrt(bd2);
+                            let e = pull.get(best);
+                            if (!e) { e = [0, 0]; pull.set(best, e); }
+                            e[0] += (a.x - nd.x) / dd;
+                            e[1] += (a.y - nd.y) / dd;
+                        }
+                        let grew = false;
+                        for (const [ni, e] of pull) {
+                            if (nodes.length > 820) break;
+                            const nd = nodes[ni];
+                            const dl = Math.hypot(e[0], e[1]);
+                            if (dl < 0.01) continue;
+                            nodes.push({
+                                x: nd.x + e[0] / dl * STEP + (Math.random() - 0.5) * 1.4,
+                                y: nd.y + e[1] / dl * STEP + (Math.random() - 0.5) * 1.4,
+                                px: nd.x, py: nd.y, born: t
+                            });
+                            grew = true;
+                        }
+                        stuck = grew ? 0 : stuck + 1;
+                        if (nodes.length > 820 || atts.length < 3 || stuck > 40) doneAt = t;
+                    }
+                    if (doneAt && t - doneAt > 2.5) {
+                        fade -= dt * 0.7;
+                        if (fade <= 0) reset();
+                    }
+
+                    ctx.fillStyle = '#050505';
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.globalAlpha = clamp(fade, 0, 1);
+                    ctx.fillStyle = 'rgba(182,255,46,0.10)';
+                    for (const a of atts) ctx.fillRect(a.x, a.y, 1.5, 1.5);
+                    for (const nd of nodes) {
+                        if (nd.px < 0) continue;
+                        const age = t - nd.born;
+                        if (age < 1.4) {
+                            const k = 1 - age / 1.4;
+                            ctx.strokeStyle = `rgba(182,255,46,${(0.3 + 0.7 * k).toFixed(3)})`;
+                            ctx.lineWidth = 1.5;
+                        } else {
+                            ctx.strokeStyle = 'rgba(205,210,198,0.30)';
+                            ctx.lineWidth = 1;
+                        }
+                        ctx.beginPath();
+                        ctx.moveTo(nd.px, nd.py);
+                        ctx.lineTo(nd.x, nd.y);
+                        ctx.stroke();
+                        if (age < 0.4) {
+                            ctx.fillStyle = ACC.lime;
+                            ctx.fillRect(nd.x - 1, nd.y - 1, 2.5, 2.5);
+                        }
+                    }
+                    ctx.globalAlpha = 1;
+                }
+            };
+        }
+
         /* ---------- boot ---------- */
         const factories = {
             sparks: sparkSurge,
@@ -1013,7 +2417,19 @@
             parallax: parallaxRidge,
             ripple: ripplePool,
             boids: boids,
-            arc: arcGap
+            arc: arcGap,
+            pendulum: doublePendulum,
+            ik: ikChain,
+            rbd: rbdWall,
+            softbody: softBody,
+            cloth: vellumCloth,
+            lava: lavaLamp,
+            wax: meltingWax,
+            snow: snowDrift,
+            sand: fallingSand,
+            pyro: pyroBurst,
+            hardsurface: hardSurface,
+            growth: growthColonize
         };
 
         let fsTile = null; /* while one tile is fullscreen, only that one animates */
