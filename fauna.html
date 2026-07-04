@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+    <title>MXGN — FAUNA</title>
+    <meta name="description" content="FAUNA – explore an endless procedural wilderness as monkey, dog, spider, bobcat or stork. valleys, caves, forests, mountains, tunnels & ruins.">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100%;
+            overscroll-behavior: none;
+        }
+
+        #game {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            touch-action: none;
+        }
+
+        #back {
+            position: fixed;
+            top: 10px;
+            left: 12px;
+            z-index: 20;
+            font-size: 12px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.55);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        #back:hover { color: #ff9900; }
+
+        #intro {
+            position: fixed;
+            inset: 0;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.78);
+            cursor: pointer;
+        }
+
+        #intro .panel {
+            max-width: 420px;
+            margin: 16px;
+            padding: 22px 26px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.8);
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
+        #intro h1 {
+            margin: 0 0 4px;
+            font-size: 22px;
+            letter-spacing: 0.34em;
+        }
+
+        #intro .sub {
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            opacity: 0.6;
+            font-size: 10px;
+            margin-bottom: 14px;
+        }
+
+        #intro .animals span { color: #ff9900; }
+
+        #intro .keys { opacity: 0.75; margin-top: 12px; }
+
+        #intro .start {
+            margin-top: 16px;
+            color: #ff9900;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="game"></canvas>
+    <a id="back" href="play.html">&larr; arcade</a>
+
+    <div id="intro">
+        <div class="panel">
+            <h1>FAUNA</h1>
+            <div class="sub">procedural wilderness — explore as five animals</div>
+            <div class="animals">
+                <span>affe</span> — climbs trees, double jump<br>
+                <span>hund</span> — fast, digs through dirt (hold E / ■)<br>
+                <span>spinne</span> — crawls up walls &amp; ceilings<br>
+                <span>bobcat</span> — huge pounce, sprint (hold E / ■)<br>
+                <span>storch</span> — hold jump to fly, stamina refills on ground
+            </div>
+            <div class="keys">
+                &larr;&rarr; / a d — move &nbsp;·&nbsp; space / w — jump &nbsp;·&nbsp; s — down / climb<br>
+                1–5 or q — switch animal &nbsp;·&nbsp; e — ability &nbsp;·&nbsp; n — new world<br>
+                on phones: on-screen buttons. collect the golden orbs.
+            </div>
+            <div class="start">&#9654; tap / click to start</div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        'use strict';
+
+        const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+        /* ================= seeded noise ================= */
+        let SEED = parseInt(localStorage.getItem('fauna_seed') || '0', 10);
+        if (!SEED) { SEED = (Math.random() * 2147483647) | 0 || 1; localStorage.setItem('fauna_seed', String(SEED)); }
+
+        function ih(i, s) {
+            let n = (Math.imul(i, 374761393) + Math.imul(s, 668265263) + Math.imul(SEED, 2246822519)) | 0;
+            n = Math.imul(n ^ (n >>> 13), 1274126177);
+            n ^= n >>> 16;
+            return (n >>> 0) / 4294967296;
+        }
+        const ih2 = (x, y, s) => ih(x + Math.imul(y, 7919), s);
+
+        function n1(x, s) {
+            const xi = Math.floor(x), xf = x - xi;
+            const u = xf * xf * (3 - 2 * xf);
+            return ih(xi, s) * (1 - u) + ih(xi + 1, s) * u;
+        }
+        const fbm1 = (x, s) => n1(x, s) * 0.5 + n1(x * 2.13, s + 7) * 0.3 + n1(x * 4.31, s + 13) * 0.2;
+
+        function n2(x, y, s) {
+            const xi = Math.floor(x), yi = Math.floor(y);
+            const xf = x - xi, yf = y - yi;
+            const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+            const a = ih2(xi, yi, s), b = ih2(xi + 1, yi, s);
+            const c = ih2(xi, yi + 1, s), d = ih2(xi + 1, yi + 1, s);
+            return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+        }
+        const fbm2 = (x, y, s) => n2(x, y, s) * 0.55 + n2(x * 2.1, y * 2.1, s + 9) * 0.3 + n2(x * 4.3, y * 4.3, s + 17) * 0.15;
+
+        /* ================= world ================= */
+        const TS = 8, CHUNK = 32, WORLD_H = 256, WATER_Y = 150;
+        const AIR = 0, GRASS = 1, DIRT = 2, STONE = 3, SAND = 4, WOOD = 5,
+              LEAF = 6, BRICK = 7, WATER = 8, CRYSTAL = 9, ORB = 10, TORCH = 11;
+        const SOLID = [false, true, true, true, true, false, true, true, false, true, false, false];
+        const DIGGABLE = [false, true, true, false, true, false, true, false, false, false, false, false];
+
+        const chunks = new Map();
+        const surfCache = new Map();
+        let collected = new Set(JSON.parse(localStorage.getItem('fauna_got_' + SEED) || '[]'));
+
+        function surfY(x) {
+            let s = surfCache.get(x);
+            if (s === undefined) {
+                const m = fbm1(x * 0.008, 11);              // continents: mountains & valleys
+                const ridge = Math.abs(fbm1(x * 0.02, 19) - 0.5) * 2; // sharper peaks
+                const r = fbm1(x * 0.09, 23);               // roughness
+                s = Math.round(clamp(128 + (m - 0.5) * 130 - ridge * ridge * 34 + (r - 0.5) * 10, 34, 200));
+                surfCache.set(x, s);
+            }
+            return s;
+        }
+
+        function put(g, bx, x, y, id, force) {
+            const i = x - bx;
+            if (i < 0 || i >= CHUNK || y < 0 || y >= WORLD_H) return;
+            const idx = i * WORLD_H + y;
+            if (force || g[idx] === AIR) g[idx] = id;
+        }
+
+        function genTree(g, bx, ax) {
+            const s = surfY(ax);
+            if (s >= WATER_Y - 2) return;
+            const th = 5 + Math.floor(ih(ax, 103) * 6);
+            for (let y = s - 1; y >= s - th; y--) put(g, bx, ax, y, WOOD);
+            const rx = 2 + Math.floor(ih(ax, 107) * 2), ry = 2 + Math.floor(ih(ax, 109) * 1.6);
+            const cy = s - th - ry + 1;
+            for (let dx = -rx; dx <= rx; dx++) {
+                for (let dy = -ry; dy <= ry; dy++) {
+                    if (dx * dx / (rx * rx) + dy * dy / (ry * ry) > 1.08) continue;
+                    if (ih2(ax + dx, cy + dy, 111) < 0.12) continue; // ragged canopy
+                    put(g, bx, ax + dx, cy + dy, LEAF);
+                }
+            }
+        }
+
+        function genTower(g, bx, ax, k) {
+            const s = surfY(ax);
+            const hgt = 13 + Math.floor(ih(k, 211) * 5);
+            for (let dx = -3; dx <= 3; dx++) {
+                const gy = surfY(ax + dx);
+                /* foundation down to local ground */
+                for (let y = s + 1; y <= Math.max(gy + 1, s + 1); y++) put(g, bx, ax + dx, y, BRICK, true);
+                for (let y = s - hgt; y <= s; y++) {
+                    const shell = Math.abs(dx) === 3 || y === s - hgt || y === s;
+                    put(g, bx, ax + dx, y, shell ? BRICK : AIR, true);
+                }
+            }
+            /* doorways */
+            for (const side of [-3, 3]) {
+                put(g, bx, ax + side, s - 1, AIR, true);
+                put(g, bx, ax + side, s - 2, AIR, true);
+            }
+            /* interior platforms, alternating, climbable gaps */
+            let j = 1;
+            for (let y = s - 3; y > s - hgt + 2; y -= 3, j++) {
+                const from = (j % 2 === 1) ? -2 : 0;
+                for (let dx = from; dx <= from + 2; dx++) put(g, bx, ax + dx, y, BRICK, true);
+                put(g, bx, ax + ((j % 2 === 1) ? -2 : 2), y - 1, TORCH, true);
+            }
+            put(g, bx, ax, s - hgt + 1, ORB, true);
+        }
+
+        function genShrine(g, bx, ax, k) {
+            const s = surfY(ax);
+            for (let dx = -4; dx <= 4; dx++) {
+                const gy = surfY(ax + dx);
+                for (let y = s + 1; y <= Math.max(gy + 1, s + 1); y++) put(g, bx, ax + dx, y, BRICK, true);
+                for (let y = s - 5; y <= s; y++) {
+                    const shell = Math.abs(dx) === 4 || y === s - 5 || y === s;
+                    put(g, bx, ax + dx, y, shell ? BRICK : AIR, true);
+                }
+            }
+            for (const side of [-4, 4]) {
+                put(g, bx, ax + side, s - 1, AIR, true);
+                put(g, bx, ax + side, s - 2, AIR, true);
+            }
+            put(g, bx, ax, s - 1, BRICK, true);      // pedestal
+            put(g, bx, ax, s - 2, ORB, true);
+            put(g, bx, ax - 3, s - 2, TORCH, true);
+            put(g, bx, ax + 3, s - 2, TORCH, true);
+        }
+
+        function genVault(g, bx, ax, k) {
+            const s = surfY(ax);
+            const cy = s + 34 + Math.floor(ih(k, 221) * 22);
+            for (let dx = -7; dx <= 6; dx++) {
+                for (let dy = -4; dy <= 3; dy++) {
+                    const shell = dx === -7 || dx === 6 || dy === -4 || dy === 3;
+                    put(g, bx, ax + dx, cy + dy, shell ? BRICK : AIR, true);
+                }
+            }
+            /* well shaft up to the surface, with a climbable vine */
+            for (let y = cy - 4; y >= s; y--) {
+                put(g, bx, ax, y, AIR, true);
+                if (y > s + 1) put(g, bx, ax, y, WOOD, true);
+            }
+            put(g, bx, ax - 1, s - 1, BRICK, true);
+            put(g, bx, ax + 1, s - 1, BRICK, true);
+            for (const dx of [-5, -2, 2, 4]) put(g, bx, ax + dx, cy + 2, CRYSTAL, true);
+            put(g, bx, ax - 4, cy + 1, ORB, true);
+            put(g, bx, ax + 3, cy + 1, ORB, true);
+        }
+
+        function genChunk(cx) {
+            const g = new Uint8Array(CHUNK * WORLD_H);
+            const bx = cx * CHUNK;
+            for (let i = 0; i < CHUNK; i++) {
+                const x = bx + i, s = surfY(x);
+                const sandy = s >= WATER_Y - 2;
+                const dirtDepth = 4 + Math.floor(ih(x, 3) * 4);
+                for (let y = 0; y < WORLD_H; y++) {
+                    let id = AIR;
+                    if (y === s) id = sandy ? SAND : GRASS;
+                    else if (y > s) id = (y - s <= dirtDepth) ? (sandy ? SAND : DIRT) : STONE;
+                    if (id !== AIR && y >= s) {
+                        const c = fbm2(x * 0.055, y * 0.055, 31);
+                        const tun = Math.abs(fbm2(x * 0.018, y * 0.05, 47) - 0.5);
+                        if ((c > 0.63 && y > s + 2) || tun < 0.032) id = AIR;
+                    }
+                    if (id === AIR && y < s && y >= WATER_Y) id = WATER;
+                    g[i * WORLD_H + y] = id;
+                }
+            }
+            /* crystals grow on cave walls */
+            for (let i = 1; i < CHUNK - 1; i++) {
+                const s = surfY(bx + i);
+                for (let y = s + 20; y < WORLD_H - 1; y++) {
+                    const idx = i * WORLD_H + y;
+                    if (g[idx] !== STONE) continue;
+                    if ((g[idx - 1] === AIR || g[idx + 1] === AIR ||
+                         g[idx - WORLD_H] === AIR || g[idx + WORLD_H] === AIR) &&
+                        ih2(bx + i, y, 71) < 0.045) g[idx] = CRYSTAL;
+                }
+            }
+            /* trees */
+            for (let ax = bx - 4; ax < bx + CHUNK + 4; ax++) {
+                if (fbm1(ax * 0.02, 91) > 0.55 && ih(ax, 101) < 0.25) genTree(g, bx, ax);
+            }
+            /* structures every ~140 tiles */
+            const k0 = Math.floor((bx - 40) / 140), k1 = Math.floor((bx + CHUNK + 40) / 140);
+            for (let k = k0; k <= k1; k++) {
+                const ax = k * 140 + Math.floor(ih(k, 201) * 100);
+                const r = ih(k, 203);
+                if (r < 0.34) genTower(g, bx, ax, k);
+                else if (r < 0.67) genShrine(g, bx, ax, k);
+                else genVault(g, bx, ax, k);
+            }
+            /* loose orbs: on ridges & deep in caves */
+            for (let i = 0; i < CHUNK; i++) {
+                const x = bx + i, s = surfY(x);
+                if (ih(x, 301) < 0.018 && s < WATER_Y && g[i * WORLD_H + s - 1] === AIR) {
+                    g[i * WORLD_H + s - 1] = ORB;
+                }
+                for (let y = s + 18; y < WORLD_H - 1; y++) {
+                    const idx = i * WORLD_H + y;
+                    if (g[idx] === AIR && SOLID[g[idx + 1]] && ih2(x, y, 307) < 0.012) g[idx] = ORB;
+                }
+            }
+            /* already collected orbs stay gone */
+            for (let i = 0; i < CHUNK; i++) {
+                for (let y = 0; y < WORLD_H; y++) {
+                    if (g[i * WORLD_H + y] === ORB && collected.has((bx + i) + ',' + y)) {
+                        g[i * WORLD_H + y] = AIR;
+                    }
+                }
+            }
+            return g;
+        }
+
+        function chunkAt(cx) {
+            let c = chunks.get(cx);
+            if (!c) {
+                c = genChunk(cx);
+                chunks.set(cx, c);
+                if (chunks.size > 90) { /* drop the oldest far-away chunk */
+                    const pcx = Math.floor(player.x / TS / CHUNK);
+                    let worst = null, wd = -1;
+                    for (const key of chunks.keys()) {
+                        const d = Math.abs(key - pcx);
+                        if (d > wd) { wd = d; worst = key; }
+                    }
+                    if (worst !== null && wd > 4) chunks.delete(worst);
+                }
+            }
+            return c;
+        }
+
+        function tileAt(tx, ty) {
+            if (ty < 0) return AIR;
+            if (ty >= WORLD_H) return STONE;
+            const cx = Math.floor(tx / CHUNK);
+            return chunkAt(cx)[(tx - cx * CHUNK) * WORLD_H + ty];
+        }
+
+        function setTile(tx, ty, id) {
+            if (ty < 0 || ty >= WORLD_H) return;
+            const cx = Math.floor(tx / CHUNK);
+            chunkAt(cx)[(tx - cx * CHUNK) * WORLD_H + ty] = id;
+        }
+
+        const solidAt = (tx, ty) => SOLID[tileAt(tx, ty)];
+
+        /* ================= animals ================= */
+        const ANIMALS = [
+            { id: 'affe',   name: 'AFFE',   note: 'climbs trees · double jump',      w: 6, h: 7, run: 72, jump: 152, climbWood: true, doubleJump: true },
+            { id: 'hund',   name: 'HUND',   note: 'fast · hold E/■ to dig',          w: 8, h: 6, run: 98, jump: 122, dig: true },
+            { id: 'spinne', name: 'SPINNE', note: 'crawls walls & ceilings',         w: 6, h: 4, run: 46, jump: 92,  climbAll: true },
+            { id: 'bobcat', name: 'BOBCAT', note: 'huge pounce · hold E/■ to sprint',w: 8, h: 6, run: 88, jump: 196, sprint: true },
+            { id: 'storch', name: 'STORCH', note: 'hold jump to fly · rests on ground', w: 6, h: 8, run: 56, jump: 116, fly: true }
+        ];
+
+        const player = {
+            x: 0, y: 0, vx: 0, vy: 0,
+            ai: 0, facing: 1,
+            grounded: false, coyote: 0, jumps: 0, jumpHeld: false,
+            climbing: false, inWater: false,
+            stamina: 2.2, staminaMax: 2.2,
+            walkDist: 0, digCd: 0
+        };
+        const A = () => ANIMALS[player.ai];
+
+        function spawn() {
+            const s = surfY(2);
+            player.x = 2 * TS;
+            player.y = (s - 2) * TS - A().h;
+            player.vx = 0; player.vy = 0;
+        }
+
+        /* ================= input ================= */
+        const keys = {};
+        const input = { left: false, right: false, up: false, down: false, jump: false, act: false };
+        let touchSeen = false;
+        let toast = { text: '', t: 0 };
+        let orbs = collected.size;
+
+        function showToast(text) { toast.text = text; toast.t = 3; }
+
+        function switchAnimal(i) {
+            if (i === player.ai) return;
+            const prev = ANIMALS[player.ai], next = ANIMALS[i];
+            const cx = player.x + prev.w / 2;
+            let ny = player.y + prev.h - next.h;
+            /* nudge free if the new body doesn't fit */
+            let nx = cx - next.w / 2;
+            for (let lift = 0; lift <= 12; lift += 2) {
+                if (!boxHits(nx, ny - lift, next.w, next.h)) { ny -= lift; break; }
+                if (lift === 12) return;
+            }
+            player.ai = i;
+            player.x = nx; player.y = ny;
+            player.jumps = 0;
+            showToast(next.name + ' — ' + next.note);
+            blip(520 + i * 60, 0.05);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            keys[e.code] = true;
+            const num = parseInt(e.key, 10);
+            if (num >= 1 && num <= 5) switchAnimal(num - 1);
+            if (e.code === 'KeyQ' || e.code === 'Tab') { switchAnimal((player.ai + 1) % 5); e.preventDefault(); }
+            if (e.code === 'KeyN') newWorld();
+            if (e.code === 'Space') e.preventDefault();
+        });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        function newWorld() {
+            SEED = (Math.random() * 2147483647) | 0 || 1;
+            localStorage.setItem('fauna_seed', String(SEED));
+            collected = new Set();
+            orbs = 0;
+            chunks.clear();
+            surfCache.clear();
+            spawn();
+            showToast('NEW WORLD — seed ' + SEED);
+        }
+
+        /* ================= audio ================= */
+        let actx = null;
+        function blip(freq, dur) {
+            try {
+                if (!actx) return;
+                const o = actx.createOscillator(), gn = actx.createGain();
+                o.type = 'square';
+                o.frequency.value = freq;
+                gn.gain.setValueAtTime(0.04, actx.currentTime);
+                gn.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+                o.connect(gn); gn.connect(actx.destination);
+                o.start(); o.stop(actx.currentTime + dur);
+            } catch (err) { /* audio is optional */ }
+        }
+
+        /* ================= canvas ================= */
+        const cv = document.getElementById('game');
+        const ctx = cv.getContext('2d');
+        const dark = document.createElement('canvas');
+        const dctx = dark.getContext('2d');
+        let W = 480, H = 270, skyGrad = null;
+
+        function fit() {
+            const vw = window.innerWidth, vh = window.innerHeight;
+            if (vw >= vh) { H = 270; W = Math.min(640, Math.round(vw / vh * 270)); }
+            else { W = 270; H = Math.min(640, Math.round(vh / vw * 270)); }
+            cv.width = W; cv.height = H;
+            dark.width = W; dark.height = H;
+            skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+            skyGrad.addColorStop(0, '#0c1722');
+            skyGrad.addColorStop(0.5, '#2c4a5e');
+            skyGrad.addColorStop(0.82, '#4d6a72');
+            skyGrad.addColorStop(1, '#8a7a5e');
+        }
+        window.addEventListener('resize', fit);
+        fit();
+
+        /* ================= touch buttons ================= */
+        const pointers = new Map();
+        function buttons() {
+            return [
+                { id: 'left',   x: 22,      y: H - 24, r: 15, label: '◀' },
+                { id: 'right',  x: 58,      y: H - 24, r: 15, label: '▶' },
+                { id: 'jump',   x: W - 24,  y: H - 24, r: 16, label: '●' },
+                { id: 'act',    x: W - 60,  y: H - 28, r: 12, label: '■' },
+                { id: 'switch', x: W - 18,  y: 16,     r: 12, label: '⇄' },
+                { id: 'world',  x: W - 46,  y: 16,     r: 12, label: '↻' }
+            ];
+        }
+        function canvasPos(e) {
+            const r = cv.getBoundingClientRect();
+            return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H };
+        }
+        function hitButton(p) {
+            for (const b of buttons()) {
+                if (Math.hypot(p.x - b.x, p.y - b.y) < b.r + 6) return b.id;
+            }
+            return null;
+        }
+        cv.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'touch') touchSeen = true;
+            if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (err) {} }
+            const b = hitButton(canvasPos(e));
+            pointers.set(e.pointerId, b);
+            if (b === 'switch') switchAnimal((player.ai + 1) % 5);
+            if (b === 'world') newWorld();
+            e.preventDefault();
+        });
+        cv.addEventListener('pointermove', (e) => {
+            if (pointers.has(e.pointerId)) {
+                const b = hitButton(canvasPos(e));
+                const cur = pointers.get(e.pointerId);
+                if (cur === 'left' || cur === 'right' || b === 'left' || b === 'right') {
+                    pointers.set(e.pointerId, b);
+                }
+            }
+        });
+        const dropPointer = (e) => pointers.delete(e.pointerId);
+        window.addEventListener('pointerup', dropPointer);
+        window.addEventListener('pointercancel', dropPointer);
+
+        /* ================= physics ================= */
+        function boxHits(x, y, w, h) {
+            const x0 = Math.floor(x / TS), x1 = Math.floor((x + w - 0.01) / TS);
+            const y0 = Math.floor(y / TS), y1 = Math.floor((y + h - 0.01) / TS);
+            for (let ty = y0; ty <= y1; ty++) {
+                for (let tx = x0; tx <= x1; tx++) {
+                    if (solidAt(tx, ty)) return true;
+                }
+            }
+            return false;
+        }
+
+        function overlapTile(id) {
+            const a = A();
+            const x0 = Math.floor(player.x / TS), x1 = Math.floor((player.x + a.w - 0.01) / TS);
+            const y0 = Math.floor(player.y / TS), y1 = Math.floor((player.y + a.h - 0.01) / TS);
+            for (let ty = y0; ty <= y1; ty++) {
+                for (let tx = x0; tx <= x1; tx++) {
+                    if (tileAt(tx, ty) === id) return true;
+                }
+            }
+            return false;
+        }
+
+        function touchingSolid() {
+            const a = A();
+            return boxHits(player.x - 1, player.y - 1, a.w + 2, a.h + 2);
+        }
+
+        const particles = [];
+        function puff(x, y, col, n, sp) {
+            for (let i = 0; i < n; i++) {
+                const ang = Math.random() * Math.PI * 2;
+                particles.push({
+                    x, y,
+                    vx: Math.cos(ang) * sp * (0.3 + Math.random()),
+                    vy: Math.sin(ang) * sp * (0.3 + Math.random()) - sp * 0.3,
+                    age: 0, life: 0.3 + Math.random() * 0.4, col
+                });
+            }
+        }
+
+        function collectOrbs() {
+            const a = A();
+            const x0 = Math.floor(player.x / TS), x1 = Math.floor((player.x + a.w - 0.01) / TS);
+            const y0 = Math.floor(player.y / TS), y1 = Math.floor((player.y + a.h - 0.01) / TS);
+            for (let ty = y0; ty <= y1; ty++) {
+                for (let tx = x0; tx <= x1; tx++) {
+                    if (tileAt(tx, ty) === ORB) {
+                        setTile(tx, ty, AIR);
+                        collected.add(tx + ',' + ty);
+                        orbs = collected.size;
+                        localStorage.setItem('fauna_got_' + SEED, JSON.stringify([...collected].slice(-4000)));
+                        puff(tx * TS + 4, ty * TS + 4, '#ffd21f', 10, 50);
+                        blip(880, 0.07);
+                        setTimeout(() => blip(1320, 0.09), 60);
+                    }
+                }
+            }
+        }
+
+        function dig(dt) {
+            player.digCd -= dt;
+            if (player.digCd > 0) return;
+            const a = A();
+            const targets = [];
+            if (input.down) {
+                const y = Math.floor((player.y + a.h + 1) / TS);
+                targets.push([Math.floor((player.x + 1) / TS), y], [Math.floor((player.x + a.w - 1) / TS), y]);
+            } else {
+                const fx = player.facing > 0 ? player.x + a.w + 2 : player.x - 2;
+                const tx = Math.floor(fx / TS);
+                targets.push([tx, Math.floor((player.y + 1) / TS)], [tx, Math.floor((player.y + a.h - 1) / TS)]);
+            }
+            for (const [tx, ty] of targets) {
+                if (DIGGABLE[tileAt(tx, ty)]) {
+                    setTile(tx, ty, AIR);
+                    puff(tx * TS + 4, ty * TS + 4, '#6b4f35', 7, 60);
+                    blip(140 + Math.random() * 40, 0.05);
+                    player.digCd = 0.13;
+                }
+            }
+        }
+
+        function stepPlayer(dt) {
+            const a = A();
+            input.left  = !!(keys.ArrowLeft || keys.KeyA)  || [...pointers.values()].includes('left');
+            input.right = !!(keys.ArrowRight || keys.KeyD) || [...pointers.values()].includes('right');
+            input.up    = !!(keys.ArrowUp || keys.KeyW);
+            input.down  = !!(keys.ArrowDown || keys.KeyS);
+            input.jump  = !!(keys.Space || keys.ArrowUp || keys.KeyW) || [...pointers.values()].includes('jump');
+            input.act   = !!(keys.KeyE || keys.ShiftLeft) || [...pointers.values()].includes('act');
+
+            player.inWater = overlapTile(WATER);
+            const onWood = overlapTile(WOOD);
+            const dir = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+            if (dir !== 0) player.facing = dir;
+
+            let run = a.run;
+            if (a.sprint && input.act) run *= 1.7;
+            if (player.inWater) run *= (a.id === 'hund' ? 0.9 : 0.55);
+
+            /* climbing modes */
+            player.climbing = false;
+            if (a.climbAll && touchingSolid() && !player.grounded) player.climbing = true;
+            if (a.climbAll && touchingSolid() && (input.up || input.down)) player.climbing = true;
+            if (a.climbWood && onWood && (!player.grounded || input.up || input.down)) player.climbing = true;
+
+            player.vx = dir * run;
+
+            if (player.climbing) {
+                const climbSpd = a.climbAll ? 42 : 55;
+                player.vy = (input.down ? 1 : 0) * climbSpd - (input.up || (a.climbAll && input.jump) ? 1 : 0) * climbSpd;
+                if (a.climbWood && input.jump && !player.jumpHeld) {
+                    player.vy = -a.jump * 0.9;
+                    player.climbing = false;
+                    player.jumps = 1;
+                }
+            } else if (player.inWater) {
+                player.vy += 140 * dt;
+                if (input.jump) player.vy -= 420 * dt;
+                player.vy = clamp(player.vy, -70, 60);
+            } else {
+                /* gravity + jumping */
+                player.vy += 520 * dt;
+                let maxFall = 260;
+                if (a.fly && player.vy > 0 && !player.grounded) maxFall = 70; /* stork glides */
+                player.vy = Math.min(player.vy, maxFall);
+
+                if (a.fly && input.jump && player.stamina > 0 && player.jumpHeld) {
+                    player.vy -= 1150 * dt;
+                    player.vy = Math.max(player.vy, -115);
+                    player.stamina -= dt;
+                    if (Math.random() < dt * 20) {
+                        puff(player.x + a.w / 2, player.y + a.h, 'rgba(255,255,255,0.5)', 1, 16);
+                    }
+                }
+
+                if (input.jump && !player.jumpHeld) {
+                    if (player.grounded || player.coyote > 0) {
+                        player.vy = -a.jump;
+                        player.jumps = 1;
+                        player.coyote = 0;
+                        blip(240, 0.04);
+                    } else if (a.doubleJump && player.jumps === 1) {
+                        player.vy = -a.jump * 0.88;
+                        player.jumps = 2;
+                        puff(player.x + a.w / 2, player.y + a.h, 'rgba(255,255,255,0.6)', 6, 34);
+                        blip(320, 0.04);
+                    } else if (a.fly && player.stamina > 0.05) {
+                        player.vy = -a.jump * 0.8; /* first flap */
+                    }
+                }
+            }
+            player.jumpHeld = input.jump;
+
+            if (a.dig && input.act) dig(dt);
+
+            /* stamina */
+            if (player.grounded || player.climbing) {
+                player.stamina = Math.min(player.staminaMax, player.stamina + dt * 1.4);
+            }
+
+            /* --- move X --- */
+            player.x += player.vx * dt;
+            if (boxHits(player.x, player.y, a.w, a.h)) {
+                /* step-up assist: walk up single-tile slopes */
+                if ((player.grounded || player.climbing) && !boxHits(player.x, player.y - TS, a.w, a.h) && Math.abs(player.vx) > 1) {
+                    player.y -= TS;
+                } else {
+                    const step = player.vx > 0 ? -0.5 : 0.5;
+                    let guard = 40;
+                    while (boxHits(player.x, player.y, a.w, a.h) && guard-- > 0) player.x += step;
+                    player.vx = 0;
+                }
+            }
+
+            /* --- move Y --- */
+            const wasFalling = player.vy;
+            player.y += player.vy * dt;
+            player.grounded = false;
+            if (boxHits(player.x, player.y, a.w, a.h)) {
+                const step = player.vy > 0 ? -0.5 : 0.5;
+                let guard = 60;
+                while (boxHits(player.x, player.y, a.w, a.h) && guard-- > 0) player.y += step;
+                if (player.vy > 0) {
+                    player.grounded = true;
+                    player.jumps = 0;
+                    player.coyote = 0.09;
+                    if (wasFalling > 170) puff(player.x + a.w / 2, player.y + a.h, 'rgba(200,190,160,0.5)', 6, 30);
+                }
+                player.vy = 0;
+            } else {
+                player.coyote = Math.max(0, player.coyote - dt);
+            }
+
+            if (player.grounded && dir !== 0) player.walkDist += Math.abs(player.vx) * dt;
+
+            /* never fall out of the world */
+            if (player.y > WORLD_H * TS + 40) spawn();
+
+            collectOrbs();
+        }
+
+        /* ================= tile colors ================= */
+        function shades(hex, n) {
+            const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+            const out = [];
+            for (let i = 0; i < n; i++) {
+                const k = 0.86 + i * 0.09;
+                out.push(`rgb(${Math.min(255, r * k) | 0},${Math.min(255, g * k) | 0},${Math.min(255, b * k) | 0})`);
+            }
+            return out;
+        }
+        const PAL = {
+            [GRASS]:   shades('#5d8a3c', 4),
+            [DIRT]:    shades('#6b4f35', 4),
+            [STONE]:   shades('#565660', 4),
+            [SAND]:    shades('#c2ab74', 4),
+            [WOOD]:    shades('#7a5230', 4),
+            [LEAF]:    shades('#3f6d33', 4),
+            [BRICK]:   shades('#79705f', 4),
+            [CRYSTAL]: shades('#7ee0ff', 4)
+        };
+        const TOP = {
+            [GRASS]: '#8fc45e', [SAND]: '#e0cd94', [STONE]: '#7a7a86',
+            [DIRT]: '#8a6a48', [BRICK]: '#98907e', [LEAF]: '#5d9448'
+        };
+
+        /* ================= sprites ================= */
+        function sprite(a, sx, sy, facing, phase, airborne, flying, climbing, t) {
+            const P = (dx, dy, w, h, c) => {
+                ctx.fillStyle = c;
+                const rx = facing > 0 ? sx + dx : sx + a.w - dx - w;
+                ctx.fillRect(Math.round(rx), Math.round(sy + dy), w, h);
+            };
+            const leg = Math.round(Math.sin(phase) * 1.5);
+
+            if (a.id === 'affe') {
+                P(1, -2 + (airborne ? -1 : 0), 3, 3, '#8a5a2e');           /* head */
+                P(2, -1 + (airborne ? -1 : 0), 2, 2, '#d9b98c');           /* face */
+                P(0, 1, 5, 4, '#a06a38');                                   /* body */
+                P(-2, 0, 2, 1, '#8a5a2e'); P(-3, -2, 1, 3, '#8a5a2e');     /* tail */
+                P(1, 5, 1, 2 + leg, '#6d4623');                             /* legs */
+                P(3, 5, 1, 2 - leg, '#6d4623');
+                P(4, 2, 1, 3 + (airborne ? -2 : 0), '#6d4623');             /* arm */
+            } else if (a.id === 'hund') {
+                P(5, -2, 3, 3, '#cbb289');                                   /* head */
+                P(5, -3, 1, 2, '#8a734f');                                   /* ear */
+                P(8, -1, 1, 1, '#3a2e20');                                   /* nose */
+                P(0, 1, 7, 3, '#d9c9a8');                                    /* body */
+                P(-1, -1 + Math.round(Math.sin(t * 9) * 1), 1, 2, '#cbb289');/* wagging tail */
+                P(1, 4, 1, 2 + leg, '#a08a63');
+                P(5, 4, 1, 2 - leg, '#a08a63');
+            } else if (a.id === 'spinne') {
+                P(1, 0, 4, 3, '#33333d');                                    /* body */
+                P(4, 0, 1, 1, '#e0243a'); P(3, 0, 1, 1, '#e0243a');          /* eyes */
+                for (let i = 0; i < 4; i++) {
+                    const lp = Math.round(Math.sin(phase + i * 1.7) * 1.5);
+                    P(i * 1.6, 2, 1, 2 + lp, '#22222a');
+                    P(i * 1.6 + 0.5, -1 - Math.abs(lp), 1, 1, '#22222a');
+                }
+            } else if (a.id === 'bobcat') {
+                P(5, -2, 3, 3, '#c9a568');                                   /* head */
+                P(5, -3, 1, 1, '#8a6a3c'); P(7, -3, 1, 1, '#8a6a3c');        /* pointy ears */
+                P(0, 0, 7, 4, '#d4b478');                                    /* body */
+                P(1, 1, 1, 1, '#8a6a3c'); P(3, 2, 1, 1, '#8a6a3c'); P(5, 1, 1, 1, '#8a6a3c'); /* spots */
+                P(-1, 0, 1, 1, '#8a6a3c');                                   /* stub tail */
+                P(1, 4, 1, 2 + leg, '#a3814c');
+                P(5, 4, 1, 2 - leg, '#a3814c');
+            } else if (a.id === 'storch') {
+                const flap = flying ? Math.round(Math.sin(t * 16) * 2) : 0;
+                P(0, 3, 5, 3, '#e9e9ee');                                    /* body */
+                P(0, 3, 5, 1, '#b8b8c2');                                    /* wing line */
+                if (flying) {
+                    P(-1, 2 - flap, 3, 1, '#e9e9ee');
+                    P(3, 2 + flap, 3, 1, '#e9e9ee');
+                }
+                P(4, -1, 1, 4, '#e9e9ee');                                   /* neck */
+                P(4, -2, 2, 2, '#e9e9ee');                                   /* head */
+                P(6, -1, 2, 1, '#ff7a18');                                   /* beak */
+                P(4, -2, 1, 1, '#1a1a1a');                                   /* eye */
+                if (!flying) {
+                    P(1, 6, 1, 2 + leg, '#ff7a18');
+                    P(3, 6, 1, 2 - leg, '#ff7a18');
+                } else {
+                    P(2, 6, 1, 2, '#ff7a18');
+                }
+            }
+        }
+
+        /* ================= render ================= */
+        let camX = 0, camY = 0, tGlobal = 0;
+
+        function render(dt) {
+            const a = A();
+            /* camera */
+            camX += (player.x + a.w / 2 - W / 2 - camX) * Math.min(1, dt * 6);
+            camY += (player.y + a.h / 2 - H / 2 - camY) * Math.min(1, dt * 6);
+            camY = clamp(camY, -60, WORLD_H * TS - H);
+            const cx = Math.round(camX), cy = Math.round(camY);
+
+            /* sky */
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, W, H);
+            /* sun */
+            const sunX = W * 0.75 - cx * 0.02, sunY = H * 0.2 - cy * 0.05;
+            const sg = ctx.createRadialGradient(sunX, sunY, 2, sunX, sunY, 26);
+            sg.addColorStop(0, 'rgba(255,236,180,0.9)');
+            sg.addColorStop(1, 'rgba(255,236,180,0)');
+            ctx.fillStyle = sg;
+            ctx.fillRect(sunX - 26, sunY - 26, 52, 52);
+            /* clouds */
+            ctx.fillStyle = 'rgba(210,220,228,0.16)';
+            for (let i = 0; i < 6; i++) {
+                const cwx = ((ih(i, 401) * 900 + tGlobal * (3 + i) - cx * 0.15) % (W + 160)) - 80;
+                const cwy = 20 + ih(i, 403) * 60 - cy * 0.04;
+                ctx.fillRect(cwx, cwy, 34 + ih(i, 405) * 30, 5);
+                ctx.fillRect(cwx + 6, cwy - 3, 20, 3);
+            }
+            /* parallax ridges */
+            for (const [par, col, base, amp, salt] of [[0.3, '#233746', 90, 40, 51], [0.55, '#182833', 130, 46, 53]]) {
+                ctx.fillStyle = col;
+                ctx.beginPath();
+                ctx.moveTo(0, H);
+                for (let x = 0; x <= W; x += 4) {
+                    const wx = (x + cx * par);
+                    ctx.lineTo(x, base + (fbm1(wx * 0.01, salt) - 0.5) * amp * 2 - cy * par * 0.4);
+                }
+                ctx.lineTo(W, H);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            /* tiles */
+            const lights = [];
+            const tx0 = Math.floor(cx / TS) - 1, tx1 = Math.floor((cx + W) / TS) + 1;
+            const ty0 = Math.max(0, Math.floor(cy / TS) - 1), ty1 = Math.min(WORLD_H - 1, Math.floor((cy + H) / TS) + 1);
+            for (let tx = tx0; tx <= tx1; tx++) {
+                const s = surfY(tx);
+                for (let ty = ty0; ty <= ty1; ty++) {
+                    const id = tileAt(tx, ty);
+                    const px2 = tx * TS - cx, py2 = ty * TS - cy;
+                    if (id === AIR) {
+                        if (ty > s) { /* cave backdrop */
+                            ctx.fillStyle = (ih2(tx, ty, 61) < 0.5) ? '#161219' : '#19141c';
+                            ctx.fillRect(px2, py2, TS, TS);
+                        }
+                        continue;
+                    }
+                    if (id === WATER) {
+                        ctx.fillStyle = 'rgba(44,106,168,0.72)';
+                        ctx.fillRect(px2, py2, TS, TS);
+                        if (tileAt(tx, ty - 1) !== WATER) {
+                            ctx.fillStyle = 'rgba(160,210,255,0.5)';
+                            ctx.fillRect(px2, py2 + Math.sin(tGlobal * 2 + tx * 0.8) * 1, TS, 1);
+                        }
+                        continue;
+                    }
+                    if (id === ORB) {
+                        if (ty > s) { ctx.fillStyle = '#161219'; ctx.fillRect(px2, py2, TS, TS); }
+                        const pu = 1 + Math.sin(tGlobal * 4 + tx) * 0.8;
+                        ctx.fillStyle = 'rgba(255,210,31,0.25)';
+                        ctx.fillRect(px2 + 1 - pu / 2, py2 + 1 - pu / 2, 6 + pu, 6 + pu);
+                        ctx.fillStyle = '#ffd21f';
+                        ctx.fillRect(px2 + 2, py2 + 2, 4, 4);
+                        ctx.fillStyle = '#fff3c0';
+                        ctx.fillRect(px2 + 3, py2 + 3, 1, 1);
+                        lights.push([px2 + 4, py2 + 4, 14]);
+                        continue;
+                    }
+                    if (id === TORCH) {
+                        if (ty > s) { ctx.fillStyle = '#161219'; ctx.fillRect(px2, py2, TS, TS); }
+                        ctx.fillStyle = '#6d4623';
+                        ctx.fillRect(px2 + 3, py2 + 3, 2, 5);
+                        const fl = Math.sin(tGlobal * 11 + tx * 3) * 1;
+                        ctx.fillStyle = '#ff7a18';
+                        ctx.fillRect(px2 + 2, py2 + fl, 4, 3);
+                        ctx.fillStyle = '#ffd21f';
+                        ctx.fillRect(px2 + 3, py2 + 1 + fl, 2, 1);
+                        lights.push([px2 + 4, py2 + 2, 30]);
+                        continue;
+                    }
+                    const pal = PAL[id];
+                    ctx.fillStyle = pal[(ih2(tx, ty, 5) * 4) | 0];
+                    ctx.fillRect(px2, py2, TS, TS);
+                    if (TOP[id] && !SOLID[tileAt(tx, ty - 1)] && tileAt(tx, ty - 1) !== WATER) {
+                        ctx.fillStyle = TOP[id];
+                        ctx.fillRect(px2, py2, TS, id === GRASS ? 2 : 1);
+                    }
+                    if (id === BRICK) {
+                        ctx.fillStyle = 'rgba(0,0,0,0.22)';
+                        ctx.fillRect(px2, py2 + 7, TS, 1);
+                        ctx.fillRect(px2 + (ty % 2 ? 4 : 0), py2 + 3, 1, 4);
+                    }
+                    if (id === CRYSTAL) {
+                        ctx.fillStyle = '#d8f6ff';
+                        ctx.fillRect(px2 + 3, py2 + 2, 2, 4);
+                        lights.push([px2 + 4, py2 + 4, 22]);
+                    }
+                    if (id === WOOD) {
+                        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+                        ctx.fillRect(px2 + 5, py2, 1, TS);
+                    }
+                }
+            }
+
+            /* particles */
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.age += dt;
+                if (p.age > p.life) { particles.splice(i, 1); continue; }
+                p.vy += 300 * dt;
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                ctx.fillStyle = p.col;
+                ctx.globalAlpha = 1 - p.age / p.life;
+                ctx.fillRect(p.x - cx, p.y - cy, 2, 2);
+                ctx.globalAlpha = 1;
+            }
+
+            /* player */
+            const flying = a.fly && !player.grounded && !player.climbing;
+            const airborne = !player.grounded && !player.climbing;
+            sprite(a, Math.round(player.x - cx), Math.round(player.y - cy),
+                player.facing, player.walkDist * 0.25, airborne, flying, player.climbing, tGlobal);
+
+            /* darkness underground + lights */
+            dctx.clearRect(0, 0, W, H);
+            dctx.globalCompositeOperation = 'source-over';
+            for (let tx = tx0; tx <= tx1; tx++) {
+                /* light also falls in from the side: use the lowest surface nearby */
+                let sEff = surfY(tx);
+                for (let dx = -2; dx <= 2; dx++) sEff = Math.max(sEff, surfY(tx + dx));
+                const startY = Math.max(ty0, sEff + 2);
+                for (let ty = startY; ty <= ty1; ty++) {
+                    const alpha = clamp((ty - sEff - 2) / 9, 0, 0.94);
+                    if (alpha <= 0) continue;
+                    dctx.fillStyle = `rgba(2,2,5,${alpha.toFixed(2)})`;
+                    dctx.fillRect(tx * TS - cx, ty * TS - cy, TS, TS);
+                }
+            }
+            dctx.globalCompositeOperation = 'destination-out';
+            const punch = (x, y, r, k) => {
+                const g = dctx.createRadialGradient(x, y, 0, x, y, r);
+                g.addColorStop(0, `rgba(0,0,0,${k})`);
+                g.addColorStop(1, 'rgba(0,0,0,0)');
+                dctx.fillStyle = g;
+                dctx.beginPath();
+                dctx.arc(x, y, r, 0, Math.PI * 2);
+                dctx.fill();
+            };
+            punch(player.x + a.w / 2 - cx, player.y + a.h / 2 - cy, 70, 1);
+            for (const [lx, ly, lr] of lights) punch(lx, ly, lr, 0.9);
+            ctx.drawImage(dark, 0, 0);
+
+            /* ================= HUD ================= */
+            ctx.font = '8px monospace';
+            ctx.textBaseline = 'top';
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            ctx.fillRect(4, 18, 118, a.fly ? 32 : 24);
+            ctx.fillStyle = '#ff9900';
+            ctx.fillText(a.name, 8, 22);
+            ctx.fillStyle = '#ffd21f';
+            ctx.fillText('● ' + orbs, 8, 32);
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+            const depth = Math.round((player.y / TS - surfY(Math.round(player.x / TS))) );
+            ctx.fillText(depth > 1 ? 'depth ' + depth : 'alt ' + (-depth), 46, 32);
+            if (a.fly) {
+                ctx.fillStyle = 'rgba(255,255,255,0.25)';
+                ctx.fillRect(8, 42, 60, 3);
+                ctx.fillStyle = '#b6ff2e';
+                ctx.fillRect(8, 42, 60 * (player.stamina / player.staminaMax), 3);
+            }
+
+            /* toast */
+            if (toast.t > 0) {
+                toast.t -= dt;
+                ctx.font = '9px monospace';
+                const tw = ctx.measureText(toast.text).width;
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(W / 2 - tw / 2 - 6, 34, tw + 12, 14);
+                ctx.fillStyle = '#fff';
+                ctx.fillText(toast.text, W / 2 - tw / 2, 37);
+            }
+
+            /* touch buttons */
+            if (touchSeen) {
+                ctx.font = '10px monospace';
+                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'center';
+                for (const b of buttons()) {
+                    const active = [...pointers.values()].includes(b.id);
+                    ctx.fillStyle = active ? 'rgba(255,153,0,0.4)' : 'rgba(255,255,255,0.13)';
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                    ctx.fillText(b.label, b.x, b.y + 1);
+                }
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+            }
+        }
+
+        /* ================= main loop ================= */
+        spawn();
+        let last = performance.now();
+        function loop(now) {
+            const dt = Math.min(0.033, (now - last) / 1000);
+            last = now;
+            tGlobal += dt;
+            stepPlayer(dt);
+            render(dt);
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+
+        /* intro */
+        const intro = document.getElementById('intro');
+        intro.addEventListener('click', () => {
+            intro.style.display = 'none';
+            if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (err) {} }
+        });
+
+        /* debug / test hook */
+        window.FAUNA = {
+            player, switchAnimal, newWorld,
+            tp(tx, ty) { player.x = tx * TS; player.y = ty * TS; player.vx = 0; player.vy = 0; },
+            surfY, tileAt, get seed() { return SEED; }, get orbs() { return orbs; }
+        };
+    })();
+    </script>
+</body>
+</html>
