@@ -68,6 +68,26 @@
         @media (prefers-reduced-motion: reduce){
             .marquee-track{ animation: none; }
         }
+
+        /* Inhalt als ruhige, zentrierte Spalte statt links angeklatscht */
+        header,
+        section,
+        footer {
+            max-width: 680px;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: clamp(20px, 5vw, 40px);
+            padding-right: clamp(20px, 5vw, 40px);
+        }
+
+        /* Portrait bleibt bewusst klein, wird aber auf schmalen Screens responsiv */
+        .portrait-img {
+            width: 260px;
+            max-width: 70%;
+            height: auto;
+            display: block;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
@@ -88,7 +108,7 @@
     </section>
     <section>
         <h2>Portrait</h2>
-        <img src="images/IMG_2128.jpg" alt="Portrait of Max Jänichen" width="300">
+        <img class="portrait-img" src="images/IMG_2128.jpg" alt="Portrait of Max Jänichen">
     </section>
     <footer>
         <p><a href="index.html">home</a></p>
@@ -262,5 +282,6 @@ window.addEventListener('touchend', () => {
   render();
 })();
 </script>
+    <script src="lib/nav.js"></script>
 </body>
 </html>
