@@ -271,6 +271,20 @@ body.readable .media-grid figcaption {
   color: #111 !important;
 }
 
+/* Interactive controls: never trigger double-tap zoom, text selection or the
+   grey tap-flash on mobile. Applies to every button-like element on the site. */
+button,
+.floating-home,
+.video-refresh,
+.readability-toggle,
+nav a {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* Floating navigation button – fixed, scrolls along with the page.
    Injected on every page by lib/nav.js. */
 .floating-home {
