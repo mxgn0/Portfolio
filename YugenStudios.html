@@ -1,1 +1,103 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yugen Studios · NFT Collections — nicht mehr verfügbar</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        a {
+            color: #fff;
+            text-decoration: none;
+            transition: color 0.3s ease, border-bottom 0.3s ease;
+        }
+        a:hover {
+            color: #ff9900;
+            border-bottom: 2px solid #ff9900;
+        }
 
+        /* Zentrierte, ruhige Spalte */
+        header,
+        .gone {
+            max-width: 640px;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: clamp(20px, 5vw, 40px);
+            padding-right: clamp(20px, 5vw, 40px);
+        }
+
+        .gone {
+            margin-top: 12vh;
+            text-align: center;
+        }
+        .gone .code {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 0.8rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            opacity: 0.45;
+            margin: 0 0 18px;
+        }
+        .gone h2 {
+            text-transform: none;
+            margin: 0 0 14px;
+        }
+        .gone p.lead {
+            opacity: 0.75;
+            margin: 0 auto 30px;
+            max-width: 46ch;
+        }
+        .gone .back {
+            display: inline-block;
+            font-size: 1.05rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Cursor edit -->
+    <div id="cursor-dot"></div>
+
+    <header>
+        <h1>Yugen Studios · NFT Collections</h1>
+    </header>
+
+    <section class="gone">
+        <p class="code">nicht mehr vorhanden</p>
+        <h2>Dieser Inhalt ist nicht mehr verf&uuml;gbar</h2>
+        <p class="lead">Das Projekt wurde archiviert oder entfernt. Auf der Startseite findest du die aktuellen Arbeiten.</p>
+        <p><a class="back" href="index.html">&larr; zur&uuml;ck zur &Uuml;bersicht</a></p>
+    </section>
+
+<script>
+const dot = document.getElementById('cursor-dot');
+
+// Maus folgt
+window.addEventListener('mousemove', (e) => {
+    dot.style.left = `${e.clientX}px`;
+    dot.style.top = `${e.clientY}px`;
+    dot.style.opacity = 1;
+});
+
+// Touch-Support
+window.addEventListener('touchstart', (e) => {
+    const touch = e.touches[0];
+    dot.style.left = `${touch.clientX}px`;
+    dot.style.top = `${touch.clientY}px`;
+    dot.style.opacity = 1;
+}, { passive: true });
+
+window.addEventListener('touchmove', (e) => {
+    const touch = e.touches[0];
+    dot.style.left = `${touch.clientX}px`;
+    dot.style.top = `${touch.clientY}px`;
+}, { passive: true });
+
+window.addEventListener('touchend', () => {
+    if (window.matchMedia('(pointer: coarse)').matches) {
+        dot.style.opacity = 0;
+    }
+}, { passive: true });
+</script>
+    <script src="lib/nav.js"></script>
+</body>
+</html>
