@@ -27,6 +27,11 @@ html, body {
     overscroll-behavior: none;
 }
 
+/* stop mobile long-press from selecting the whole page / opening callouts */
+* { -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.ui, button { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+input.ui { -webkit-user-select: text; user-select: text; touch-action: auto; }
+
 #game {
     position: fixed;
     inset: 0;
@@ -150,6 +155,17 @@ button.ui.active { border-color: #ff9900; color: #ff9900; }
 </style>
 </head>
 <body>
+
+<script>
+// block the mobile long-press text-selection / callout that otherwise
+// "marks the whole page" when a control button is held down (inputs excepted)
+(function () {
+    const keep = (t) => t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+    const stop = (e) => { if (!keep(e.target)) e.preventDefault(); };
+    document.addEventListener('selectstart', stop, { passive: false });
+    document.addEventListener('contextmenu', stop, { passive: false });
+})();
+</script>
 
 <canvas id="game"></canvas>
 
