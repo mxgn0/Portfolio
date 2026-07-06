@@ -367,3 +367,32 @@ body.readable .floating-home:hover {
   opacity: 0.55;
   font-style: italic;
 }
+
+/* ------------------------------------------------------------------
+   Tidy page layout: a clean, centered single column.
+   Applied via <body class="page-centered"> on the simple project and
+   info pages so titles, headings, media and text all line up centered
+   with a comfortable gutter, instead of being flush to the left edge.
+   ------------------------------------------------------------------ */
+.page-centered header,
+.page-centered section,
+.page-centered footer {
+  text-align: center;
+  padding-left: clamp(20px, 5vw, 44px);
+  padding-right: clamp(20px, 5vw, 44px);
+}
+
+/* Constrain running text to a readable, centered measure.
+   Media grids and galleries keep their own centering and full width. */
+.page-centered header > h1,
+.page-centered header > p,
+.page-centered section > h2,
+.page-centered section > p {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.page-centered .project-description {
+  max-width: 720px;
+}
