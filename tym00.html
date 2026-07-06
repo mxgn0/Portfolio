@@ -8,18 +8,16 @@
     <link rel="stylesheet" href="style.css">
     <style>
         .gallery {
-            column-width: 340px;
-            column-gap: 12px;
-            max-width: 1240px;
-            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
         }
         .gallery img,
         .gallery video.content-video {
-            width: 100%;
+            width: 100%;        /* passt sich dem Container an */
+            max-width: 600px;
             height: auto;
-            display: block;
-            margin: 0 0 12px;
-            break-inside: avoid;
             border: 2px solid #fff;
             border-radius: 5px;
         }
@@ -41,7 +39,7 @@
         }
     </style>
 </head>
-<body class="page-centered">
+<body>
     <!-- Cursor edit -->
     <div id="cursor-dot"></div>
     <header>
