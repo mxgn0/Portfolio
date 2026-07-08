@@ -20,6 +20,18 @@
             border: 2px solid #fff;
             border-radius: 5px;
         }
+
+        /* Keep the whole page in a comfortable centered column.
+           Only takes effect on ultra-wide screens (> 2000px); on regular
+           and normal-wide monitors nothing changes, so the gallery stays
+           laid out exactly as before. */
+        header,
+        section,
+        footer {
+            max-width: 2000px;
+            margin-left: auto;
+            margin-right: auto;
+        }
     </style>
     <style>
         a {

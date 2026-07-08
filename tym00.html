@@ -26,6 +26,26 @@
             text-align: center;
             margin: 20px 0 0;
         }
+
+        /* Keep the whole page in a comfortable centered column.
+           Only takes effect on ultra-wide screens (> 2000px); on regular
+           and normal-wide monitors nothing changes, so the per-project
+           galleries stay laid out exactly as on the other pages. */
+        header,
+        section,
+        footer {
+            max-width: 2000px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* The lead / feature video: wide and prominent, but capped so it
+           never blows up edge-to-edge on a 2560px-wide ultrawide screen. */
+        .hero-video {
+            max-width: min(100%, 1400px);
+            margin-left: auto;
+            margin-right: auto;
+        }
     </style>
     <style>
         a {
@@ -39,7 +59,7 @@
         }
     </style>
 </head>
-<body>
+<body class="page-centered">
     <!-- Cursor edit -->
     <div id="cursor-dot"></div>
     <header>
@@ -47,7 +67,7 @@
     </header>
 
     <section>
-        <figure>
+        <figure class="hero-video">
                 <video class="content-video" autoplay muted loop playsinline webkit-playsinline>
                     <source src="images/front_wide1.mp4" type="video/mp4">
                     Dein Browser unterstützt dieses Videoformat nicht.
