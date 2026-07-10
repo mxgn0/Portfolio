@@ -38,8 +38,10 @@ h2 {
   font-weight: 600;
   margin: 0 0 1rem;
   max-width: 100%;
+  /* wrap at spaces / hyphenate long words instead of chopping mid-word
+     (word-break: break-word split titles like SYSTEMADMINISTRAT-OR) */
   overflow-wrap: break-word;
-  word-break: break-word;
+  hyphens: auto;
   text-transform: uppercase;
   min-width: 0;
 }
