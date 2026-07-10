@@ -297,6 +297,67 @@ nav a {
   }
 }
 
+/* Language toggle (EN default, DE opt-in) — bottom-left counterpart to the
+   floating home button. Injected on content pages by lib/i18n.js. */
+.lang-toggle {
+  position: fixed;
+  left: 22px;
+  bottom: 22px;
+  z-index: 1001;
+
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-family: 'Chillax', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  opacity: 0.85;
+  cursor: pointer;
+  transition: opacity 0.3s ease, color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+}
+
+.lang-toggle:hover {
+  opacity: 1;
+  color: #ff9900;
+  border-color: #ff9900;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+@media (max-width: 600px) {
+  .lang-toggle {
+    left: 16px;
+    bottom: 16px;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Read mode: dark button on light background */
+body.readable .lang-toggle {
+  color: #111;
+  border-color: rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.6);
+}
+body.readable .lang-toggle:hover {
+  color: #ff9900;
+  border-color: #ff9900;
+  background: rgba(255, 255, 255, 0.8);
+}
+
 /* Read mode: dark button on light background */
 body.readable .floating-home {
   color: #111;
