@@ -69,63 +69,13 @@ nav a {
   color: inherit; /* übernimmt var(--fg) */
 }
 
+/* Custom cursor dot disabled — native system cursor is used site-wide
+   for a smooth, responsive feel. The element is kept in the DOM so the
+   existing per-page mousemove scripts don't error, but it never renders. */
 #cursor-dot {
-  width: 24px;
-  height: 24px;
-  position: fixed;
-  transform: translate(-50%, -50%) rotate(0deg);
-  pointer-events: none;
-  background: transparent;
-  opacity: 0;
-  mix-blend-mode: difference;
-  transition:
-    opacity 0.2s ease,
-    transform 0.3s cubic-bezier(.2, .8, .2, 1);
+  display: none !important;
 }
 
-/* X-Linien */
-#cursor-dot::before,
-#cursor-dot::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 24px;
-  height: 2px;
-  background: white;
-  transform-origin: center;
-}
-
-#cursor-dot::before {
-  transform: translate(-50%, -50%) rotate(45deg);
-}
-
-#cursor-dot::after {
-  transform: translate(-50%, -50%) rotate(-45deg);
-}
-
-/* ROTATION BEIM HOVER */
-#cursor-dot.rotate {
-  transform: translate(-50%, -50%) rotate(180deg);
-}
-
-/* Cursor deaktivieren */
-@media (pointer: fine) {
-  * {
-    cursor: none !important;
-  }
-}
-
-/* Auf Touch-Geräten: Cursor-Dot unsichtbar */
-@media (pointer: coarse) {
-  #cursor-dot {
-    opacity: 0;
-  }
-}
-
-body.cursor-hover #cursor-dot {
-  transform: translate(-50%, -50%) scale(1.3);
-}
 
 /* Media Containers */
 figure {
@@ -221,7 +171,7 @@ body.readable a:hover {
   font-weight: 500;
 
   opacity: 0.35;
-  cursor: none;
+  cursor: pointer;
 
   transition: opacity 0.2s ease, transform 0.2s ease;
 }

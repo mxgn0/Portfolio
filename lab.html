@@ -254,72 +254,7 @@
     </header>
 
     <main class="lab">
-        <section style="--acc:#2f6bff">
-            <h2>fields</h2>
-            <div class="tiles">
-
-                <figure class="tile">
-                    <canvas data-sim="sparks"></canvas>
-                    <figcaption><strong>spark surge</strong>
-                        a cpu-load visualisation. hover or touch near the core to push the load up —
-                        at full load the sparks run red-hot, fast, and split into little offshoot sparks.
-                    </figcaption>
-                </figure>
-
-                <figure class="tile">
-                    <canvas data-sim="flow"></canvas>
-                    <figcaption><strong>flow field</strong>
-                        a few hundred particles riding an invisible, slowly turning wind field.
-                        drag through it with cursor or finger to blow them off course.
-                    </figcaption>
-                </figure>
-
-                <figure class="tile">
-                    <canvas data-sim="lattice"></canvas>
-                    <figcaption><strong>dot lattice</strong>
-                        a grid of points held in place by springs. the cursor bends the field,
-                        tilting your phone shifts the whole lattice.
-                    </figcaption>
-                </figure>
-
-                <figure class="tile">
-                    <canvas data-sim="parallax"></canvas>
-                    <figcaption><strong>parallax ridge</strong>
-                        layered depth — stars, moon and ridgelines move at different speeds.
-                        move the cursor across it or tilt your phone.
-                    </figcaption>
-                </figure>
-
-                <figure class="tile">
-                    <canvas data-sim="ripple"></canvas>
-                    <figcaption><strong>ripple pool</strong>
-                        a small wave-equation simulation. touch the surface to drop waves in —
-                        and every now and then it rains on its own.
-                    </figcaption>
-                </figure>
-
-                <figure class="tile">
-                    <canvas data-sim="boids"></canvas>
-                    <figcaption><strong>boids</strong>
-                        a tiny flock following three rules: separate, align, cohere.
-                        your cursor is the predator — they scatter orange when fleeing.
-                    </figcaption>
-                </figure>
-
-                <figure class="tile">
-                    <canvas data-sim="arc"></canvas>
-                    <figcaption><strong>arc gap</strong>
-                        high-voltage arcs jumping a spark gap — ported from a server-monitoring
-                        dashboard where this visualised cpu load (green &rarr; amber &rarr; red).
-                        hover to ground the arc on your cursor; put two or more fingers down
-                        and they become the poles.
-                    </figcaption>
-                </figure>
-
-            </div>
-        </section>
-
-        <section style="--acc:#b6ff2e">
+                <section style="--acc:#b6ff2e">
             <h2>dynamics</h2>
             <div class="tiles">
 
@@ -430,6 +365,71 @@
                     <figcaption><strong>abstract growth</strong>
                         space-colonization growth: branches reach for invisible attractor points,
                         tips glow while they grow. hover to feed it — it regrows when done.
+                    </figcaption>
+                </figure>
+
+            </div>
+        </section>
+
+        <section style="--acc:#2f6bff">
+            <h2>fields</h2>
+            <div class="tiles">
+
+                <figure class="tile">
+                    <canvas data-sim="sparks"></canvas>
+                    <figcaption><strong>spark surge</strong>
+                        a cpu-load visualisation. hover or touch near the core to push the load up —
+                        at full load the sparks run red-hot, fast, and split into little offshoot sparks.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="flow"></canvas>
+                    <figcaption><strong>flow field</strong>
+                        a few hundred particles riding an invisible, slowly turning wind field.
+                        drag through it with cursor or finger to blow them off course.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="lattice"></canvas>
+                    <figcaption><strong>dot lattice</strong>
+                        a grid of points held in place by springs. the cursor bends the field,
+                        tilting your phone shifts the whole lattice.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="parallax"></canvas>
+                    <figcaption><strong>parallax ridge</strong>
+                        layered depth — stars, moon and ridgelines move at different speeds.
+                        move the cursor across it or tilt your phone.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="ripple"></canvas>
+                    <figcaption><strong>ripple pool</strong>
+                        a small wave-equation simulation. touch the surface to drop waves in —
+                        and every now and then it rains on its own.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="boids"></canvas>
+                    <figcaption><strong>boids</strong>
+                        a tiny flock following three rules: separate, align, cohere.
+                        your cursor is the predator — they scatter orange when fleeing.
+                    </figcaption>
+                </figure>
+
+                <figure class="tile">
+                    <canvas data-sim="arc"></canvas>
+                    <figcaption><strong>arc gap</strong>
+                        high-voltage arcs jumping a spark gap — ported from a server-monitoring
+                        dashboard where this visualised cpu load; here the discharge just
+                        climbs in rate and brightness. hover to ground the arc on your cursor;
+                        put two or more fingers down and they become the poles.
                     </figcaption>
                 </figure>
 
@@ -647,19 +647,21 @@
 
                     ctx.globalCompositeOperation = 'lighter';
                     ctx.lineWidth = 1.2;
+                    /* monochrome sparks that run red-hot only under load */
+                    const sg = (255 - 210 * L) | 0, sb = (255 - 190 * L) | 0;
                     for (const s of sparks) {
                         const k = 1 - s.age / s.life;
-                        ctx.strokeStyle = `hsla(${s.hue},100%,${55 + 15 * k}%,${0.75 * k})`;
+                        ctx.strokeStyle = `rgba(255,${sg},${sb},${(0.75 * k).toFixed(3)})`;
                         ctx.beginPath();
                         ctx.moveTo(s.x - s.vx * 0.03, s.y - s.vy * 0.03);
                         ctx.lineTo(s.x, s.y);
                         ctx.stroke();
                     }
 
-                    /* core */
+                    /* core: white idle, glowing red at full load */
                     const R = 5 + 11 * L + Math.sin(t * (4 + 14 * L)) * 1.5;
                     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 3);
-                    g.addColorStop(0, `hsla(${45 - 42 * L},100%,${65 + 15 * L}%,0.9)`);
+                    g.addColorStop(0, `rgba(255,${(255 - 200 * L) | 0},${(255 - 180 * L) | 0},0.9)`);
                     g.addColorStop(1, 'rgba(0,0,0,0)');
                     ctx.fillStyle = g;
                     ctx.beginPath();
@@ -783,10 +785,11 @@
                 stars.push({ x: Math.random() * (w + 240) - 120, y: Math.random() * h * 0.75, z });
             }
             /* pre-computed ridgelines, wider than the canvas so shifting never shows edges */
+            /* monochrome ridgelines — near layers a touch lighter for depth */
             const layers = [
-                { z: 0.35, base: 0.62, amp: 26, col: '#0c1322', seed: 1.7 },
-                { z: 0.65, base: 0.74, amp: 34, col: '#131d33', seed: 4.2 },
-                { z: 1.00, base: 0.86, amp: 40, col: '#1c2a47', seed: 8.9 }
+                { z: 0.35, base: 0.62, amp: 26, col: '#0e0e11', seed: 1.7 },
+                { z: 0.65, base: 0.74, amp: 34, col: '#161619', seed: 4.2 },
+                { z: 1.00, base: 0.86, amp: 40, col: '#202024', seed: 8.9 }
             ];
             for (const L of layers) {
                 L.pts = [];
@@ -820,9 +823,9 @@
                     /* moon — deepest layer, barely moves */
                     const mx = w * 0.72 - par.x * 8, my = h * 0.22 - par.y * 5;
                     const mg = ctx.createRadialGradient(mx, my, 2, mx, my, 46);
-                    mg.addColorStop(0, 'rgba(255,244,214,0.95)');
-                    mg.addColorStop(0.35, 'rgba(255,244,214,0.25)');
-                    mg.addColorStop(1, 'rgba(255,244,214,0)');
+                    mg.addColorStop(0, 'rgba(236,238,244,0.95)');
+                    mg.addColorStop(0.35, 'rgba(236,238,244,0.22)');
+                    mg.addColorStop(1, 'rgba(236,238,244,0)');
                     ctx.fillStyle = mg;
                     ctx.beginPath();
                     ctx.arc(mx, my, 46, 0, Math.PI * 2);
@@ -850,6 +853,15 @@
                         ctx.lineTo(-150, h + 10);
                         ctx.closePath();
                         ctx.fill();
+                        /* single accent: a faint rim light along the nearest ridgeline */
+                        if (L.z === 1) {
+                            ctx.strokeStyle = 'rgba(47,107,255,0.5)';
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(L.pts[0][0] + sx, L.pts[0][1] + sy);
+                            for (const p of L.pts) ctx.lineTo(p[0] + sx, p[1] + sy);
+                            ctx.stroke();
+                        }
                     }
                 }
             };
@@ -1017,8 +1029,10 @@
             let acc = 0, load = 0.2, t = 0;
 
             const ha = (a) => Math.round(clamp(a, 0, 1) * 255).toString(16).padStart(2, '0');
-            const colHex = (L) => (L < 0.6 ? '#4ade80' : L < 0.85 ? '#fbbf24' : '#f43f5e');
-            const colHot = (L) => (L < 0.6 ? '#86efac' : L < 0.85 ? '#fde047' : '#fb7185');
+            /* monochrome discharge: blue accent glow, near-white hot core.
+               load reads through arc rate + brightness, not hue. */
+            const colHex = () => '#2f6bff';
+            const colHot = () => '#e8ecff';
 
             /* midpoint-displacement lightning path */
             function makeBolt(x0, y0, x1, y1, L, passes) {
@@ -1372,7 +1386,7 @@
                             x: x0 + off + c * bw + bw / 2,
                             y: floorY - r * bh - bh / 2,
                             a: 0, vx: 0, vy: 0, va: 0,
-                            dyn: false
+                            dyn: false, asleep: false, rest: 0
                         });
                     }
                 }
@@ -1388,6 +1402,7 @@
                     if (d < R) {
                         const f = 1 - d / R;
                         b.dyn = true;
+                        b.asleep = false; b.rest = 0;   // wake it back up
                         b.vx += dx / d * f * S * 2.4 + (Math.random() - 0.5) * S * 0.3;
                         b.vy += dy / d * f * S * 2.4 - f * S * 0.6;
                         b.va += (Math.random() - 0.5) * 16 * f;
@@ -1408,10 +1423,20 @@
                         autoT = 6 + Math.random() * 4;
                     }
 
-                    let moving = false, anyDyn = false;
+                    let anyDyn = false;
+                    const q = Math.PI / 2;
+
+                    /* remember where every brick was so we can measure how far it actually
+                       moves this frame (integration + separation) and put it to sleep once
+                       it stops — a velocity check alone misses slow separation drift, which
+                       is exactly what left bricks twitching on the floor forever. */
+                    for (const b of bricks) { if (b.dyn) { b.ox = b.x; b.oy = b.y; b.oa = b.a; } }
+
                     for (const b of bricks) {
                         if (!b.dyn) continue;
                         anyDyn = true;
+                        if (b.asleep) continue;   // frozen — no integration, so it can't jitter
+
                         b.vy += S * 3 * dt;
                         b.vx += tilt.x * S * 0.5 * dt;
                         b.vx *= 1 - 0.15 * dt;
@@ -1421,20 +1446,25 @@
                         const ext = bh * 0.5 + Math.abs(Math.sin(b.a * 2)) * (bw - bh) * 0.25;
                         if (b.y + ext > floorY) {
                             b.y = floorY - ext;
-                            b.vy *= -0.28;
+                            if (b.vy > 0) b.vy *= -0.24;
                             if (Math.abs(b.vy) < S * 0.06) b.vy = 0;
-                            b.vx *= 0.8;
-                            b.va *= 0.75;
+                            b.vx *= 0.7;            // floor friction
+                            b.va *= 0.7;
+                            /* ease toward the nearest flat quarter-turn so bricks lie down */
+                            const target = Math.round(b.a / q) * q;
+                            b.a += (target - b.a) * Math.min(1, 8 * dt);
+                            b.va *= 0.6;
                         }
                         if (b.x < bw * 0.5) { b.x = bw * 0.5; b.vx = Math.abs(b.vx) * 0.4; }
                         if (b.x > w - bw * 0.5) { b.x = w - bw * 0.5; b.vx = -Math.abs(b.vx) * 0.4; }
-                        if (Math.abs(b.vx) + Math.abs(b.vy) + Math.abs(b.va) * 30 > S * 0.05) moving = true;
                     }
-                    /* crude pairwise separation so the rubble piles up */
+                    /* pairwise separation so the rubble piles up; sleeping bricks and the
+                       still-standing wall act as immovable supports and only wake when
+                       something really lands on them, which kills the endless jitter */
                     const rr = bw * 0.55;
                     for (let i = 0; i < bricks.length; i++) {
                         const a = bricks[i];
-                        if (!a.dyn) continue;
+                        if (!a.dyn || a.asleep) continue;
                         for (let j = 0; j < bricks.length; j++) {
                             if (i === j) continue;
                             const c = bricks[j];
@@ -1442,10 +1472,27 @@
                             const d2 = dx * dx + dy * dy;
                             if (d2 > rr * rr || d2 < 0.01) continue;
                             const d = Math.sqrt(d2);
-                            const push = (rr - d) * (c.dyn ? 0.25 : 0.5);
-                            a.x -= dx / d * push;
-                            a.y -= dy / d * push;
+                            const push = rr - d;
+                            const cStatic = !c.dyn || c.asleep;
+                            const wa = cStatic ? 1 : 0.5;
+                            a.x -= dx / d * push * wa;
+                            a.y -= dy / d * push * wa;
+                            /* c is below a → a rests on it: bleed off downward velocity */
+                            if (dy > 0 && a.vy > 0) { a.vy *= 0.15; a.va *= 0.85; }
+                            /* wake a sleeping brick only if something really lands on it */
+                            if (cStatic && c.asleep && push > bw * 0.06) { c.asleep = false; c.rest = 0; }
                         }
+                    }
+
+                    /* movement-based settle: measure the real per-frame displacement
+                       (covers separation drift) and sleep bricks that have gone still */
+                    let moving = false;
+                    const stillEps = Math.max(0.5, S * 0.006);
+                    for (const b of bricks) {
+                        if (!b.dyn || b.asleep) continue;
+                        const mv = Math.abs(b.x - b.ox) + Math.abs(b.y - b.oy) + Math.abs(b.a - b.oa) * bw;
+                        if (mv < stillEps) b.rest += dt; else { b.rest = 0; moving = true; }
+                        if (b.rest > 0.45) { b.asleep = true; b.vx = b.vy = b.va = 0; }
                     }
                     if (anyDyn && !moving) {
                         rebuildT += dt;
@@ -1529,12 +1576,29 @@
                 B.x -= dx * diff; B.y -= dy * diff;
             }
 
-            function collide(p) {
+            /* hard position clamp used inside the constraint solver */
+            function clampPos(p) {
                 const m = 5;
-                if (p.y > h - m) { p.y = h - m; p.px += (p.x - p.px) * 0.2; }
+                if (p.y > h - m) p.y = h - m;
                 if (p.y < m) p.y = m;
                 if (p.x > w - m) p.x = w - m;
                 if (p.x < m) p.x = m;
+            }
+
+            /* velocity-reflecting bounce, applied once per substep so the blob
+               actually rebounds off the floor and walls instead of dying flat.
+               guarded on approach direction so it can't self-amplify. */
+            function bounce(p) {
+                const m = 5, REST = 0.42, FRIC = 0.9;
+                if (p.y > h - m) {
+                    p.y = h - m;
+                    const vy = p.y - p.py, vx = p.x - p.px;
+                    if (vy > 0) p.py = p.y + vy * REST;   // reflect upward
+                    p.px = p.x - vx * FRIC;               // floor friction
+                }
+                if (p.y < m) { p.y = m; const vy = p.y - p.py; if (vy < 0) p.py = p.y + vy * 0.4; }
+                if (p.x > w - m) { p.x = w - m; const vx = p.x - p.px; if (vx > 0) p.px = p.x + vx * 0.45; }
+                if (p.x < m) { p.x = m; const vx = p.x - p.px; if (vx < 0) p.px = p.x + vx * 0.45; }
             }
 
             return {
@@ -1547,8 +1611,8 @@
                         const press = clamp((A0 - area()) / A0, -0.5, 0.8) * 3800;
 
                         for (const p of pts) {
-                            let ax = tilt.x * 260;
-                            let ay = S * 1.4 + tilt.y * 260;
+                            let ax = tilt.x * 340;
+                            let ay = S * 2.2 + tilt.y * 340;
                             const dx = p.x - mx, dy = p.y - my;
                             const d = Math.hypot(dx, dy) || 1;
                             ax += dx / d * press;
@@ -1556,24 +1620,26 @@
                             if (input.active) {
                                 const qx = p.x - input.x, qy = p.y - input.y;
                                 const qd = Math.hypot(qx, qy);
-                                const R = S * 0.22;
+                                const R = S * 0.24;
                                 if (qd < R && qd > 0.5) {
-                                    const f = (1 - qd / R) * 5200;
+                                    const f = (1 - qd / R) * 7000;
                                     ax += qx / qd * f;
                                     ay += qy / qd * f;
                                 }
                             }
-                            const nx = p.x + (p.x - p.px) * 0.985 + ax * sdt * sdt;
-                            const ny = p.y + (p.y - p.py) * 0.985 + ay * sdt * sdt;
+                            /* low damping so it keeps its bounce and can be flung around */
+                            const nx = p.x + (p.x - p.px) * 0.99 + ax * sdt * sdt;
+                            const ny = p.y + (p.y - p.py) * 0.99 + ay * sdt * sdt;
                             p.px = p.x; p.py = p.y;
                             p.x = nx; p.y = ny;
                         }
+                        for (const p of pts) bounce(p);
                         for (let it = 0; it < 3; it++) {
                             for (let i = 0; i < N; i++) {
                                 link(i, (i + 1) % N, rest1);
                                 link(i, (i + 2) % N, rest2);
                             }
-                            for (const p of pts) collide(p);
+                            for (const p of pts) clampPos(p);
                         }
                     }
 
@@ -2058,7 +2124,17 @@
                                     grid[below + dr] = v; grid[i] = 0; continue;
                                 }
                                 if (x - dr > 0 && x - dr < cols - 1 && grid[below - dr] === 0) {
-                                    grid[below - dr] = v; grid[i] = 0;
+                                    grid[below - dr] = v; grid[i] = 0; continue;
+                                }
+                                /* angle-of-repose avalanche: a grain sitting on a slope
+                                   edge (open on one side, buried on the other) creeps
+                                   downhill. relaxes sharp triangular cones into shallower,
+                                   rounded dunes instead of perfect 45° pyramids. */
+                                const leftOpen  = x > 1        && grid[i - 1] === 0;
+                                const rightOpen = x < cols - 2 && grid[i + 1] === 0;
+                                if (leftOpen !== rightOpen && Math.random() < 0.34) {
+                                    if (leftOpen) { grid[i - 1] = v; grid[i] = 0; }
+                                    else          { grid[i + 1] = v; grid[i] = 0; }
                                 }
                             }
                         }
@@ -2319,10 +2395,40 @@
 
             function reset() {
                 atts = [];
-                for (let i = 0; i < 130; i++) {
-                    atts.push({ x: w * (0.06 + Math.random() * 0.88), y: h * (0.04 + Math.random() * 0.74) });
+                const nA = 110 + (Math.random() * 90 | 0);
+                const pat = Math.random();
+                if (pat < 0.4) {
+                    /* uniform cloud across a random sub-region */
+                    const rx = 0.04 + Math.random() * 0.2, rw = 0.6 + Math.random() * 0.34;
+                    const ry = 0.04 + Math.random() * 0.2, rh = 0.55 + Math.random() * 0.4;
+                    for (let i = 0; i < nA; i++)
+                        atts.push({ x: w * (rx + Math.random() * rw), y: h * (ry + Math.random() * rh) });
+                } else if (pat < 0.72) {
+                    /* two or three gaussian clumps — grows toward dense pockets */
+                    const clumps = 2 + (Math.random() * 2 | 0), cs = [];
+                    for (let c = 0; c < clumps; c++)
+                        cs.push({ x: w * (0.15 + Math.random() * 0.7), y: h * (0.12 + Math.random() * 0.66), r: S * (0.1 + Math.random() * 0.18) });
+                    for (let i = 0; i < nA; i++) {
+                        const c = cs[(Math.random() * clumps) | 0];
+                        const a = Math.random() * Math.PI * 2, rr = Math.random() * c.r;
+                        atts.push({ x: clamp(c.x + Math.cos(a) * rr, 4, w - 4), y: clamp(c.y + Math.sin(a) * rr, 4, h - 4) });
+                    }
+                } else {
+                    /* a ring/arc of targets around a random centre */
+                    const cx = w * (0.35 + Math.random() * 0.3), cy = h * (0.3 + Math.random() * 0.4);
+                    const rad = S * (0.25 + Math.random() * 0.15);
+                    for (let i = 0; i < nA; i++) {
+                        const a = Math.random() * Math.PI * 2, rr = rad * (0.7 + Math.random() * 0.5);
+                        atts.push({ x: clamp(cx + Math.cos(a) * rr, 4, w - 4), y: clamp(cy + Math.sin(a) * rr, 4, h - 4) });
+                    }
                 }
-                nodes = [{ x: w / 2, y: h - 5, px: -1, py: -1, born: t }];
+                /* seed the root somewhere other than always bottom-centre */
+                const anchors = [
+                    [w / 2, h - 5], [w / 2, 5], [5, h / 2], [w - 5, h / 2],
+                    [w / 2, h / 2], [w * (0.2 + Math.random() * 0.6), h - 5]
+                ];
+                const root = anchors[(Math.random() * anchors.length) | 0];
+                nodes = [{ x: root[0], y: root[1], px: -1, py: -1, born: t }];
                 doneAt = 0; fade = 1; stuck = 0;
             }
             reset();
