@@ -1,6 +1,7 @@
-/* Fonts */
-@import url('https://fonts.cdnfonts.com/css/chillax');
-@import url('https://fonts.cdnfonts.com/css/utara');
+/* Fonts are loaded via <link> tags in each page's <head> instead of @import:
+   an @import inside this sheet ties the WHOLE stylesheet's readiness to the
+   font CDN — if that request hangs (ad-blockers, slow networks), style rules
+   apply unreliably. Separate <link>s keep this sheet independent. */
 
 /* Base / Reset */
 *,
@@ -297,65 +298,50 @@ nav a {
   }
 }
 
-/* Language toggle (EN default, DE opt-in) — bottom-left counterpart to the
-   floating home button. Injected on content pages by lib/i18n.js. */
+/* Language toggle (EN default, DE opt-in) — floating text chip in the top
+   right corner, sitting directly under the contrast toggle and styled the
+   same way. Injected on content pages by lib/i18n.js. */
 .lang-toggle {
   position: fixed;
-  left: 22px;
-  bottom: 22px;
-  z-index: 1001;
+  top: 50px;
+  right: 20px;
+  z-index: 1002;
 
-  width: 48px;
-  height: 48px;
   padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 0;
+  background: transparent;
 
   font-family: 'Chillax', sans-serif;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: inherit;
 
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-
-  opacity: 0.85;
+  opacity: 0.35;
   cursor: pointer;
-  transition: opacity 0.3s ease, color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .lang-toggle:hover {
   opacity: 1;
-  color: #ff9900;
-  border-color: #ff9900;
-  background: rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
 }
 
-@media (max-width: 600px) {
-  .lang-toggle {
-    left: 16px;
-    bottom: 16px;
-    width: 44px;
-    height: 44px;
-  }
+/* on pages with busy top edges (e.g. the about ticker) both toggles get a
+   subtle blurred chip so they stay legible over whatever is behind them */
+.readability-toggle,
+.lang-toggle {
+  padding: 3px 9px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
 }
 
-/* Read mode: dark button on light background */
+body.readable .readability-toggle,
 body.readable .lang-toggle {
+  background: rgba(255, 255, 255, 0.55);
   color: #111;
-  border-color: rgba(0, 0, 0, 0.4);
-  background: rgba(255, 255, 255, 0.6);
-}
-body.readable .lang-toggle:hover {
-  color: #ff9900;
-  border-color: #ff9900;
-  background: rgba(255, 255, 255, 0.8);
 }
 
 /* Read mode: dark button on light background */
