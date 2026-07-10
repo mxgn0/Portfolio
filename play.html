@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>MXGN — arcade</title>
-    <meta name="description" content="MXGN arcade – interactive physics experiments & browser games">
+    <title>MXGN — game dev demos</title>
+    <meta name="description" content="MXGN game dev demos – visual code lab & experiments: interactive physics & browser games">
     <link rel="stylesheet" href="style.css">
     <style>
         body {
@@ -165,7 +165,7 @@
 
     <header>
         <h1><a href="index.html">MXGN</a></h1>
-        <p>arcade — interactive physics experiments</p>
+        <p>game dev demos — visual code lab &amp; experiments</p>
     </header>
 
     <main class="arcade">
@@ -190,7 +190,7 @@
                 <a class="card playable" href="fauna.html">
                     <canvas class="preview" id="fauna-preview" width="120" height="36"></canvas>
                     <h3>F A U N A</h3>
-                    <p>An endless <strong>3D</strong> procedural voxel wilderness — valleys, caves, forests, mountains, tunnels &amp; ruins. Roam it as monkey, dog, spider, bobcat or stork: double-jump, dig, wall-crawl, pounce and fly. Collect the golden orbs. Keyboard or touch. &copy; MXGN</p>
+                    <p>A 2D procedural wilderness run. Pick an animal — monkey (double-jump), dog (sprinter), lynx (big leaps) or stork (glider) — sprint and jump across seeded terrain, collect the golden orbs and reach the den. Timed, with a local leaderboard. Keyboard or touch. &copy; MXGN</p>
                     <span class="tag">&#9654; play now</span>
                 </a>
 
@@ -311,8 +311,7 @@
             if (!cv) return;
             const ctx = cv.getContext('2d');
             const W = cv.width, H = cv.height;
-            const cols = ['#c98d4b', '#d9c9a8', '#3a3a44', '#d4b478', '#e9e9ee'];
-            let t = 0, animal = 0;
+            let t = 0;
             const hh = (x) => {
                 const n = Math.sin(x * 0.09) * 6 + Math.sin(x * 0.023) * 9 + Math.sin(x * 0.41) * 1.5;
                 return H - 10 + n * 0.6;
@@ -320,29 +319,32 @@
             function step() {
                 t += 0.6;
                 ctx.clearRect(0, 0, W, H);
-                /* terrain silhouette */
-                ctx.fillStyle = 'rgba(93,138,60,0.55)';
+                /* dark terrain silhouette with an orange accent rim — matches the game */
                 ctx.beginPath();
                 ctx.moveTo(0, H);
                 for (let x = 0; x <= W; x += 2) ctx.lineTo(x, hh(x + t));
                 ctx.lineTo(W, H);
                 ctx.closePath();
+                ctx.fillStyle = 'rgba(23,27,35,0.9)';
                 ctx.fill();
-                /* a cave hole */
-                ctx.fillStyle = 'rgba(0,0,0,0.8)';
-                const cx2 = (200 - (t * 0.9) % 260) + 60;
-                ctx.fillRect(cx2, hh(cx2 + t) + 4, 10, 6);
-                /* the animal, hopping along */
-                if (Math.floor(t / 90) % 5 !== animal) animal = Math.floor(t / 90) % 5;
+                ctx.strokeStyle = 'rgba(255,153,0,0.6)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let x = 0; x <= W; x += 2) { const y = hh(x + t); if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
+                ctx.stroke();
+                /* the animal, hopping along (accent silhouette) */
                 const ax = 30;
                 const ay = hh(ax + t) - 4 - Math.abs(Math.sin(t * 0.12)) * 5;
-                ctx.fillStyle = cols[animal];
-                ctx.fillRect(ax, ay, 5, 3);
+                ctx.fillStyle = '#ff9900';
+                ctx.fillRect(ax, ay, 5, 4);
                 ctx.fillRect(ax + 4, ay - 2, 2, 2);
-                /* an orb ahead */
-                ctx.fillStyle = '#ffd21f';
+                /* a golden orb ahead */
                 const ox = 90 - (t * 0.9) % 260 + 130;
-                ctx.fillRect(ox, hh(ox + t) - 6, 2, 2);
+                const oy = hh(ox + t) - 6;
+                ctx.fillStyle = 'rgba(255,210,31,0.35)';
+                ctx.beginPath(); ctx.arc(ox + 1, oy + 1, 3.2, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#ffd21f';
+                ctx.beginPath(); ctx.arc(ox + 1, oy + 1, 1.4, 0, Math.PI * 2); ctx.fill();
                 requestAnimationFrame(step);
             }
             step();
