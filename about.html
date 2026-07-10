@@ -31,7 +31,12 @@
         .ticker{
             position: relative;
             width:100%;
+            max-width:100%;
             overflow:hidden;
+            /* keep the very wide scrolling track from leaking into the page's
+               scroll area — on iOS Safari that caused the page to scroll far
+               past the content into empty space */
+            contain: content;
             background: var(--ticker-bg);
             border-top: 1px solid var(--ticker-rule);
             border-bottom: 1px solid var(--ticker-rule);
@@ -271,7 +276,10 @@ window.addEventListener('touchend', () => {
   function render(){
     var track = document.getElementById('marqueeTrack');
     if (!track) return;
-    var seq = buildSequence();
+    /* keep the loop short: one modest, weighted-random slice repeated twice
+       (the second copy makes the -50% scroll loop seamless). weighting still
+       favours the Houdini/3D terms, but the track stays a sane width. */
+    var seq = buildSequence().slice(0, 28);
     var html = '';
     for (var pass = 0; pass < 2; pass++){
       seq.forEach(function(item){
