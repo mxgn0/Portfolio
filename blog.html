@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MXGN — blog</title>
+    <meta name="description" content="MXGN blog – thoughts, breakdowns & behind the scenes. Houdini, procedural design, game dev.">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://mxgn0.github.io/Portfolio/blog.html">
+    <meta property="og:title" content="MXGN — blog">
+    <meta property="og:description" content="Thoughts, breakdowns & behind the scenes — Houdini, procedural design, game dev.">
+    <meta property="og:image" content="https://mxgn0.github.io/Portfolio/images/portraits/MXo10.jpg">
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="blog.css">
+</head>
+<body class="blog-page">
+
+    <div id="cursor-dot"></div>
+
+    <header>
+        <h1><a href="index.html">MXGN</a></h1>
+        <p data-i18n="blog-tagline">blog — thoughts, breakdowns &amp; behind the scenes</p>
+        <nav class="quicklinks">
+            <a href="lab.html">&#9879; lab</a>
+            <a href="play.html">&#9654; <span data-i18n="ql-play">game dev demos</span></a>
+        </nav>
+    </header>
+
+    <main class="blog-wrap">
+
+        <section>
+            <div id="blog-list"><p class="blog-note">…</p></div>
+        </section>
+
+        <!-- teasers for the lab & the game dev demos -->
+        <section class="explore">
+            <h2 data-i18n="blog-explore-h2">more to explore</h2>
+            <div class="cards">
+
+                <a class="card" href="lab.html">
+                    <canvas class="preview" id="lab-preview" width="120" height="36"></canvas>
+                    <h3>lab</h3>
+                    <p data-i18n="blog-explore-lab">live code experiments right in the browser — simulations, fields, procedural things. everything reacts to hover, touch and tilt.</p>
+                    <span class="tag" data-i18n="tag-lab">&#9879; enter the lab</span>
+                </a>
+
+                <a class="card" href="play.html">
+                    <canvas class="preview" id="sand-preview" width="120" height="36"></canvas>
+                    <h3 data-i18n="ql-play2">game dev demos</h3>
+                    <p data-i18n="blog-explore-play">small browser games — procedural, physical, with global leaderboards. best experienced on a phone: just tilt it.</p>
+                    <span class="tag" data-i18n="tag-play">&#9654; play now</span>
+                </a>
+
+            </div>
+        </section>
+
+    </main>
+
+    <nav>
+        <a href="index.html" data-i18n="nav-overview">overview</a>
+        <a href="lab.html">lab</a>
+        <a href="play.html">game dev demos</a>
+        <a href="about.html" data-i18n="nav-about">about</a>
+        <a href="Impressum.html">impressum</a>
+    </nav>
+
+    <footer>
+        <p data-i18n="footer-rights">&copy; 2026 Max Jänichen. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // mini flow-field preview in the lab card
+        (function () {
+            const cv = document.getElementById('lab-preview');
+            if (!cv) return;
+            const ctx = cv.getContext('2d');
+            const W = cv.width, H = cv.height;
+            const N = 60;
+            const pts = [];
+            for (let i = 0; i < N; i++) {
+                pts.push({ x: Math.random() * W, y: Math.random() * H });
+            }
+            let t = 0;
+            function step() {
+                t += 0.01;
+                ctx.fillStyle = 'rgba(0,0,0,0.14)';
+                ctx.fillRect(0, 0, W, H);
+                ctx.fillStyle = '#ff9900';
+                for (const p of pts) {
+                    const a = Math.sin(p.x * 0.05 + t) + Math.cos(p.y * 0.09 - t * 1.3);
+                    p.x += Math.cos(a) * 0.7;
+                    p.y += Math.sin(a) * 0.7;
+                    if (p.x < 0) p.x += W; if (p.x >= W) p.x -= W;
+                    if (p.y < 0) p.y += H; if (p.y >= H) p.y -= H;
+                    ctx.fillRect(p.x, p.y, 1.4, 1.4);
+                }
+                requestAnimationFrame(step);
+            }
+            step();
+        })();
+
+        // mini falling-sand preview in the game dev card (same as play.html)
+        (function () {
+            const cv = document.getElementById('sand-preview');
+            if (!cv) return;
+            const ctx = cv.getContext('2d');
+            const W = cv.width, H = cv.height;
+            const grid = new Uint8Array(W * H);
+            let t = 0;
+            function step() {
+                t++;
+                const sx = Math.floor(W / 2 + Math.sin(t * 0.02) * W * 0.35);
+                if (grid[2 * W + sx] === 0) grid[2 * W + sx] = 1;
+                for (let y = H - 2; y >= 0; y--) {
+                    for (let x = 0; x < W; x++) {
+                        if (grid[y * W + x] !== 1) continue;
+                        const below = (y + 1) * W + x;
+                        if (grid[below] === 0) { grid[below] = 1; grid[y * W + x] = 0; continue; }
+                        const d = Math.random() < 0.5 ? 1 : -1;
+                        if (x + d >= 0 && x + d < W && grid[below + d] === 0) {
+                            grid[below + d] = 1; grid[y * W + x] = 0;
+                        }
+                    }
+                }
+                if (t % 900 === 0) grid.fill(0);
+                const img = ctx.createImageData(W, H);
+                for (let i = 0; i < W * H; i++) {
+                    if (grid[i] === 1) {
+                        img.data[i * 4] = 232; img.data[i * 4 + 1] = 196;
+                        img.data[i * 4 + 2] = 106; img.data[i * 4 + 3] = 255;
+                    }
+                }
+                ctx.putImageData(img, 0, 0);
+                requestAnimationFrame(step);
+            }
+            step();
+        })();
+
+        const dot = document.getElementById('cursor-dot');
+        window.addEventListener('mousemove', (e) => {
+            dot.style.left = `${e.clientX}px`;
+            dot.style.top = `${e.clientY}px`;
+            dot.style.opacity = 1;
+        });
+    </script>
+
+    <script src="lib/nav.js"></script>
+    <script src="lib/i18n.js"></script>
+    <script src="lib/blog-posts.js"></script>
+    <script src="lib/blog.js"></script>
+</body>
+</html>
