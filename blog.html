@@ -21,6 +21,10 @@
 
     <div id="cursor-dot"></div>
 
+    <div id="readability-toggle" class="readability-toggle">
+      x contrast
+    </div>
+
     <header>
         <h1><a href="index.html">MXGN</a></h1>
         <p data-i18n="blog-tagline">blog — thoughts, breakdowns &amp; behind the scenes</p>
@@ -146,6 +150,22 @@
             dot.style.top = `${e.clientY}px`;
             dot.style.opacity = 1;
         });
+    </script>
+    <script>
+      const toggle = document.getElementById('readability-toggle');
+      const body = document.body;
+
+      if (localStorage.getItem('readable') === 'true') {
+        body.classList.add('readable');
+        toggle.textContent = 'o contrast';
+      }
+
+      toggle.addEventListener('click', () => {
+        body.classList.toggle('readable');
+        const isReadable = body.classList.contains('readable');
+        localStorage.setItem('readable', isReadable);
+        toggle.textContent = isReadable ? 'o contrast' : 'x contrast';
+      });
     </script>
 
     <script src="lib/nav.js"></script>

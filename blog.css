@@ -109,8 +109,12 @@ body.blog-page a:hover {
 .post-card .post-title {
     margin: 6px 0 8px;
     font-size: 1.25rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    hyphens: none;
+    -webkit-hyphens: none;
+    overflow-wrap: normal;
     font-weight: 600;
 }
 
@@ -145,8 +149,12 @@ body.blog-page a:hover {
 #post-root .post-title {
     margin: 6px 0 18px;
     font-size: clamp(1.4rem, 4vw, 2rem);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    hyphens: none;
+    -webkit-hyphens: none;
+    overflow-wrap: normal;
     font-weight: 600;
 }
 
@@ -452,3 +460,90 @@ body.blog-page footer {
     text-align: center;
     padding-bottom: 24px;
 }
+
+/* ------------------------------------------------------------------
+   Read mode (the "x contrast" toggle, shared with the rest of the
+   site): dark text on a light background. style.css already flips
+   the base colors and generic tags (a, p, li, h1, h2, …) — this just
+   covers the blog-only components style.css doesn't know about.
+   ------------------------------------------------------------------ */
+
+body.blog-page.readable::before {
+    background:
+        radial-gradient(circle at 15% 85%, rgba(255, 153, 0, 0.05), transparent 42%),
+        radial-gradient(circle at 85% 15%, rgba(58, 160, 255, 0.04), transparent 45%),
+        radial-gradient(circle at 55% 55%, rgba(232, 196, 106, 0.03), transparent 40%),
+        #f5f5f5 !important;
+}
+
+body.readable .quicklinks a { color: #111; }
+
+body.readable .post-card,
+body.readable .explore .card {
+    border-color: rgba(0, 0, 0, 0.18);
+}
+body.readable .post-card:hover,
+body.readable .explore .card:hover {
+    border-color: #ff9900;
+}
+
+body.readable .post-title { color: #111 !important; }
+
+body.readable .post-date,
+body.readable .post-teaser,
+body.readable .comment-date,
+body.readable .form-status,
+body.readable .blog-note {
+    color: #111 !important;
+    opacity: 0.65;
+}
+
+body.readable .post-body a {
+    color: #a35400;
+    border-bottom-color: rgba(163, 84, 0, 0.5);
+}
+
+body.readable .like-btn,
+body.readable .send-btn {
+    color: #111;
+    border-color: rgba(0, 0, 0, 0.35);
+}
+body.readable .like-btn:hover,
+body.readable .send-btn:hover:not(:disabled) {
+    color: #ff9900;
+    border-color: #ff9900;
+}
+body.readable .like-btn.liked {
+    color: #ff9900;
+    border-color: #ff9900;
+}
+
+body.readable #comments-root,
+body.readable .comment {
+    border-top-color: rgba(0, 0, 0, 0.15);
+}
+
+body.readable .comment-name { color: #a35400; }
+
+body.readable .comment-like {
+    color: #111;
+    opacity: 0.7;
+}
+body.readable .comment-like:hover,
+body.readable .comment-like.liked {
+    color: #ff9900;
+    opacity: 1;
+}
+
+body.readable .comment-form input,
+body.readable .comment-form textarea {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.25);
+    color: #111;
+}
+body.readable .comment-form input::placeholder,
+body.readable .comment-form textarea::placeholder {
+    color: rgba(0, 0, 0, 0.45);
+}
+
+body.readable .back-link { color: #111; }
