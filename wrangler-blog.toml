@@ -1,0 +1,9 @@
+# Blog-Worker (Kommentare & Likes) — separat vom Leaderboard-Worker.
+# Deploy: wrangler deploy -c wrangler-blog.toml
+name = "mxgn-blog"
+main = "cf-worker-blog.js"
+compatibility_date = "2026-01-01"
+
+[[kv_namespaces]]
+binding = "BLOG"
+id = "REPLACE_ME"   # wrangler kv namespace create BLOG → id hier einsetzen

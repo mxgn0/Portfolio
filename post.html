@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MXGN — blog</title>
+    <meta name="description" content="MXGN blog post – thoughts, breakdowns & behind the scenes.">
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="blog.css">
+</head>
+<body class="blog-page">
+
+    <div id="cursor-dot"></div>
+
+    <header>
+        <h1><a href="blog.html">MXGN &middot; blog</a></h1>
+    </header>
+
+    <main class="blog-wrap">
+        <article id="post-root">
+            <p class="blog-note">…</p>
+        </article>
+
+        <!-- anonymous comments & likes — rendered by lib/blog.js -->
+        <section id="comments-root"></section>
+    </main>
+
+    <nav>
+        <a href="index.html" data-i18n="nav-overview">overview</a>
+        <a href="blog.html">blog</a>
+        <a href="lab.html">lab</a>
+        <a href="play.html">game dev demos</a>
+        <a href="Impressum.html">impressum</a>
+    </nav>
+
+    <footer>
+        <p data-i18n="footer-rights">&copy; 2026 Max Jänichen. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const dot = document.getElementById('cursor-dot');
+        window.addEventListener('mousemove', (e) => {
+            dot.style.left = `${e.clientX}px`;
+            dot.style.top = `${e.clientY}px`;
+            dot.style.opacity = 1;
+        });
+    </script>
+
+    <script src="lib/nav.js"></script>
+    <script src="lib/i18n.js"></script>
+    <script src="lib/blog-posts.js"></script>
+    <script src="lib/blog.js"></script>
+</body>
+</html>
