@@ -19,10 +19,16 @@
     </div>
 
     <header>
-        <h1><a href="blog.html">MXGN &middot; blog</a></h1>
+        <h1><a href="blog.html">blog</a></h1>
+        <p data-i18n="blog-tagline">thoughts, breakdowns &amp; behind the scenes</p>
     </header>
 
     <main class="blog-wrap">
+        <div class="font-controls">
+            <button id="font-dec" type="button" aria-label="smaller text" title="smaller text">A&minus;</button>
+            <button id="font-inc" type="button" aria-label="larger text" title="larger text">A+</button>
+        </div>
+
         <article id="post-root">
             <p class="blog-note">…</p>
         </article>
@@ -66,6 +72,26 @@
         localStorage.setItem('readable', isReadable);
         toggle.textContent = isReadable ? 'o contrast' : 'x contrast';
       });
+    </script>
+
+    <script>
+      // A− / A+: scales the post & comment text via --blog-font-scale,
+      // remembered per browser in localStorage.
+      (function () {
+        var MIN = 0.85, MAX = 1.6, STEP = 0.15;
+        var scale = 1;
+        try { scale = parseFloat(localStorage.getItem('blog_font_scale')) || 1; } catch (e) {}
+
+        function apply() {
+          scale = Math.min(MAX, Math.max(MIN, Math.round(scale * 100) / 100));
+          document.documentElement.style.setProperty('--blog-font-scale', scale);
+          try { localStorage.setItem('blog_font_scale', scale); } catch (e) {}
+        }
+        apply();
+
+        document.getElementById('font-dec').addEventListener('click', function () { scale -= STEP; apply(); });
+        document.getElementById('font-inc').addEventListener('click', function () { scale += STEP; apply(); });
+      })();
     </script>
 
     <script src="lib/nav.js"></script>

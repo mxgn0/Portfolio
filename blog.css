@@ -48,6 +48,9 @@ body.blog-page header h1 a {
 body.blog-page header p {
     text-transform: uppercase;
     opacity: 0.8;
+    font-size: clamp(0.8rem, 2.2vw, 1rem);
+    letter-spacing: 0.16em;
+    margin: 8px 0 0;
 }
 
 body.blog-page a {
@@ -146,6 +149,46 @@ body.blog-page a:hover {
 
 /* ---------- single post ---------- */
 
+/* A− / A+ text-size controls (post.html) */
+.font-controls {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 14px;
+}
+
+.font-controls button {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 999px;
+    color: #fff;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    font-family: 'Chillax', sans-serif;
+    cursor: pointer;
+    transition: color 0.25s ease, border-color 0.25s ease;
+}
+
+.font-controls #font-dec { font-size: 0.75rem; }
+.font-controls #font-inc { font-size: 1.05rem; }
+
+.font-controls button:hover {
+    color: #ff9900;
+    border-color: #ff9900;
+}
+
+body.readable .font-controls button {
+    color: #111;
+    border-color: rgba(0, 0, 0, 0.35);
+}
+body.readable .font-controls button:hover {
+    color: #ff9900;
+    border-color: #ff9900;
+}
+
+
 #post-root .post-title {
     margin: 6px 0 18px;
     font-size: clamp(1.4rem, 4vw, 2rem);
@@ -158,10 +201,12 @@ body.blog-page a:hover {
     font-weight: 600;
 }
 
+/* base size grows with the viewport (noticeably bigger on tablets),
+   --blog-font-scale is the user's A− / A+ choice (persisted in JS) */
 .post-body {
     text-transform: none;
     line-height: 1.75;
-    font-size: 1rem;
+    font-size: calc(clamp(1rem, 0.85rem + 0.55vw, 1.3rem) * var(--blog-font-scale, 1));
 }
 
 .post-body p {
@@ -276,7 +321,7 @@ body.blog-page a:hover {
     text-transform: none;
     white-space: pre-wrap;
     overflow-wrap: break-word;
-    font-size: 0.95rem;
+    font-size: calc(0.95rem * var(--blog-font-scale, 1));
     line-height: 1.6;
 }
 
