@@ -6,4 +6,4 @@ compatibility_date = "2026-01-01"
 
 [[kv_namespaces]]
 binding = "BLOG"
-id = "REPLACE_ME"   # wrangler kv namespace create BLOG → id hier einsetzen
+id = "0d6ce7588d9f44b2a1ec8e14fee5bbe4"   # KV-Namespace "BLOG" (Cloudflare-Dashboard → Workers KV)
