@@ -172,13 +172,15 @@ body.readable a:hover {
   letter-spacing: 0.12em;
   font-weight: 500;
 
+  /* Plain text, no pill/border — matches the video-refresh hint style.
+     Only the color flips with the mode so it stays legible on both
+     the black and the white background. */
   color: #fff;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.45);
-  border-radius: 999px;
-  padding: 8px 14px;
+  background: none;
+  border: none;
+  padding: 0;
 
-  opacity: 0.85;
+  opacity: 0.35;
   cursor: pointer;
 
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -191,8 +193,6 @@ body.readable a:hover {
 
 body.readable .readability-toggle {
   color: #111;
-  background: rgba(255, 255, 255, 0.6);
-  border-color: rgba(0, 0, 0, 0.35);
 }
 
 /* Smart, responsive media grid for project videos & images.
@@ -247,6 +247,26 @@ nav a {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* Touch devices only: long-press / double-tap must never start a text
+   selection or open the iOS copy/lookup callout anywhere on the page.
+   Form fields stay selectable so typing and correcting input still works.
+   Desktop (mouse) selection is unaffected. */
+@media (hover: none) and (pointer: coarse) {
+  body {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable] {
+    -webkit-touch-callout: default;
+    -webkit-user-select: text;
+    user-select: text;
+  }
 }
 
 /* Floating navigation button – fixed, scrolls along with the page.
